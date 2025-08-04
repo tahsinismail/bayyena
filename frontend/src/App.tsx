@@ -1,8 +1,11 @@
+// frontend/src/App.tsx
 import { Route, Switch } from 'wouter';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import CaseList from './pages/CaseList';
+import CaseDetail from './pages/CaseDetail'; // Import the new detail page
 import { ProtectedRoute } from './components/ProtectedRoute';
+import Layout from './components/Layout';
 
 function App() {
   return (
@@ -10,15 +13,16 @@ function App() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       
-      {/* All other routes are protected */}
       <Route>
         <ProtectedRoute>
-          {/* Your main app layout and protected routes go here */}
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            {/* Add other protected routes here later (e.g., /cases/:id) */}
-            <Route>404, Not Found!</Route>
-          </Switch>
+          <Layout>
+            <Switch>
+              <Route path="/" component={CaseList} />
+              {/* Add the new route for case details */}
+              <Route path="/cases/:id" component={CaseDetail} />
+              <Route>404, Not Found!</Route>
+            </Switch>
+          </Layout>
         </ProtectedRoute>
       </Route>
     </Switch>

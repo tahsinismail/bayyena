@@ -5,8 +5,9 @@ import session from 'express-session';
 import passport from 'passport';
 import connectPgSimple from 'connect-pg-simple';
 import { Pool } from 'pg';
-
-import authRoutes from './routes/auth'; // We will create this file next
+import authRoutes from './routes/auth';
+import caseRoutes from './routes/cases'; // Import case routes
+import './auth/passport'; // We will create this file next
 import './auth/passport'; // Initialize passport configuration
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use(passport.session());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/cases', caseRoutes); // Use case routes
 
 app.get('/', (req, res) => {
   res.send('LegalCaseBuilder Backend is running!');
