@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button, TextField, Flex, Select, Card, Text, TextArea } from '@radix-ui/themes';
 import axios from 'axios';
 import { type CaseType } from '../types';
+import { createCase } from '../api';
 
 interface CaseFormProps {
   onSuccess: () => void;
@@ -29,7 +30,7 @@ export default function CaseForm({ onSuccess, onCancel }: CaseFormProps) {
 
     setIsSubmitting(true);
     try {
-      await axios.post('/api/cases', { title, description, type });
+      await createCase({ title, description, type }); // Use the new function
       onSuccess(); // Trigger the success callback
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create case');

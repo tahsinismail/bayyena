@@ -1,14 +1,17 @@
-// src/index.ts
+// backend/src/index.ts
 import express, { Express } from 'express';
 import dotenv from 'dotenv';
 import session from 'express-session';
 import passport from 'passport';
 import connectPgSimple from 'connect-pg-simple';
 import { Pool } from 'pg';
+
 import authRoutes from './routes/auth';
-import caseRoutes from './routes/cases'; // Import case routes
-import './auth/passport'; // We will create this file next
-import './auth/passport'; // Initialize passport configuration
+import caseRoutes from './routes/cases';
+import documentRoutes from './routes/documents';
+import chatRoutes from './routes/chat'; // <-- Make sure this is imported
+
+import './auth/passport';
 
 dotenv.config();
 
@@ -16,23 +19,19 @@ const app: Express = express();
 const port = process.env.PORT || 3001;
 
 const PgStore = connectPgSimple(session);
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static('uploads'));
 app.use(
   session({
-    store: new PgStore({
-      pool: pool,
-      tableName: 'user_sessions',
-    }),
+    store: new PgStore({ pool: pool, tableName: 'user_sessions' }),
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }, // 30 days
+    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 },
   })
 );
 app.use(passport.initialize());
@@ -40,7 +39,9 @@ app.use(passport.session());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/cases', caseRoutes); // Use case routes
+app.use('/api/cases', documentRoutes);
+app.use('/api/cases', caseRoutes);
+app.use('/api/chat', chatRoutes); // <-- And used here
 
 app.get('/', (req, res) => {
   res.send('LegalCaseBuilder Backend is running!');

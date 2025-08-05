@@ -6,6 +6,7 @@ import { Link } from 'wouter'; // Import the Link component
 import axios from 'axios';
 import {type Case } from '../types';
 import CaseForm from '../components/CaseForm';
+import { getCases } from '../api'; // Import our new function
 
 export default function CaseList() {
   const [cases, setCases] = useState<Case[]>([]);
@@ -17,7 +18,7 @@ export default function CaseList() {
     try {
       setError('');
       setIsLoading(true);
-      const { data } = await axios.get<Case[]>('/api/cases');
+      const { data } = await getCases(); // Use the new function
       setCases(data);
     } catch (err) {
       setError('Failed to fetch cases.');
@@ -36,7 +37,7 @@ export default function CaseList() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 min-w-screen">
         <Card>
             <Flex justify="between" align="center" mb="6" p="4">
                 <Heading>My Cases</Heading>

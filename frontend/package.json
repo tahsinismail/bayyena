@@ -16,6 +16,9 @@
     "axios": "^1.11.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-dropzone": "^14.3.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "wouter": "^3.7.1"
   },
   "devDependencies": {
