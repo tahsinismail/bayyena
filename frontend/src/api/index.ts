@@ -37,5 +37,5 @@ export const deleteDocument = (caseId: string, docId: number) => apiClient.delet
 export const postChatMessage = (caseId: string, message: string) => apiClient.post<{ answer: string }>(`/chat/${caseId}`, { message });
 export const getChatHistory = (caseId: string) => apiClient.get<Message[]>(`/chat/${caseId}/history`);
 export const clearChatHistory = (caseId: string) => apiClient.delete(`/chat/${caseId}/history`);
-
+export const getDocumentById = (docId: string) => apiClient.get<Document>(`/documents/${docId}`);
 export default apiClient;

@@ -36,6 +36,13 @@
       "when": 1754393250330,
       "tag": "0004_military_cable",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1754479245587,
+      "tag": "0005_acoustic_taskmaster",
+      "breakpoints": true
     }
   ]
 }

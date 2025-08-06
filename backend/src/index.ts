@@ -10,7 +10,7 @@ import authRoutes from './routes/auth';
 import caseRoutes from './routes/cases';
 import documentRoutes from './routes/documents';
 import chatRoutes from './routes/chat'; // <-- Make sure this is imported
-
+import documentDetailRoutes from './routes/documentDetail';
 import './auth/passport';
 
 dotenv.config();
@@ -41,8 +41,8 @@ app.use(passport.session());
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', documentRoutes);
 app.use('/api/cases', caseRoutes);
-app.use('/api/chat', chatRoutes); // <-- And used here
-
+app.use('/api/chat', chatRoutes); 
+app.use('/api/documents', documentDetailRoutes);
 app.get('/', (req, res) => {
   res.send('LegalCaseBuilder Backend is running!');
 });

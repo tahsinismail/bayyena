@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: process.env.AI_MODEL_NAME!});
+const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL! });
 
 router.use(isAuthenticated);
 

@@ -1,18 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-    server: {
+  // --- ADD THIS SERVER CONFIGURATION BLOCK ---
+  server: {
     proxy: {
-      // Proxy /api requests to our backend server
+      // Any request starting with /api will be proxied to the backend
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: false,
       },
-    },
-  },
+      // Any request starting with /uploads will also be proxied
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      }
+    }
+  }
 })

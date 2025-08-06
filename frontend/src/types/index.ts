@@ -15,6 +15,11 @@ export interface Case {
   updatedAt: string;
 }
 
+export interface TimelineEvent {
+  date: string;
+  event: string;
+}
+
 export interface Document {
   id: number;
   caseId: number;
@@ -24,6 +29,12 @@ export interface Document {
   fileSize: number;
   createdAt: string;
   processingStatus: 'PENDING' | 'PROCESSED' | 'FAILED';
+  
+  // Add the new AI fields (make them optional)
+  summary?: string;
+  timeline?: TimelineEvent[];
+  translationEn?: string;
+  translationAr?: string;
 }
 
 export interface Message {

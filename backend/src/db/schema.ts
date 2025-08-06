@@ -1,5 +1,5 @@
 // backend/src/db/schema.ts
-import { pgTable, serial, text, varchar, timestamp, json, integer, pgEnum, bigint } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, varchar, timestamp, json, integer, pgEnum, bigint, jsonb } from 'drizzle-orm/pg-core';
 
 // --- Existing User and Session Tables ---
 export const users = pgTable('users', {
@@ -42,13 +42,16 @@ export const documents = pgTable('documents', {
     storagePath: text('storage_path').notNull().unique(),
     fileType: text('file_type').notNull(),
     fileSize: bigint('file_size', { mode: 'number' }).notNull(),
-    // --- New Columns ---
-    extractedText: text('extracted_text'), // Will store the full text content
+    extractedText: text('extracted_text'),
     processingStatus: docProcessingStatusEnum('processing_status').default('PENDING').notNull(),
-    // ---
     createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
+    // --- NEW AI-GENERATED CONTENT COLUMNS ---
+    summary: text('summary'),
+    timeline: jsonb('timeline'), // We use jsonb for efficiently storing structured JSON data
+    translationEn: text('translation_en'),
+    translationAr: text('translation_ar'),
+});
 // --- New Chat Messages Table ---
 export const chatMessages = pgTable('chat_messages', {
     id: serial('id').primaryKey(),
