@@ -11,12 +11,14 @@ export default function LanguageSwitcher() {
   return (
     <Flex gap="3">
       <Button
+        color='gold'
         variant={i18n.language === 'en' ? 'solid' : 'soft'}
         onClick={() => changeLanguage('en')}
       >
         {t('english')}
       </Button>
       <Button
+        color='gold'
         variant={i18n.language === 'ar' ? 'solid' : 'soft'}
         onClick={() => changeLanguage('ar')}
       >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRoute, useLocation, Link } from 'wouter';
 import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea } from '@radix-ui/themes';
 import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
@@ -154,8 +154,8 @@ export default function CaseDetail() {
         </Card>
         <div>
           <Tabs.Root defaultValue="summary">
-          <Tabs.List>
-            <Tabs.Trigger value="summary">Case Summary</Tabs.Trigger>
+          <Tabs.List color='gold' >
+            <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
             <Tabs.Trigger value="chat">Chat</Tabs.Trigger>
           </Tabs.List>
           <Box pt="3">
@@ -203,7 +203,7 @@ export default function CaseDetail() {
         <Card>
           <Box p="4">
             <Heading size="5" mb="4">Case Documents</Heading>
-            <div {...getRootProps()} className={`p-6 border-2 border-dashed rounded-lg text-center cursor-pointer ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} ${isUploading ? 'cursor-not-allowed opacity-60' : 'hover:border-gray-400'}`}>
+            <div {...getRootProps()} className={`p-6 border-2 border-dashed rounded-lg text-center cursor-pointer ${isDragActive ? 'border-[#856A00] bg-blue-50' : 'border-gray-300'} ${isUploading ? 'cursor-not-allowed opacity-60' : 'hover:border-gray-400'}`}>
               <input {...getInputProps()} />
               <Flex direction="column" align="center" gap="2">
                 <UploadIcon width="24" height="24" />
@@ -217,7 +217,7 @@ export default function CaseDetail() {
               {documents.length > 0 ? (
                 documents.map(doc => (
                   <Flex key={doc.id} align="center" justify="between" className="group hover:bg-gray-100 p-2 rounded">
-                    <Link href={`/documents/${doc.id}`}><a className="flex-grow flex items-center gap-3"><FileTextIcon /><Box><Text as="div" size="2" weight="bold">{doc.fileName}</Text><Text as="div" size="1" color="gray">{(doc.fileSize / 1024).toFixed(2)} KB</Text></Box></a></Link>
+                    <Link href={`/documents/${doc.id}`}><span className="flex-grow flex items-center gap-3"><FileTextIcon /><Box><Text as="div" size="2" weight="bold">{doc.fileName}</Text><Text as="div" size="1" color="gray">{(doc.fileSize / 1024).toFixed(2)} KB</Text></Box></span></Link>
                     <Flex align="center" gap="3">
                       {doc.processingStatus === 'PROCESSED' && <CheckCircledIcon className="text-green-500" />}
                       {doc.processingStatus === 'FAILED' && <CrossCircledIcon className="text-red-500" />}

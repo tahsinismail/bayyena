@@ -9,7 +9,7 @@ import './i18n'; // <-- IMPORT THIS FILE HERE
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Theme>
+    <Theme accentColor='gold'>
       <AuthProvider>
         <App />
       </AuthProvider>

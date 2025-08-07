@@ -23,9 +23,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <Flex direction="column" className="min-h-screen">
-      <Box p="4" className="border-b">
+      <Box p="4" className="border-b border-[#856A00]">
         <Flex justify="between" align="center">
-          <Text weight="bold" size="5">{t('appName')}</Text>
+          <Flex direction="row" align="center" justify="center">
+            <img src="/logo.png" alt="Logo" width={50} height={50}/>
+            <Text weight="bold" size="7" color='gold'>{t('BAYYNA')}</Text>
+          </Flex>
           <Flex gap="6" align="center">
             <LanguageSwitcher />
             <Text>{t('welcome', { name: user?.fullName })}</Text>

@@ -80,16 +80,15 @@ export default function CaseChat({ caseId }: CaseChatProps) {
     return (
         <Card>
             <Box p="4">
-                <Flex justify="between" align="center" mb="2">
-                    <Heading size="4">Conversation</Heading>
+                <Flex justify="end" align="end" mb="2">
                     <Button variant="soft" color="red" size="1" onClick={handleClearChat}><ReloadIcon /> Clear Chat</Button>
                 </Flex>
 
-                <ScrollArea ref={scrollAreaRef} style={{ height: '400px' }} className="bg-gray-50 rounded">
+                <ScrollArea ref={scrollAreaRef} style={{ height: '300px' }} className="bg-gray-50 rounded py-2 px-4">
                     <Flex direction="column" gap="4">
                         {messages.map((msg, index) => (
                             <Flex key={index} justify={msg.sender === 'user' ? 'end' : 'start'}>
-                                <Box className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`} style={{ maxWidth: '80%' }}>
+                                <Box className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} style={{ maxWidth: '80%' }}>
                                     {/* --- THIS IS THE KEY CHANGE --- */}
                                     {/* Use ReactMarkdown to render the text */}
                                     <div className="markdown-content">
