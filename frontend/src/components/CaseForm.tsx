@@ -40,7 +40,7 @@ export default function CaseForm({ onSuccess, onCancel }: CaseFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-10">
         <Card className="p-6 max-w-lg w-full">
         <form onSubmit={handleSubmit}>
             <Flex direction="column" gap="4">

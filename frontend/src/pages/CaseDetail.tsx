@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRoute, useLocation, Link } from 'wouter';
-import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress } from '@radix-ui/themes';
+import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea } from '@radix-ui/themes';
 import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
 import { useDropzone } from 'react-dropzone';
 import type { Case, Document } from '../types';
 import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument } from '../api';
 import CaseChat from '../components/CaseChat';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function CaseDetail() {
   const [, params] = useRoute("/cases/:id");
@@ -113,6 +115,11 @@ export default function CaseDetail() {
     }
   };
 
+  const summarizedDocs = documents.filter(
+    doc => doc.processingStatus === 'PROCESSED' && doc.summary
+  );
+  // --- END OF CHANGE ---
+
   if (isLoading) return <Flex justify="center" p="8"><Spinner size="3" /></Flex>;
   if (error) return <Flex justify="center" p="8"><Text color="red">{error}</Text></Flex>;
 
@@ -146,8 +153,50 @@ export default function CaseDetail() {
           </Box>
         </Card>
         <div>
-          <Heading size="5" mb="4">Intelligent Chat</Heading>
-          {caseId && <CaseChat caseId={caseId} />}
+          <Tabs.Root defaultValue="summary">
+          <Tabs.List>
+            <Tabs.Trigger value="summary">Case Summary</Tabs.Trigger>
+            <Tabs.Trigger value="chat">Chat</Tabs.Trigger>
+          </Tabs.List>
+          <Box pt="3">
+            <Tabs.Content value="summary">
+              <Card>
+                <ScrollArea type="auto" scrollbars="vertical" style={{ maxHeight: '60vh' }}>
+                  <Box p="4">
+                    {summarizedDocs.length > 0 ? (
+                      <Flex direction="column" gap="5">
+                        {summarizedDocs.map(doc => (
+                          <Box key={doc.id}>
+                            <Heading as="h3" size="4" mb="2">
+                              <Flex align="center" gap="2">
+                                <FileTextIcon />
+                                {doc.fileName}
+                              </Flex>
+                            </Heading>
+                            <Box pl="4" className="border-l-2 border-gray-200">
+                                <div className="markdown-content">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.summary}</ReactMarkdown>
+                                </div>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Flex>
+                    ) : (
+                      <Flex justify="center" align="center" style={{ minHeight: '200px' }}>
+                        <Text color="gray">No document summaries available. Please upload and process documents.</Text>
+                      </Flex>
+                    )}
+                  </Box>
+                </ScrollArea>
+              </Card>
+            </Tabs.Content>
+            <Tabs.Content value="chat">
+                {caseId && <CaseChat caseId={caseId} />}  
+            </Tabs.Content>
+          </Box>
+        </Tabs.Root>
+        {/* --- END OF CHANGE --- */}
+   
         </div>
       </div>
       <div className="lg:col-span-1">
