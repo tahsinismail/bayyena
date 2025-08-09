@@ -4,7 +4,7 @@ import { Button, TextField, Flex, Text, Card, Link } from '@radix-ui/themes';
 import { useLocation, Link as WouterLink } from 'wouter';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
-
+import logo from '../assets/logo.png';
 export default function Register() {
   const [fullName, setFullName] = useState(''); // Added
   const [email, setEmail] = useState('');
@@ -33,8 +33,9 @@ export default function Register() {
   };
 
   return (
-    <Flex align="center" justify="center" className="min-h-screen">
-      <Card className="p-8 max-w-md w-full">
+    <Flex direction="column" align="center" justify="center" className="min-h-screen min-w-screen">
+      <img src={logo} alt="Logo" className="mb-8"  width={150} height={150}/>
+      <Card className="p-8 min-w-md max-w-1/3">
         <form onSubmit={handleSubmit}>
           <Flex direction="column" gap="4">
             <Text as="label" size="6" weight="bold" align="center">Create Account</Text>

@@ -1,10 +1,10 @@
-// frontend/src/pages/CaseList.tsx
 import { useState, useEffect } from 'react';
-import { Button, Flex, Heading, Table, Card, Text } from '@radix-ui/themes';
+import { Button, Flex, Heading, Text, Table, Card } from '@radix-ui/themes';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Link } from 'wouter'; // Import the Link component
-import axios from 'axios';
-import {type Case } from '../types';
+import { Link } from 'wouter';
+import { useTranslation } from 'react-i18next'; // Import the hook
+import { type Case } from '../types';
+import { getCases } from '../api';
 import CaseForm from '../components/CaseForm';
 
 export default function CaseList() {
@@ -12,15 +12,16 @@ export default function CaseList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const { t } = useTranslation(); // Use the hook
 
   const fetchCases = async () => {
     try {
       setError('');
       setIsLoading(true);
-      const { data } = await axios.get<Case[]>('/api/cases');
+      const { data } = await getCases();
       setCases(data);
     } catch (err) {
-      setError('Failed to fetch cases.');
+      setError('Failed to fetch cases.'); // This error message could also be translated
     } finally {
       setIsLoading(false);
     }
@@ -36,61 +37,53 @@ export default function CaseList() {
   };
 
   return (
-    <div className="p-4 md:p-8">
-        <Card>
-            <Flex justify="between" align="center" mb="6" p="4">
-                <Heading>My Cases</Heading>
-                <Button onClick={() => setShowForm(true)}>
-                    <PlusIcon /> Create New Case
-                </Button>
-            </Flex>
-
-            {/* ... loading and error states remain the same ... */}
-
-            {!isLoading && !error && (
-                <Table.Root variant="surface">
-                    <Table.Header>
-                        <Table.Row>
-                            <Table.ColumnHeaderCell>Case Title</Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>Case Number</Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-                            <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
-                        </Table.Row>
-                    </Table.Header>
-
-                    <Table.Body>
-                        {cases.length > 0 ? (
-                            cases.map(c => (
-                                <Table.Row key={c.id}>
-                                    <Table.RowHeaderCell>
-                                        {/* Use Link to navigate to the detail page */}
-                                        <Link href={`/cases/${c.id}`}>
-                                            {c.title}
-                                        </Link>
-                                    </Table.RowHeaderCell>
-                                    <Table.Cell>{c.caseNumber}</Table.Cell>
-                                    <Table.Cell>{c.type}</Table.Cell>
-                                    <Table.Cell>{c.status}</Table.Cell>
-                                </Table.Row>
-                            ))
-                        ) : (
-                            <Table.Row>
-                                <Table.Cell colSpan={4} align="center" className="p-6">
-                                    <Text>No cases found. Get started by creating one!</Text>
-                                </Table.Cell>
-                            </Table.Row>
-                        )}
-                    </Table.Body>
-                </Table.Root>
-            )}
-        </Card>
-
-        {showForm && (
-            <CaseForm 
-                onSuccess={handleCreateSuccess} 
-                onCancel={() => setShowForm(false)} 
-            />
+    <div className="p-4 md:p-8 min-w-screen">
+      {/* The CaseForm component should also be refactored internally */}
+      {showForm && (
+          <CaseForm onSuccess={handleCreateSuccess} onCancel={() => setShowForm(false)} />
+      )}
+      <Card>
+        <Flex justify="between" align="center" mb="6" p="4">
+          <Heading>{t('myCases')}</Heading>
+          <Button onClick={() => setShowForm(true)}>
+            <PlusIcon /> {t('createCase')}
+          </Button>
+        </Flex>
+        {isLoading && <Text className="p-4">Loading cases...</Text>}
+        {error && <Text color="red" className="p-4">{error}</Text>}
+        {!isLoading && !error && (
+          <Table.Root variant="surface">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeaderCell>{t('caseTitle')}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t('caseNumber')}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t('caseType')}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{t('caseStatus')}</Table.ColumnHeaderCell>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {cases.length > 0 ? (
+                cases.map(c => (
+                  <Table.Row key={c.id}>
+                    <Table.RowHeaderCell>
+                      <Link href={`/cases/${c.id}`}><a className="text-[#856A00] hover:underline">{c.title}</a></Link>
+                    </Table.RowHeaderCell>
+                    <Table.Cell>{c.caseNumber}</Table.Cell>
+                    <Table.Cell>{c.type}</Table.Cell>
+                    <Table.Cell>{c.status}</Table.Cell>
+                  </Table.Row>
+                ))
+              ) : (
+                <Table.Row>
+                  <Table.Cell colSpan={4} align="center" className="p-6">
+                    <Text>{t('noCasesFound')}</Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
         )}
+      </Card>
     </div>
   );
 }

@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1754310722619,
-      "tag": "0000_dark_proemial_gods",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1754312029123,
-      "tag": "0001_fresh_genesis",
+      "when": 1754629909029,
+      "tag": "0000_foamy_rockslide",
       "breakpoints": true
     }
   ]

@@ -1,18 +1,23 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-    server: {
+  // --- ADD THIS SERVER CONFIGURATION BLOCK ---
+  server: {
+    host: true,
+    allowedHosts: ['bayyena.com', 'www.bayyena.com'], // Needed for Docker
     proxy: {
-      // Proxy /api requests to our backend server
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://backend:3001', // Use the service name
         changeOrigin: true,
-        secure: false,
       },
-    },
-  },
+      '/uploads': {
+        target: 'http://backend:3001', // Use the service name
+        changeOrigin: true,
+      }
+    }
+  }
 })
+// --- END OF SERVER CONFIGURATION BLOCK ---
