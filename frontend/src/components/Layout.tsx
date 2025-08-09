@@ -5,6 +5,9 @@ import { useAuth } from '../hooks/useAuth';
 import apiClient from '../api';
 import LanguageSwitcher from './LanguageSwitcher'; // Import the switcher
 
+import logo from '../assets/logo.png'; // Adjust the path as necessary
+import { Link } from 'wouter';
+
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, setUser } = useAuth();
   const { t, i18n } = useTranslation();
@@ -25,10 +28,12 @@ export default function Layout({ children }: { children: ReactNode }) {
     <Flex direction="column" className="min-h-screen">
       <Box p="4" className="border-b border-[#856A00]">
         <Flex justify="between" align="center">
-          <Flex direction="row" align="center" justify="center">
-            <img src="/logo.png" alt="Logo" width={50} height={50}/>
-            <Text weight="bold" size="7" color='gold'>{t('BAYYNA')}</Text>
-          </Flex>
+          <Link href="/">
+            <Flex direction="row" align="center" justify="center">
+              <img src={logo} alt="Logo" width={50} height={50}/>
+              <Text weight="bold" size="7" color='gold'>{t('BAYYENA')}</Text>
+            </Flex>
+          </Link>
           <Flex gap="6" align="center">
             <LanguageSwitcher />
             <Text>{t('welcome', { name: user?.fullName })}</Text>

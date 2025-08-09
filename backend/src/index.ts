@@ -16,7 +16,7 @@ import './auth/passport';
 dotenv.config();
 
 const app: Express = express();
-const port = process.env.PORT || 3001;
+const port = parseInt(process.env.PORT || '3001', 10);
 
 const PgStore = connectPgSimple(session);
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -47,6 +47,6 @@ app.get('/', (req, res) => {
   res.send('LegalCaseBuilder Backend is running!');
 });
 
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`[server]: Server is running at http://0.0.0.0:${port}`);
 });

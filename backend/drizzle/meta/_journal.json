@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1754310722619,
-      "tag": "0000_dark_proemial_gods",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1754312029123,
-      "tag": "0001_fresh_genesis",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1754345294604,
-      "tag": "0002_slow_surge",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1754346663054,
-      "tag": "0003_milky_titania",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1754393250330,
-      "tag": "0004_military_cable",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1754479245587,
-      "tag": "0005_acoustic_taskmaster",
+      "when": 1754629909029,
+      "tag": "0000_foamy_rockslide",
       "breakpoints": true
     }
   ]

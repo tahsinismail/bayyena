@@ -3,6 +3,7 @@ import { Button, TextField, Flex, Text, Card, Link } from '@radix-ui/themes';
 import { useLocation, Link as WouterLink } from 'wouter';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
+import logo from '../assets/logo.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export default function Login() {
 
   return (
     <Flex direction="column" align="center" justify="center" className="min-h-screen min-w-screen">
-      <img src="/logo.png" alt="Logo" className="mb-8"  width={150} height={150}/>
+      <img src={logo} alt="Logo" className="mb-8"  width={150} height={150}/>
       <Card className="p-16 min-w-md min-h-max w-1/3 h-1/2">
         <form onSubmit={handleSubmit}>
           <Flex direction="column" gap="4">

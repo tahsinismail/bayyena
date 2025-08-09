@@ -6,17 +6,18 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   // --- ADD THIS SERVER CONFIGURATION BLOCK ---
   server: {
+    host: true,
+    allowedHosts: ['bayyena.com', 'www.bayyena.com'], // Needed for Docker
     proxy: {
-      // Any request starting with /api will be proxied to the backend
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://backend:3001', // Use the service name
         changeOrigin: true,
       },
-      // Any request starting with /uploads will also be proxied
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: 'http://backend:3001', // Use the service name
         changeOrigin: true,
       }
     }
   }
 })
+// --- END OF SERVER CONFIGURATION BLOCK ---

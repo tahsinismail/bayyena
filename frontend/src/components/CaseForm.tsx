@@ -1,7 +1,6 @@
 // frontend/src/components/CaseForm.tsx
 import { useState } from 'react';
 import { Button, TextField, Flex, Select, Card, Text, TextArea } from '@radix-ui/themes';
-import axios from 'axios';
 import { type CaseType } from '../types';
 import { createCase } from '../api';
 
