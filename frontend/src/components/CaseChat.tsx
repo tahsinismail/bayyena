@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Box, Card, Flex, TextArea, Button, ScrollArea, Spinner } from '@radix-ui/themes';
 import { PaperPlaneIcon, ReloadIcon } from '@radix-ui/react-icons';
 import type { Message } from '../types';
-import { getChatHistory, clearChatHistory } from '../api';
+import { getChatHistory, clearChatHistory, postChatMessage } from '../api';
 import ReactMarkdown from 'react-markdown'; // Import the new library
 import remarkGfm from 'remark-gfm'; // Import the GFM plugin
 
@@ -52,8 +52,9 @@ export default function CaseChat({ caseId }: CaseChatProps) {
         setIsLoading(true);
 
         try {
-            // const { data: { answer } } = await postChatMessage(caseId, trimmedInput);
+            const { data: { answer } } = await postChatMessage(caseId, trimmedInput);
             // Fetch history again to get the saved messages, ensuring UI is in sync with DB
+            console.log("answer", answer);
             const { data: updatedHistory } = await getChatHistory(caseId);
             setMessages(updatedHistory);
         } catch (err: any) {
