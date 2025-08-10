@@ -38,4 +38,7 @@ export const postChatMessage = (caseId: string, message: string) => apiClient.po
 export const getChatHistory = (caseId: string) => apiClient.get<Message[]>(`/chat/${caseId}/history`);
 export const clearChatHistory = (caseId: string) => apiClient.delete(`/chat/${caseId}/history`);
 export const getDocumentById = (docId: string) => apiClient.get<Document>(`/documents/${docId}`);
+
+// --- Server Capabilities ---
+export const checkServerCapabilities = () => apiClient.get('/server/capabilities');
 export default apiClient;

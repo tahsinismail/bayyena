@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 docker-compose.yml
+production_config/
+*.md

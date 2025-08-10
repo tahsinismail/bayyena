@@ -101,7 +101,7 @@ export default function DocumentDetail() {
             <Tabs.List>
               <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
               <Tabs.Trigger value="timeline">Timeline</Tabs.Trigger>
-              <Tabs.Trigger value="translation">Translation</Tabs.Trigger>
+              <Tabs.Trigger value="translation">Analysis & Translation</Tabs.Trigger>
             </Tabs.List>
             <Box pt="4">
               <Tabs.Content value="summary">
@@ -120,9 +120,9 @@ export default function DocumentDetail() {
                   <Button variant={activeTranslation === 'ar' ? 'solid' : 'soft'} onClick={() => setActiveTranslation('ar')}>العربية</Button>
                 </Flex>
                 <Box p="4" className="bg-gray-50 rounded">
-                  <Text as="p" className="whitespace-pre-wrap">
-                    {activeTranslation === 'en' ? (document.translationEn || 'No English translation available.') : (document.translationAr || 'No Arabic translation available.')}
-                  </Text>
+                
+                    {activeTranslation === 'en' ? <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{document.translationEn || 'No English translation available.'}</ReactMarkdown></div> : <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{document.translationAr || 'No Arabic translation available.'}</ReactMarkdown></div>}
+                  
                 </Box>
               </Tabs.Content>
             </Box>

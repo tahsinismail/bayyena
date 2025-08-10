@@ -8,11 +8,11 @@ import { documents } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
 import { processDocument } from '../services/documentProcessor';
-
+import { OCRProcessor } from '../services/ocrProcessor';
 
 const router = Router();
 
-// Configure Multer for file storage
+// Configure Multer for file storage with better file filtering
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/';
@@ -29,12 +29,61 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+// File filter function to validate supported file types
+const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const supportedTypes = [
+    // Documents
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'text/plain',
+    'text/csv',
+    'text/tab-separated-values',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/rtf',
+    'text/html',
+    'text/xml',
+    'application/json',
+    'text/markdown',
+    'text/yaml',
+    'text/javascript',
+    'text/css',
+    // Images
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/bmp',
+    'image/tiff',
+    'image/webp',
+    // Videos
+    'video/mp4',
+    'video/avi',
+    'video/mov',
+    'video/wmv',
+    'video/flv',
+    'video/webm'
+  ];
+
+  if (supportedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Unsupported file type: ${file.mimetype}. Supported types: ${supportedTypes.join(', ')}`));
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+  }
+});
 
 // Apply auth middleware to all document routes
 router.use(isAuthenticated);
 
-// POST /api/cases/:caseId/documents - Upload a new document for a case
+// POST /:caseId/documents - Upload a new document for a case
 router.post('/:caseId/documents', upload.single('document'), async (req, res, next) => {
   const caseId = parseInt(req.params.caseId);
   const file = req.file;
@@ -44,28 +93,97 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
   }
 
   try {
-    const newDocRecord = await db.insert(documents).values({
-      caseId,
+    // Validate file size
+    if (file.size > 100 * 1024 * 1024) { // 100MB
+      fs.unlinkSync(file.path);
+      return res.status(400).json({ message: 'File size exceeds 100MB limit.' });
+    }
+
+    // Check if the case exists (you might want to add this validation)
+    // const caseExists = await db.select().from(cases).where(eq(cases.id, caseId));
+    // if (caseExists.length === 0) {
+    //   fs.unlinkSync(file.path);
+    //   return res.status(404).json({ message: 'Case not found.' });
+    // }
+
+    // Determine if the file is processable (images, videos, PDFs, Word docs, text files)
+    const isProcessable = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/tiff', 'image/webp',
+      'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain',
+      'text/csv',
+      'text/tab-separated-values',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/rtf',
+      'text/html',
+      'text/xml',
+      'application/json',
+      'text/markdown',
+      'text/yaml',
+      'text/javascript',
+      'text/css'
+    ].includes(file.mimetype);
+
+    // Insert document record into database
+    const [newDocument] = await db.insert(documents).values({
+      caseId: caseId,
       fileName: file.originalname,
-      storagePath: file.path,
       fileType: file.mimetype,
       fileSize: file.size,
+      storagePath: file.path,
+      processingStatus: isProcessable ? 'PENDING' : 'PROCESSED',
+      extractedText: isProcessable ? null : 'File type not supported for text extraction'
     }).returning();
 
-    // Here is where we will add text extraction (OCR, etc.) in the next step
-    const newDocument = newDocRecord[0];
+    // If the file is processable, start background processing
+    if (isProcessable) {
+      // Start background processing
+      processDocument(newDocument.id, file.path, file.mimetype).catch(error => {
+        console.error(`[DOCUMENT_PROCESSOR] Error processing document ${newDocument.id}:`, error);
+        
+        // Update the document with detailed error information
+        const errorMessage = error instanceof Error ? error.message : 'Unknown processing error';
+        const detailedError = errorMessage.includes('FFprobe not available') || errorMessage.includes('Cannot find ffprobe')
+          ? 'Video processing failed: FFmpeg is not installed on the server. Please contact your administrator to install FFmpeg for video OCR support.'
+          : errorMessage;
+        
+        db.update(documents).set({ 
+          processingStatus: 'FAILED',
+          extractedText: `PROCESSING_ERROR: ${detailedError}`
+        }).where(eq(documents.id, newDocument.id)).catch(dbError => {
+          console.error(`[DOCUMENT_PROCESSOR] Failed to update error status for document ${newDocument.id}:`, dbError);
+        });
+      });
+    }
 
-    // Trigger processing in the background (fire and forget)
-    processDocument(newDocument.id, newDocument.storagePath, newDocument.fileType);
-    res.status(201).json(newDocument);
-  } catch (err) {
-    // If there's a DB error, delete the orphaned file from storage
-    fs.unlinkSync(file.path);
-    next(err);
+    res.status(201).json({
+      message: 'Document uploaded successfully.',
+      document: {
+        id: newDocument.id,
+        fileName: newDocument.fileName,
+        fileType: newDocument.fileType,
+        fileSize: newDocument.fileSize,
+        processingStatus: newDocument.processingStatus,
+        createdAt: newDocument.createdAt
+      }
+    });
+
+  } catch (error) {
+    // Clean up uploaded file if database insertion fails
+    if (file && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    
+    console.error('[DOCUMENT_UPLOAD] Error:', error);
+    res.status(500).json({ message: 'Failed to upload document.' });
   }
 });
 
-// GET /api/cases/:caseId/documents - Get all documents for a case
+// GET /:caseId/documents - Get all documents for a case
 router.get('/:caseId/documents', async (req, res, next) => {
     const caseId = parseInt(req.params.caseId);
     try {
@@ -76,8 +194,59 @@ router.get('/:caseId/documents', async (req, res, next) => {
     }
 });
 
-// DELETE /api/cases/:caseId/documents/:docId - Delete a single document
-router.delete('/:caseId/documents/:docId', isAuthenticated, async (req, res, next) => {
+// GET /:caseId/documents/:docId - Get detailed information about a specific document
+router.get('/:caseId/documents/:docId', async (req, res, next) => {
+    const caseId = parseInt(req.params.caseId);
+    const docId = parseInt(req.params.docId);
+
+    if (isNaN(caseId) || isNaN(docId)) {
+        return res.status(400).json({ message: 'Invalid case or document ID.' });
+    }
+
+    try {
+        const docResult = await db.select().from(documents).where(
+            and(eq(documents.id, docId), eq(documents.caseId, caseId))
+        );
+        
+        if (docResult.length === 0) {
+            return res.status(404).json({ message: 'Document not found in this case.' });
+        }
+
+        const document = docResult[0];
+        
+        // Check if there's a processing error and provide helpful information
+        let errorDetails = null;
+        if (document.processingStatus === 'FAILED' && document.extractedText?.startsWith('PROCESSING_ERROR:')) {
+            const errorMessage = document.extractedText.replace('PROCESSING_ERROR:', '').trim();
+            
+            if (errorMessage.includes('FFmpeg') || errorMessage.includes('ffprobe')) {
+                errorDetails = {
+                    type: 'FFMPEG_MISSING',
+                    message: errorMessage,
+                    solution: 'FFmpeg needs to be installed on the server for video processing. Contact your administrator.',
+                    userAction: 'Try uploading an image or document file instead, or contact support for video processing.'
+                };
+            } else {
+                errorDetails = {
+                    type: 'PROCESSING_ERROR',
+                    message: errorMessage,
+                    solution: 'The file could not be processed due to a technical issue.',
+                    userAction: 'Try uploading the file again or contact support if the problem persists.'
+                };
+            }
+        }
+
+        res.status(200).json({
+            ...document,
+            errorDetails
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// DELETE /:caseId/documents/:docId - Delete a single document
+router.delete('/:caseId/documents/:docId', async (req, res, next) => {
     const caseId = parseInt(req.params.caseId);
     const docId = parseInt(req.params.docId);
 

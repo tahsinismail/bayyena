@@ -10,11 +10,11 @@ export default defineConfig({
     allowedHosts: ['bayyena.com', 'www.bayyena.com'], // Needed for Docker
     proxy: {
       '/api': {
-        target: 'http://backend:3001', // Use the service name
+        target: 'http://localhost:3001', // Use the service name
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://backend:3001', // Use the service name
+        target: 'http://localhost:3001', // Use the service name
         changeOrigin: true,
       }
     }
