@@ -20,7 +20,7 @@ export const userSessions = pgTable('user_sessions', {
 // --- New Enums and Cases Table ---
 export const caseTypeEnum = pgEnum('case_type', ['Civil Dispute', 'Criminal Defense', 'Family Law', 'Intellectual Property', 'Corporate Law', 'Other']);
 export const caseStatusEnum = pgEnum('case_status', ['Open', 'Closed', 'Pending', 'Archived']);
-export const docProcessingStatusEnum = pgEnum('doc_processing_status', ['PENDING', 'PROCESSED', 'FAILED']);
+export const docProcessingStatusEnum = pgEnum('doc_processing_status', ['PENDING', 'PROCESSING', 'PROCESSED', 'FAILED']);
 export const messageSenderEnum = pgEnum('message_sender', ['user', 'bot']);
 
 export const cases = pgTable('cases', {

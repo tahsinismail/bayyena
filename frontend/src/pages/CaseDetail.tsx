@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRoute, useLocation, Link } from 'wouter';
-import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea } from '@radix-ui/themes';
-import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
+import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea, Select } from '@radix-ui/themes';
+import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon, ArrowLeftIcon } from '@radix-ui/react-icons';
 import { useDropzone } from 'react-dropzone';
 import type { Case, Document } from '../types';
-import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument } from '../api';
+import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument, updateCaseStatus } from '../api';
 import CaseChat from '../components/CaseChat';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 
 export default function CaseDetail() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/cases/:id");
   const caseId = params?.id;
   const [, navigate] = useLocation();
@@ -21,7 +23,9 @@ export default function CaseDetail() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     if (!caseId) return;
@@ -58,10 +62,12 @@ export default function CaseDetail() {
   // without requiring the user to manually refresh the page.
   useEffect(() => {
     // Check if there are any documents currently being processed.
-    const hasPendingDocuments = documents.some(doc => doc.processingStatus === 'PENDING');
+    const hasProcessingDocuments = documents.some(doc => 
+      doc.processingStatus === 'PENDING' || doc.processingStatus === 'PROCESSING'
+    );
 
-    // Only set up the polling if there's a pending document.
-    if (hasPendingDocuments) {
+    // Only set up the polling if there's a document being processed.
+    if (hasProcessingDocuments) {
       // Set up an interval to re-fetch the document list every 5 seconds.
       const intervalId = setInterval(() => {
         fetchDocuments();
@@ -80,11 +86,15 @@ export default function CaseDetail() {
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError('');
+    setUploadSuccess(false);
     const formData = new FormData();
     formData.append('document', file);
     try {
       await uploadDocument(caseId, formData, setUploadProgress);
       await fetchDocuments();
+      setUploadSuccess(true);
+      // Clear success message after 5 seconds
+      setTimeout(() => setUploadSuccess(false), 5000);
     } catch (err: any) {
       setUploadError(err.response?.data?.message || 'Upload failed.');
     } finally {
@@ -115,6 +125,36 @@ export default function CaseDetail() {
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!caseId || !caseData) return;
+    
+    setIsUpdatingStatus(true);
+    try {
+      const { data: updatedCase } = await updateCaseStatus(caseId, newStatus);
+      setCaseData(updatedCase);
+    } catch (err: any) {
+      console.error('Failed to update case status:', err);
+      // You could add a toast notification here if you want
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Open':
+        return { bg: '#f0f9ff', text: '#0369a1', border: '#0ea5e9' };
+      case 'Pending':
+        return { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' };
+      case 'Closed':
+        return { bg: '#dcfce7', text: '#166534', border: '#22c55e' };
+      case 'Archived':
+        return { bg: '#f3f4f6', text: '#374151', border: '#9ca3af' };
+      default:
+        return { bg: '#f0f9ff', text: '#0369a1', border: '#0ea5e9' };
+    }
+  };
+
   const summarizedDocs = documents.filter(
     doc => doc.processingStatus === 'PROCESSED' && doc.summary
   );
@@ -124,8 +164,20 @@ export default function CaseDetail() {
   if (error) return <Flex justify="center" p="8"><Text color="red">{error}</Text></Flex>;
 
   return (
-    <div className="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 min-w-screen">
-      <div className="lg:col-span-2 flex flex-col gap-8">
+    <div className="p-4 md:p-8 min-w-screen">
+      {/* Back Button */}
+      <Flex mb="4">
+        <Button 
+          variant="soft" 
+          onClick={() => navigate('/')}
+          className="mb-4"
+        >
+          <ArrowLeftIcon /> Back to Cases
+        </Button>
+      </Flex>
+
+      <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="w-full lg:col-span-2 flex flex-col gap-8">
         <Card>
           <Box p="4">
             <Flex justify="between" align="start">
@@ -146,7 +198,48 @@ export default function CaseDetail() {
             <Flex gap="6" my="4">
               <Text size="2"><strong>Case Number:</strong> {caseData?.caseNumber}</Text>
               <Text size="2"><strong>Type:</strong> {caseData?.type}</Text>
-              <Text size="2"><strong>Status:</strong> {caseData?.status}</Text>
+              <Flex align="center" gap="2">
+                <Text size="2"><strong>{t('caseStatus')}:</strong></Text>
+                <Select.Root 
+                  value={caseData?.status || 'Open'} 
+                  onValueChange={handleStatusChange}
+                  size="1"
+                  disabled={isUpdatingStatus}
+                >
+                  <Select.Trigger 
+                    style={{
+                      minWidth: '120px',
+                      backgroundColor: getStatusColor(caseData?.status || 'Open').bg,
+                      color: getStatusColor(caseData?.status || 'Open').text,
+                      border: `1px solid ${getStatusColor(caseData?.status || 'Open').border}`,
+                      fontWeight: '500',
+                      opacity: isUpdatingStatus ? 0.6 : 1
+                    }}
+                  >
+                    {isUpdatingStatus && <Spinner size="1" />}
+                    {(() => {
+                      switch (caseData?.status) {
+                        case 'Open':
+                          return t('statusOpen');
+                        case 'Pending':
+                          return t('statusPending');
+                        case 'Closed':
+                          return t('statusClosed');
+                        case 'Archived':
+                          return t('statusArchived');
+                        default:
+                          return t('statusOpen');
+                      }
+                    })()}
+                  </Select.Trigger>
+                  <Select.Content>
+                    <Select.Item value="Open">{t('statusOpen')}</Select.Item>
+                    <Select.Item value="Pending">{t('statusPending')}</Select.Item>
+                    <Select.Item value="Closed">{t('statusClosed')}</Select.Item>
+                    <Select.Item value="Archived">{t('statusArchived')}</Select.Item>
+                  </Select.Content>
+                </Select.Root>
+              </Flex>
             </Flex>
             <Heading as="h3" size="4" mb="2">Description</Heading>
             <Text as="p" size="3" className="whitespace-pre-wrap">{caseData?.description || 'No description provided.'}</Text>
@@ -202,7 +295,52 @@ export default function CaseDetail() {
       <div className="lg:col-span-1">
         <Card>
           <Box p="4">
-            <Heading size="5" mb="4">Case Documents</Heading>
+            <Flex justify="start" align="center" mb="4">
+              <Heading size="5">Case Documents</Heading>
+            </Flex>
+            
+            {/* Processing Status Summary */}
+            {documents.length > 0 && (
+              <Flex gap="3" mb="4" p="3" className="bg-gray-50 rounded">
+                <Text size="2" color="gray">Processing Status:</Text>
+                <Flex gap="2">
+                  {documents.filter(d => d.processingStatus === 'PROCESSED').length > 0 && (
+                    <Flex align="center" gap="1">
+                      <CheckCircledIcon className="text-green-500" width={14} height={14} />
+                      <Text size="1" color="green">
+                        {documents.filter(d => d.processingStatus === 'PROCESSED').length} Ready
+                      </Text>
+                    </Flex>
+                  )}
+                  
+                  {documents.filter(d => d.processingStatus === 'PENDING').length > 0 && (
+                    <Flex align="center" gap="1">
+                      <Spinner size="2" />
+                      <Text size="1" color="orange">
+                        {documents.filter(d => d.processingStatus === 'PENDING').length} Queued
+                      </Text>
+                    </Flex>
+                  )}
+                  
+                  {documents.filter(d => d.processingStatus === 'PROCESSING').length > 0 && (
+                    <Flex align="center" gap="1">
+                      <Spinner size="2" />
+                      <Text size="1" color="blue">
+                        {documents.filter(d => d.processingStatus === 'PROCESSING').length} Processing
+                      </Text>
+                    </Flex>
+                  )}
+                  {documents.filter(d => d.processingStatus === 'FAILED').length > 0 && (
+                    <Flex align="center" gap="1">
+                      <CrossCircledIcon className="text-red-500" width={14} height={14} />
+                      <Text size="1" color="red">
+                        {documents.filter(d => d.processingStatus === 'FAILED').length} Failed
+                      </Text>
+                    </Flex>
+                  )}
+                </Flex>
+              </Flex>
+            )}
             <div {...getRootProps()} className={`p-6 border-2 border-dashed rounded-lg text-center cursor-pointer ${isDragActive ? 'border-[#856A00] bg-blue-50' : 'border-gray-300'} ${isUploading ? 'cursor-not-allowed opacity-60' : 'hover:border-gray-400'}`}>
               <input {...getInputProps()} />
               <Flex direction="column" align="center" gap="2">
@@ -210,27 +348,109 @@ export default function CaseDetail() {
                 <Text>{isDragActive ? "Drop file here..." : "Drag 'n' drop or click"}</Text>
               </Flex>
             </div>
-            {isUploading && <Progress value={uploadProgress} size="2" my="2" />}
-            {uploadError && <Text color="red" size="2" mt="2">{uploadError}</Text>}
+            {isUploading && (
+              <Box mt="3" p="3" className="bg-blue-50 border border-blue-200 rounded">
+                <Flex align="center" gap="2" mb="2">
+                  <Spinner size="2" />
+                  <Text size="2" color="blue">Uploading document...</Text>
+                </Flex>
+                <Progress value={uploadProgress} size="2" />
+                <Text size="1" color="blue" mt="1">{uploadProgress}% complete</Text>
+              </Box>
+            )}
+            {uploadSuccess && (
+              <Box mt="3" p="3" className="bg-green-50 border border-green-200 rounded">
+                <Flex align="center" gap="2">
+                  <CheckCircledIcon className="text-green-500" />
+                  <Text size="2" color="green">Document uploaded successfully! Processing has begun.</Text>
+                </Flex>
+              </Box>
+            )}
+            {uploadError && (
+              <Box mt="3" p="3" className="bg-red-50 border border-red-200 rounded">
+                <Text size="2" color="red">Upload failed: {uploadError}</Text>
+              </Box>
+            )}
             <Separator my="4" size="4" />
             <Flex direction="column" gap="3">
               {documents.length > 0 ? (
                 documents.map(doc => (
-                  <Flex key={doc.id} align="center" justify="between" className="group hover:bg-gray-100 p-2 rounded">
-                    <Link href={`/documents/${doc.id}`}><span className="flex-grow flex items-center gap-3"><FileTextIcon /><Box><Text as="div" size="2" weight="bold">{doc.fileName}</Text><Text as="div" size="1" color="gray">{(doc.fileSize / 1024).toFixed(2)} KB</Text></Box></span></Link>
+                  <Flex key={doc.id} align="center" justify="between" gap="2" className="group hover:bg-gray-100 p-2 rounded">
+                    <Link href={`/documents/${doc.id}`}>
+                      <span className="flex-grow flex items-center gap-3">
+                        <FileTextIcon />
+                        <Box>
+                          <Text as="div" size="2" weight="bold">{doc.fileName}</Text>
+                          <Flex justify="between" align="center" gap="1">
+                            <Text as="div" size="1" color="gray">{(doc.fileSize / 1024).toFixed(2)} KB</Text>
+                          </Flex>
+                        </Box>
+                      </span>
+                    </Link>
                     <Flex align="center" gap="3">
-                      {doc.processingStatus === 'PROCESSED' && <CheckCircledIcon className="text-green-500" />}
-                      {doc.processingStatus === 'FAILED' && <CrossCircledIcon className="text-red-500" />}
-                      {doc.processingStatus === 'PENDING' && <Spinner size="2" />}
-                      <AlertDialog.Root><AlertDialog.Trigger><Button size="1" color="red" variant="ghost" className="opacity-0 group-hover:opacity-100"><TrashIcon /></Button></AlertDialog.Trigger><AlertDialog.Content style={{ maxWidth: 450 }}><AlertDialog.Title>Delete Document</AlertDialog.Title><AlertDialog.Description>Are you sure you want to delete "{doc.fileName}"?</AlertDialog.Description><Flex gap="3" mt="4" justify="end"><AlertDialog.Cancel><Button variant="soft" color="gray">Cancel</Button></AlertDialog.Cancel><AlertDialog.Action><Button color="red" onClick={() => handleDeleteDocument(doc.id)}>Yes, Delete</Button></AlertDialog.Action></Flex></AlertDialog.Content></AlertDialog.Root>
+                      {/* Enhanced Status Display */}
+                      <Flex align="center" gap="1">
+                        {doc.processingStatus === 'PROCESSED' && (
+                          <Flex align="center" gap="1">
+                            <CheckCircledIcon className="text-green-500" />
+                            <Text size="1" color="green">Ready</Text>
+                          </Flex>
+                        )}
+                        {doc.processingStatus === 'FAILED' && (
+                          <Flex align="center" gap="1">
+                            <CrossCircledIcon className="text-red-500" />
+                            <Text size="1" color="red">Failed</Text>
+                          </Flex>
+                        )}
+                        {doc.processingStatus === 'PENDING' && (
+                          <Flex align="center" gap="1">
+                            <Spinner size="2" />
+                            <Text size="1" color="orange">Queued</Text>
+                          </Flex>
+                        )}
+                        
+                        {doc.processingStatus === 'PROCESSING' && (
+                          <Flex align="center" gap="1">
+                            <Spinner size="2" />
+                            <Text size="1" color="blue">Processing...</Text>
+                          </Flex>
+                        )}
+                      </Flex>
+                      
+                      <AlertDialog.Root>
+                        <AlertDialog.Trigger>
+                          <Button size="1" color="red" variant="ghost" className="opacity-0 group-hover:opacity-100">
+                            <TrashIcon />
+                          </Button>
+                        </AlertDialog.Trigger>
+                        <AlertDialog.Content style={{ maxWidth: 450 }}>
+                          <AlertDialog.Title>Delete Document</AlertDialog.Title>
+                          <AlertDialog.Description>
+                            Are you sure you want to delete "{doc.fileName}"?
+                          </AlertDialog.Description>
+                          <Flex gap="3" mt="4" justify="end">
+                            <AlertDialog.Cancel>
+                              <Button variant="soft" color="gray">Cancel</Button>
+                            </AlertDialog.Cancel>
+                            <AlertDialog.Action>
+                              <Button color="red" onClick={() => handleDeleteDocument(doc.id)}>
+                                Yes, Delete
+                              </Button>
+                            </AlertDialog.Action>
+                          </Flex>
+                        </AlertDialog.Content>
+                      </AlertDialog.Root>
                     </Flex>
                   </Flex>
                 ))
-              ) : (<Text size="2" color="gray">No documents for this case.</Text>)}
+              ) : (
+                <Text size="2" color="gray">No documents for this case.</Text>
+              )}
             </Flex>
           </Box>
         </Card>
       </div>
+    </div>
     </div>
   );
 }

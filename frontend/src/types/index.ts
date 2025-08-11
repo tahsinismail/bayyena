@@ -28,7 +28,7 @@ export interface Document {
   fileType: string;
   fileSize: number;
   createdAt: string;
-  processingStatus: 'PENDING' | 'PROCESSED' | 'FAILED';
+  processingStatus: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
   
   // Add the new AI fields (make them optional)
   summary?: string;

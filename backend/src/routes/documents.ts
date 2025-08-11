@@ -7,7 +7,7 @@ import { db } from '../db';
 import { documents } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
-import { processDocument } from '../services/documentProcessor';
+import { QueueService } from '../services/queueService';
 import { OCRProcessor } from '../services/ocrProcessor';
 
 const router = Router();
@@ -139,27 +139,39 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
       extractedText: isProcessable ? null : 'File type not supported for text extraction'
     }).returning();
 
-    // If the file is processable, start background processing
+    // If the file is processable, submit to processing queue
     if (isProcessable) {
-      // Start background processing
-      processDocument(newDocument.id, file.path, file.mimetype).catch(error => {
-        console.error(`[DOCUMENT_PROCESSOR] Error processing document ${newDocument.id}:`, error);
-        
-        // Update the document with detailed error information
-        const errorMessage = error instanceof Error ? error.message : 'Unknown processing error';
-        const detailedError = errorMessage.includes('FFprobe not available') || errorMessage.includes('Cannot find ffprobe')
-          ? 'Video processing failed: FFmpeg is not installed on the server. Please contact your administrator to install FFmpeg for video OCR support.'
-          : errorMessage;
-        
-        db.update(documents).set({ 
-          processingStatus: 'FAILED',
-          extractedText: `PROCESSING_ERROR: ${detailedError}`
-        }).where(eq(documents.id, newDocument.id)).catch(dbError => {
-          console.error(`[DOCUMENT_PROCESSOR] Failed to update error status for document ${newDocument.id}:`, dbError);
+      try {
+        // Submit document processing job to queue
+        const queueResult = await QueueService.submitDocumentProcessingJob({
+          documentId: newDocument.id,
+          filePath: file.path,
+          mimeType: file.mimetype,
+          userId: (req.user as any).id,
+          caseId: caseId,
         });
-      });
+        
+        console.log(`[DOCUMENT_UPLOAD] Document processing job submitted: ${queueResult.jobId}`);
+        
+        // Update document with job ID for tracking
+        await db.update(documents).set({ 
+          processingStatus: 'PENDING'
+        }).where(eq(documents.id, newDocument.id));
+        
+      } catch (queueError) {
+        console.error(`[DOCUMENT_UPLOAD] Error submitting document to queue:`, queueError);
+        
+        // Update document status to failed if queue submission fails
+        await db.update(documents).set({ 
+          processingStatus: 'FAILED',
+          extractedText: `QUEUE_SUBMISSION_ERROR: ${queueError instanceof Error ? queueError.message : 'Unknown queue error'}`
+        }).where(eq(documents.id, newDocument.id));
+      }
     }
 
+    // Get the final document status after all updates
+    const finalDocument = await db.select().from(documents).where(eq(documents.id, newDocument.id)).limit(1);
+    
     res.status(201).json({
       message: 'Document uploaded successfully.',
       document: {
@@ -167,7 +179,7 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
         fileName: newDocument.fileName,
         fileType: newDocument.fileType,
         fileSize: newDocument.fileSize,
-        processingStatus: newDocument.processingStatus,
+        processingStatus: finalDocument[0]?.processingStatus || newDocument.processingStatus,
         createdAt: newDocument.createdAt
       }
     });

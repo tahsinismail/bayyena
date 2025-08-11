@@ -3,14 +3,16 @@ import { Box, Button, Flex, Text } from '@radix-ui/themes';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import apiClient from '../api';
-import LanguageSwitcher from './LanguageSwitcher'; // Import the switcher
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguageInit } from '../hooks/useLanguageInit';
 
-import logo from '../assets/logo.png'; // Adjust the path as necessary
+import logo from '../assets/logo.png';
 import { Link } from 'wouter';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, setUser } = useAuth();
   const { t, i18n } = useTranslation();
+  useLanguageInit();
 
   // This effect handles the Left-to-Right / Right-to-Left layout direction
   useEffect(() => {

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."doc_processing_status" ADD VALUE 'PROCESSING' BEFORE 'PROCESSED';

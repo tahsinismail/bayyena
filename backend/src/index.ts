@@ -11,9 +11,12 @@ import caseRoutes from './routes/cases';
 import documentRoutes from './routes/documents';
 import chatRoutes from './routes/chat';
 import documentDetailRoutes from './routes/documentDetail';
+import queueRoutes from './routes/queue';
 import { cleanupDocumentProcessor } from './services/documentProcessor';
 import { OCRProcessor } from './services/ocrProcessor';
 import './auth/passport';
+
+import { closeQueues } from './config/queue';
 
 dotenv.config();
 
@@ -45,6 +48,7 @@ app.use('/api/cases', caseRoutes);
 app.use('/api/cases', documentRoutes); // Documents are nested under cases
 app.use('/api/documents', documentDetailRoutes); // Individual document operations
 app.use('/api/chat', chatRoutes);
+app.use('/api/queue', queueRoutes); // Queue management and monitoring
 
 // GET /api/server/capabilities - Check server capabilities
 app.get('/api/server/capabilities', async (req, res) => {
@@ -68,8 +72,11 @@ app.get('/', (req, res) => {
   res.send('LegalCaseBuilder Backend is running!');
 });
 
-const server = app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', async () => {
   console.log(`[server]: Server is running at http://0.0.0.0:${port}`);
+  
+  // Queue system will be initialized on-demand when needed
+  console.log('[server]: Queue system will be initialized when Redis becomes available');
 });
 
 // Graceful shutdown handling
@@ -79,6 +86,20 @@ const gracefulShutdown = async (signal: string) => {
   try {
     // Cleanup document processor and OCR resources
     await cleanupDocumentProcessor();
+    
+    // Close all queue workers and queues
+    try {
+      await closeQueues();
+    } catch (error) {
+      console.log('[server] Queues and workers already closed or not available');
+    }
+    
+    // Close all queues and Redis connection
+    try {
+      await closeQueues();
+    } catch (error) {
+      console.log('[server] Queues already closed or not available');
+    }
     
     // Close database pool
     await pool.end();

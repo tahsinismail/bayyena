@@ -21,5 +21,12 @@
   "send": "إرسال",
   "clearChat": "مسح المحادثة",
   "english": "English",
-  "arabic": "العربية"
+  "arabic": "العربية",
+  "BAYYENA": "BAYYENA",
+  "caseStatus": "حالة القضية",
+  "changeStatus": "تغيير الحالة",
+  "statusOpen": "مفتوحة",
+  "statusClosed": "مغلقة",
+  "statusPending": "معلقة",
+  "statusArchived": "مؤرشفة"
 }

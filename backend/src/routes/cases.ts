@@ -119,4 +119,43 @@ router.delete('/:id', isAuthenticated, async (req, res, next) => {
     }
 });
 
+// PATCH /api/cases/:id/status - Update case status
+router.patch('/:id/status', async (req, res, next) => {
+    const user = req.user as typeof users.$inferSelect;
+    const caseId = parseInt(req.params.id);
+    const { status } = req.body;
+
+    if (isNaN(caseId)) {
+        return res.status(400).json({ message: 'Invalid case ID.' });
+    }
+
+    if (!status || !['Open', 'Closed', 'Pending', 'Archived'].includes(status)) {
+        return res.status(400).json({ message: 'Valid status is required. Must be one of: Open, Closed, Pending, Archived' });
+    }
+
+    try {
+        // Find the case to ensure it belongs to the logged-in user
+        const caseResult = await db.select().from(cases).where(
+            and(eq(cases.id, caseId), eq(cases.userId, user.id))
+        );
+        
+        if (caseResult.length === 0) {
+            return res.status(404).json({ message: 'Case not found or you do not have permission to update it.' });
+        }
+
+        // Update the case status
+        const updatedCase = await db.update(cases)
+            .set({ 
+                status,
+                updatedAt: new Date()
+            })
+            .where(eq(cases.id, caseId))
+            .returning();
+
+        res.status(200).json(updatedCase[0]);
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;

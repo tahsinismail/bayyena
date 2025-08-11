@@ -4,7 +4,7 @@ const { Client } = require('pg');
 const initDatabase = async () => {
   // First, connect to the default postgres database
   const client = new Client({
-    host: 'localhost',
+    host: 'db',
     port: 5432,
     user: 'postgres',
     password: 'dbAdmin',
