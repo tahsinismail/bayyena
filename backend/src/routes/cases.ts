@@ -6,8 +6,11 @@ import { eq, and } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
 import fs from 'fs';
 import path from 'path';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL! });
 
 // Use the middleware for all routes in this file
 router.use(isAuthenticated);
@@ -28,8 +31,9 @@ router.post('/', async (req, res, next) => {
     const user = req.user as typeof users.$inferSelect;
     const { title, description, type } = req.body;
 
-    if (!title || !type) {
-        return res.status(400).json({ message: 'Title and case type are required.' });
+    // Only type is required now, title defaults to "Untitled"
+    if (!type) {
+        return res.status(400).json({ message: 'Case type is required.' });
     }
 
     // Generate a unique case number (simple version)
@@ -37,8 +41,8 @@ router.post('/', async (req, res, next) => {
 
     try {
         const newCase = await db.insert(cases).values({
-            title,
-            description,
+            title: title || 'Untitled',
+            description: description || '',
             type,
             userId: user.id,
             caseNumber,
@@ -154,6 +158,150 @@ router.patch('/:id/status', async (req, res, next) => {
 
         res.status(200).json(updatedCase[0]);
     } catch (err) {
+        next(err);
+    }
+});
+
+// PATCH /api/cases/:id - Update case title, description, and type
+router.patch('/:id', async (req, res, next) => {
+    const user = req.user as typeof users.$inferSelect;
+    const caseId = parseInt(req.params.id);
+    const { title, description, type } = req.body;
+
+    if (isNaN(caseId)) {
+        return res.status(400).json({ message: 'Invalid case ID.' });
+    }
+
+    if (!title && !description && !type) {
+        return res.status(400).json({ message: 'At least title, description, or type must be provided.' });
+    }
+
+    try {
+        // Find the case to ensure it belongs to the logged-in user
+        const caseResult = await db.select().from(cases).where(
+            and(eq(cases.id, caseId), eq(cases.userId, user.id))
+        );
+        
+        if (caseResult.length === 0) {
+            return res.status(404).json({ message: 'Case not found or you do not have permission to update it.' });
+        }
+
+        // Prepare update data
+        const updateData: any = { updatedAt: new Date() };
+        if (title !== undefined) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        if (type !== undefined) updateData.type = type;
+
+        // Update the case
+        const updatedCase = await db.update(cases)
+            .set(updateData)
+            .where(eq(cases.id, caseId))
+            .returning();
+
+        res.status(200).json(updatedCase[0]);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /api/cases/:id/auto-generate - Auto-generate case title and description based on documents
+router.post('/:id/auto-generate', async (req, res, next) => {
+    const user = req.user as typeof users.$inferSelect;
+    const caseId = parseInt(req.params.id);
+
+    if (isNaN(caseId)) {
+        return res.status(400).json({ message: 'Invalid case ID.' });
+    }
+
+    try {
+        // Find the case to ensure it belongs to the logged-in user
+        const caseResult = await db.select().from(cases).where(
+            and(eq(cases.id, caseId), eq(cases.userId, user.id))
+        );
+        
+        if (caseResult.length === 0) {
+            return res.status(404).json({ message: 'Case not found or you do not have permission to update it.' });
+        }
+
+        const currentCase = caseResult[0];
+
+        // Get processed documents for this case
+        const caseDocs = await db.select().from(documents).where(
+            and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED'))
+        );
+
+        if (caseDocs.length === 0) {
+            return res.status(400).json({ message: 'No processed documents found to generate title and description.' });
+        }
+
+        // Prepare document summaries for AI analysis
+        const documentSummaries = caseDocs.map(doc => {
+            const summary = doc.summary || 'No summary available';
+            return `Document: ${doc.fileName}\nSummary: ${summary}`;
+        }).join('\n\n');
+
+        const prompt = `You are a professional legal case assistant. Based on the following document summaries from a legal case, generate a concise and professional case title, description, and determine the most appropriate case type.
+
+REQUIREMENTS:
+1. Title: Should be 3-8 words, professional, and clearly indicate the nature of the legal matter
+2. Description: Should be 1-2 sentences, professional, and provide a brief overview of the case
+3. Type: Choose the most appropriate case type from the available options
+4. Use legal terminology appropriately
+5. Be specific about the type of legal issue (contract dispute, personal injury, family law, etc.)
+6. Avoid overly technical jargon that would confuse non-lawyers
+
+AVAILABLE CASE TYPES:
+- Civil Dispute
+- Criminal Defense
+- Family Law
+- Intellectual Property
+- Corporate Law
+- Other
+
+DOCUMENT SUMMARIES:
+${documentSummaries}
+
+CURRENT CASE TYPE: ${currentCase.type}
+
+Please respond in the following JSON format:
+{
+  "title": "Generated professional case title",
+  "description": "Generated professional case description",
+  "type": "Most appropriate case type from the available options"
+}`;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        
+        let generatedData;
+        try {
+            generatedData = JSON.parse(responseText);
+        } catch (parseError) {
+            // Fallback if AI doesn't return valid JSON
+            generatedData = {
+                title: `${currentCase.type} Case`,
+                description: `Legal case involving ${caseDocs.length} document${caseDocs.length > 1 ? 's' : ''} requiring analysis and review.`,
+                type: currentCase.type
+            };
+        }
+
+        // Update the case with generated title, description, and type
+        const updatedCase = await db.update(cases)
+            .set({
+                title: generatedData.title,
+                description: generatedData.description,
+                type: generatedData.type || currentCase.type,
+                updatedAt: new Date()
+            })
+            .where(eq(cases.id, caseId))
+            .returning();
+
+        res.status(200).json({
+            case: updatedCase[0],
+            generated: generatedData
+        });
+    } catch (err) {
+        console.error('Error auto-generating case data:', err);
         next(err);
     }
 });

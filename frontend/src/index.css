@@ -645,3 +645,17 @@ button:focus-visible {
   }
 }
 
+/* Inline Editing Styles */
+.case-title-section .edit-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.case-title-section:hover .edit-button {
+  opacity: 1;
+}
+
+.edit-button:hover {
+  background-color: #f1f3f4 !important;
+}
+

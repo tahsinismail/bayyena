@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Button, Flex, Heading, Text, Table, Card, Badge } from '@radix-ui/themes';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next'; // Import the hook
 import { type Case } from '../types';
-import { getCases } from '../api';
-import CaseForm from '../components/CaseForm';
+import { getCases, createCase } from '../api';
 
 export default function CaseList() {
   const [cases, setCases] = useState<Case[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [, navigate] = useLocation();
   const { t } = useTranslation(); // Use the hook
 
   // Helper function to get status color and variant
@@ -47,22 +47,26 @@ export default function CaseList() {
     fetchCases();
   }, []);
 
-  const handleCreateSuccess = () => {
-    setShowForm(false);
-    fetchCases();
+  const handleCreateCase = async () => {
+    try {
+      setIsCreating(true);
+      setError('');
+      const { data: newCase } = await createCase({ type: 'Civil Dispute' });
+      navigate(`/cases/${newCase.id}`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create case');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
     <div className="p-4 md:p-8 min-w-screen">
-      {/* The CaseForm component should also be refactored internally */}
-      {showForm && (
-          <CaseForm onSuccess={handleCreateSuccess} onCancel={() => setShowForm(false)} />
-      )}
       <Card>
         <Flex justify="between" align="center" mb="6" p="4">
           <Heading>{t('myCases')}</Heading>
-          <Button onClick={() => setShowForm(true)}>
-            <PlusIcon /> {t('createCase')}
+          <Button onClick={handleCreateCase} disabled={isCreating}>
+            <PlusIcon /> {isCreating ? 'Creating...' : t('createCase')}
           </Button>
         </Flex>
         {isLoading && <Text className="p-4">Loading cases...</Text>}

@@ -9,10 +9,12 @@ import CaseChat from '../components/CaseChat';
 import CaseTimeline from '../components/CaseTimeline';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 
 export default function CaseDetail() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/cases/:id");
-  const caseId = params?.id || '';
+  const caseId = params?.id;
   const [, navigate] = useLocation();
 
   const [caseData, setCaseData] = useState<Case | null>(null);
@@ -24,6 +26,7 @@ export default function CaseDetail() {
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('all');
   const [timelineKey, setTimelineKey] = useState(0); // Key to force timeline refresh
   const prevDocumentsRef = useRef<Document[]>([]); // Track previous documents for comparison
@@ -470,44 +473,8 @@ export default function CaseDetail() {
                   )}
                 </Flex>
 
-                 
-
-                {/* Auto-generation status */}
-                {isGenerating && (
-                  <Flex mt="3" align="center" gap="2">
-                    <Spinner size="1" />
-                    <Text size="2" color="blue">Generating title, description, and type from documents...</Text>
-                  </Flex>
-                )}
-              </div>
-              <AlertDialog.Root>
-                <AlertDialog.Trigger>
-                  <Button color="red" variant="soft" className="danger-action-button">
-                    🗑️ Delete Case
-                  </Button>
-                </AlertDialog.Trigger>
-                <AlertDialog.Content style={{ maxWidth: 450 }}>
-                  <AlertDialog.Title>⚠️ Delete Legal Case</AlertDialog.Title>
-                  <AlertDialog.Description size="2">
-                    This action will permanently delete this legal case and all associated documents. This cannot be undone.
-                  </AlertDialog.Description>
-                  {deleteError && <Text color="red" size="2" mt="2">{deleteError}</Text>}
-                  <Flex gap="3" mt="4" justify="end">
-                    <AlertDialog.Cancel><Button variant="soft" color="gray">Cancel</Button></AlertDialog.Cancel>
-                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete Case</Button></AlertDialog.Action>
-                  </Flex>
-                </AlertDialog.Content>
-              </AlertDialog.Root>
-            </Flex>
-            <div className="legal-case-metadata">
-              <Flex justify="between" my="4" wrap="wrap">
-                <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">CASE NUMBER</Text>
-                  <Text size="3" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
-                </div>
-                <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">CASE TYPE</Text>
-                  <Flex align="center" gap="2">
+                {/* Case Type Section */}
+                <Flex align="center" gap="2" mt="3">
                   {isEditingType ? (
                     <Flex align="center" gap="2" style={{ width: '100%' }}>
                       <Select.Root value={editType} onValueChange={(value) => setEditType(value as CaseType)}>
@@ -541,7 +508,7 @@ export default function CaseDetail() {
                   ) : (
                     <Flex align="center" gap="2">
                       <Text size="2" color="gray" weight="medium">
-                        <Text size="3" weight="bold" className="metadata-value">{caseData?.type}</Text>
+                        📂 Type: <Text color="blue" weight="bold">{caseData?.type}</Text>
                       </Text>
                       <IconButton 
                         size="1" 
@@ -554,11 +521,9 @@ export default function CaseDetail() {
                     </Flex>
                   )}
                 </Flex>
-                </div>
-                <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">CASE STATUS</Text>
-                  {/* Case Status Section */}
-                 <Flex align="center" gap="2">
+
+                 {/* Case Status Section */}
+                 <Flex align="center" gap="2" mt="3">
                    {isEditingStatus ? (
                      <Flex align="center" gap="2" style={{ width: '100%' }}>
                        <Select.Root value={editStatus} onValueChange={(value) => setEditStatus(value)}>
@@ -591,9 +556,9 @@ export default function CaseDetail() {
                      </Flex>
                    ) : (
                      <Flex align="center" gap="2">
-                       <Text size="3" weight="bold" className="metadata-value">
-                      
-                         <Badge {...getStatusProps(caseData?.status)}>
+                       <Text size="2" color="gray" weight="medium" style={{ display: 'flex', alignItems: 'center' }}>
+                         ⚙️ Status: 
+                         <Badge {...getStatusProps(caseData?.status)} ml="2">
                            {caseData?.status}
                          </Badge>
                        </Text>
@@ -608,6 +573,43 @@ export default function CaseDetail() {
                      </Flex>
                    )}
                  </Flex>
+
+                {/* Auto-generation status */}
+                {isGenerating && (
+                  <Flex mt="3" align="center" gap="2">
+                    <Spinner size="1" />
+                    <Text size="2" color="blue">Generating title, description, and type from documents...</Text>
+                  </Flex>
+                )}
+              </div>
+              <AlertDialog.Root>
+                <AlertDialog.Trigger>
+                  <Button color="red" variant="soft" className="danger-action-button">
+                    🗑️ Delete Case
+                  </Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Content style={{ maxWidth: 450 }}>
+                  <AlertDialog.Title>⚠️ Delete Legal Case</AlertDialog.Title>
+                  <AlertDialog.Description size="2">
+                    This action will permanently delete this legal case and all associated documents. This cannot be undone.
+                  </AlertDialog.Description>
+                  {deleteError && <Text color="red" size="2" mt="2">{deleteError}</Text>}
+                  <Flex gap="3" mt="4" justify="end">
+                    <AlertDialog.Cancel><Button variant="soft" color="gray">Cancel</Button></AlertDialog.Cancel>
+                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete Case</Button></AlertDialog.Action>
+                  </Flex>
+                </AlertDialog.Content>
+              </AlertDialog.Root>
+            </Flex>
+            <div className="legal-case-metadata">
+              <Flex gap="8" my="4" wrap="wrap">
+                <div className="metadata-item">
+                  <Text size="1" color="gray" weight="medium">CASE NUMBER</Text>
+                  <Text size="3" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
+                </div>
+                <div className="metadata-item">
+                  <Text size="1" color="gray" weight="medium">CASE TYPE</Text>
+                  <Text size="3" weight="bold" className="metadata-value">{caseData?.type}</Text>
                 </div>
               </Flex>
             </div>
@@ -675,7 +677,7 @@ export default function CaseDetail() {
    
         </div>
 
-        {/* Right Sidebar
+        {/* Right Sidebar */}
         <div className="w-full lg:col-span-1 flex flex-col gap-8">
           <Card>
             <Box p="4">
@@ -703,8 +705,8 @@ export default function CaseDetail() {
               </div>
             </Box>
           </Card>
-          {caseId && <CaseChat caseId={caseId} />}
-        </div> */}
+          <CaseChat caseId={caseId} />
+        </div>
       </div>
       <div className="lg:col-span-1">
         <Card>
