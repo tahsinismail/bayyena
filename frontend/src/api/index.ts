@@ -1,7 +1,7 @@
 // frontend/src/api/index.ts
 
 import axios from 'axios';
-import type { Case, Document, Message } from '../types';
+import type { Case, Document, Message, CaseTimelineEvent, CreateTimelineEventRequest, UpdateTimelineEventRequest } from '../types';
 
 // --- Axios Instance ---
 const apiClient = axios.create({
@@ -39,6 +39,18 @@ export const postChatMessage = (caseId: string, message: string) => apiClient.po
 export const getChatHistory = (caseId: string) => apiClient.get<Message[]>(`/chat/${caseId}/history`);
 export const clearChatHistory = (caseId: string) => apiClient.delete(`/chat/${caseId}/history`);
 export const getDocumentById = (docId: string) => apiClient.get<Document>(`/documents/${docId}`);
+
+// --- Timeline Routes ---
+export const getTimelineEvents = (caseId: string) => apiClient.get<CaseTimelineEvent[]>(`/cases/${caseId}/timeline`);
+export const createTimelineEvent = (caseId: string, data: CreateTimelineEventRequest) => apiClient.post<CaseTimelineEvent>(`/cases/${caseId}/timeline`, data);
+export const updateTimelineEvent = (caseId: string, eventId: number, data: UpdateTimelineEventRequest) => apiClient.put<CaseTimelineEvent>(`/cases/${caseId}/timeline/${eventId}`, data);
+export const deleteTimelineEvent = (caseId: string, eventId: number) => apiClient.delete(`/cases/${caseId}/timeline/${eventId}`);
+
+// --- Document Timeline Routes ---
+export const getDocumentTimelineEvents = (caseId: string, documentId: string) => apiClient.get<CaseTimelineEvent[]>(`/cases/${caseId}/documents/${documentId}/timeline`);
+export const createDocumentTimelineEvent = (caseId: string, documentId: string, data: CreateTimelineEventRequest) => apiClient.post<CaseTimelineEvent>(`/cases/${caseId}/documents/${documentId}/timeline`, data);
+export const updateDocumentTimelineEvent = (caseId: string, documentId: string, eventId: number, data: UpdateTimelineEventRequest) => apiClient.put<CaseTimelineEvent>(`/cases/${caseId}/documents/${documentId}/timeline/${eventId}`, data);
+export const deleteDocumentTimelineEvent = (caseId: string, documentId: string, eventId: number) => apiClient.delete(`/cases/${caseId}/documents/${documentId}/timeline/${eventId}`);
 
 // --- Server Capabilities ---
 export const checkServerCapabilities = () => apiClient.get('/server/capabilities');

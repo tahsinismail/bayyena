@@ -12,6 +12,7 @@ import documentRoutes from './routes/documents';
 import chatRoutes from './routes/chat';
 import documentDetailRoutes from './routes/documentDetail';
 import queueRoutes from './routes/queue';
+import timelineRoutes from './routes/timeline';
 import { cleanupDocumentProcessor } from './services/documentProcessor';
 import { OCRProcessor } from './services/ocrProcessor';
 import './auth/passport';
@@ -49,6 +50,7 @@ app.use('/api/cases', documentRoutes); // Documents are nested under cases
 app.use('/api/documents', documentDetailRoutes); // Individual document operations
 app.use('/api/chat', chatRoutes);
 app.use('/api/queue', queueRoutes); // Queue management and monitoring
+app.use('/api/cases', timelineRoutes); // Timeline events are nested under cases
 
 // GET /api/server/capabilities - Check server capabilities
 app.get('/api/server/capabilities', async (req, res) => {

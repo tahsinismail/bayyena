@@ -197,12 +197,46 @@ export const processDocument = async (docId: number, filePath: string, mimeType:
                 console.error(`[Processor] AI Timeline failed for doc ${docId}:`, errorMessage); 
                 return null; 
             }),
-            model.generateContent(`Translate the following text to English. Return only the translated text.\n\n---\n${extractedText}`).then(r => r.response.text()).catch(e => { 
+            model.generateContent(`You are a professional legal translator. Translate the following legal document text to English.
+
+REQUIREMENTS:
+1. **Legal Accuracy**: Maintain precise legal terminology and concepts
+2. **Professional Tone**: Use formal, professional legal language
+3. **Completeness**: Translate all content including dates, names, and legal references
+4. **Format**: Structure the translation clearly with proper legal document formatting
+5. **Terminology**: Use standard legal English terminology where applicable
+6. **Context**: Consider this is a legal case document that may be used in court proceedings
+
+If the text is already in English, provide a professionally formatted and polished version.
+
+DOCUMENT TEXT:
+---
+${extractedText}
+---
+
+PROFESSIONAL ENGLISH TRANSLATION:`).then(r => r.response.text()).catch(e => { 
                 const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
                 console.error(`[Processor] AI EN Translation failed for doc ${docId}:`, errorMessage); 
                 return null; 
             }),
-            model.generateContent(`Translate the following text to Arabic. Return only the translated text.\n\n---\n${extractedText}`).then(r => r.response.text()).catch(e => { 
+            model.generateContent(`أنت مترجم قانوني محترف. قم بترجمة النص القانوني التالي إلى اللغة العربية.
+
+المتطلبات:
+1. **الدقة القانونية**: حافظ على المصطلحات والمفاهيم القانونية الدقيقة
+2. **اللهجة المهنية**: استخدم لغة قانونية رسمية ومهنية
+3. **الشمولية**: ترجم كامل المحتوى بما في ذلك التواريخ والأسماء والمراجع القانونية
+4. **التنسيق**: هيكل الترجمة بوضوح مع تنسيق الوثيقة القانونية المناسب
+5. **المصطلحات**: استخدم المصطلحات القانونية العربية المعيارية عند الإمكان
+6. **السياق**: اعتبر أن هذه وثيقة قضائية قد تستخدم في الإجراءات القضائية
+
+إذا كان النص باللغة العربية أصلاً، قدم نسخة منسقة ومصقولة مهنياً.
+
+نص الوثيقة:
+---
+${extractedText}
+---
+
+الترجمة العربية المهنية:`).then(r => r.response.text()).catch(e => { 
                 const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
                 console.error(`[Processor] AI AR Translation failed for doc ${docId}:`, errorMessage); 
                 return null; 

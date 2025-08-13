@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Flex, Heading, Text, Table, Card } from '@radix-ui/themes';
+import { Button, Flex, Heading, Text, Table, Card, Badge } from '@radix-ui/themes';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Link } from 'wouter';
 import { useTranslation } from 'react-i18next'; // Import the hook
@@ -13,6 +13,22 @@ export default function CaseList() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const { t } = useTranslation(); // Use the hook
+
+  // Helper function to get status color and variant
+  const getStatusProps = (status: string) => {
+    switch (status) {
+      case 'Open':
+        return { color: 'blue' as const, variant: 'solid' as const };
+      case 'Pending':
+        return { color: 'orange' as const, variant: 'solid' as const };
+      case 'Closed':
+        return { color: 'green' as const, variant: 'solid' as const };
+      case 'Archived':
+        return { color: 'gray' as const, variant: 'solid' as const };
+      default:
+        return { color: 'gray' as const, variant: 'soft' as const };
+    }
+  };
 
   const fetchCases = async () => {
     try {
@@ -70,7 +86,11 @@ export default function CaseList() {
                     </Table.RowHeaderCell>
                     <Table.Cell>{c.caseNumber}</Table.Cell>
                     <Table.Cell>{c.type}</Table.Cell>
-                    <Table.Cell>{c.status}</Table.Cell>
+                    <Table.Cell>
+                      <Badge {...getStatusProps(c.status)}>
+                        {t(`status${c.status}` as any) || c.status}
+                      </Badge>
+                    </Table.Cell>
                   </Table.Row>
                 ))
               ) : (

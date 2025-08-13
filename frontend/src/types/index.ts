@@ -20,6 +20,27 @@ export interface TimelineEvent {
   event: string;
 }
 
+export interface CaseTimelineEvent {
+  id: number | string; // Can be number for user events or string for document events
+  eventDate: string;
+  eventDescription: string;
+  sourceType: 'document' | 'user';
+  sourceId: number | null;
+  sourceName: string; // Document filename or user full name
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTimelineEventRequest {
+  eventDate: string;
+  eventDescription: string;
+}
+
+export interface UpdateTimelineEventRequest {
+  eventDate: string;
+  eventDescription: string;
+}
+
 export interface Document {
   id: number;
   caseId: number;

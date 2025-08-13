@@ -3,9 +3,10 @@ import { useRoute, useLocation } from 'wouter';
 import { Box, Button, Card, Flex, Heading, Text, Tabs, Spinner, AlertDialog, Badge } from '@radix-ui/themes';
 import { DownloadIcon, TrashIcon, ArrowLeftIcon } from '@radix-ui/react-icons';
 import { getDocumentById, deleteDocument } from '../api';
-import type { Document as DocumentType, TimelineEvent } from '../types';
+import type { Document as DocumentType } from '../types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import DocumentTimeline from '../components/DocumentTimeline';
 
 export default function DocumentDetail() {
   const [, params] = useRoute("/documents/:id");
@@ -78,79 +79,7 @@ export default function DocumentDetail() {
   if (error) return <Flex justify="center" p="8"><Text color="red">{error}</Text></Flex>;
   if (!document) return <Flex justify="center" p="8"><Text>Document not found.</Text></Flex>;
 
-  // Modern Timeline UI
-  const TimelineItem = ({ item }: { item: TimelineEvent }) => (
-    <Flex align="start" gap="3" mb="4" style={{ position: "relative" }}>
-      {/* Timeline Dot */}
-      <Box
-        style={{
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          minWidth: "32px",
-        }}
-      >
-        {/* Vertical Line (before dot) */}
-        <Box
-          style={{
-            width: "4px",
-            height: "16px",
-            background: "linear-gradient(to bottom, #e0e0e0, #ffe066)",
-            borderRadius: "2px",
-            marginBottom: "2px",
-            marginTop: "-2px",
-            opacity: 1,
-          }}
-        />
-        {/* Dot */}
-        <Box
-          style={{
-            width: "16px",
-            height: "16px",
-            background: "#ffe066",
-            border: "3px solid #856A00",
-            borderRadius: "50%",
-            boxShadow: "0 0 0 2px #fff",
-            zIndex: 1,
-          }}
-        />
-        {/* Vertical Line (after dot) */}
-        <Box
-          style={{
-            width: "4px",
-            height: "100%",
-            background: "linear-gradient(to bottom, #ffe066, #e0e0e0)",
-            borderRadius: "2px",
-            marginTop: "2px",
-            opacity: 1,
-            flex: 1,
-          }}
-        />
-      </Box>
-      {/* Timeline Content */}
-      <Box>
-        <Text size="2" color="gray" mb="1" as="div" style={{ fontWeight: 500 }}>
-          {item.date}
-        </Text>
-        <Box
-          p="3"
-          style={{
-            background: "#fffbe6",
-            borderRadius: "8px",
-            boxShadow: "0 1px 4px rgba(133, 106, 0, 0.07)",
-            border: "1px solid #ffe066",
-            minWidth: "220px",
-            maxWidth: "420px",
-          }}
-        >
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {item.event}
-          </ReactMarkdown>
-        </Box>
-      </Box>
-    </Flex>
-  );
+
 
   return (
     <div className="p-4 md:p-8 min-w-screen">
@@ -260,40 +189,55 @@ export default function DocumentDetail() {
                 )}
               </Tabs.Content>
               <Tabs.Content value="timeline">
-               <div className="markdown-content">
-                  {document.processingStatus === 'PROCESSED' ? (
-                    document.timeline && document.timeline.length > 0 ? (
-                      document.timeline.map((item, index) => <TimelineItem key={index} item={item} />)
-                    ) : (
-                      <Text>No timeline could be extracted from this document.</Text>
-                    )
-                  ) : (
-                    <Text color="gray">Timeline will be available once processing is complete.</Text>
-                  )}
-                </div>
+                {document.caseId && docId && (
+                  <DocumentTimeline 
+                    caseId={document.caseId.toString()} 
+                    documentId={docId} 
+                    documentName={document.fileName}
+                  />
+                )}
               </Tabs.Content>
               <Tabs.Content value="translation">
                 {document.processingStatus === 'PROCESSED' ? (
                   <>
-                    <Flex gap="3" mb="4">
-                      <Button variant={activeTranslation === 'en' ? 'solid' : 'soft'} onClick={() => setActiveTranslation('en')}>English</Button>
-                      <Button variant={activeTranslation === 'ar' ? 'solid' : 'soft'} onClick={() => setActiveTranslation('ar')}>العربية</Button>
+                    <Flex gap="3" mb="4" justify="start">
+                      <Button 
+                        variant={activeTranslation === 'en' ? 'solid' : 'soft'} 
+                        onClick={() => setActiveTranslation('en')}
+                        className="professional-translation-button"
+                      >
+                        English
+                      </Button>
+                      <Button 
+                        variant={activeTranslation === 'ar' ? 'solid' : 'soft'} 
+                        onClick={() => setActiveTranslation('ar')}
+                        className="professional-translation-button"
+                      >
+                       العربية
+                      </Button>
                     </Flex>
-                    <Box p="4" className="bg-gray-50 rounded">
-                      {activeTranslation === 'en' ? (
-                        <div className="markdown-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {document.translationEn || 'No English translation available.'}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <div className="markdown-content">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {document.translationAr || 'No Arabic translation available.'}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-                    </Box>
+                    
+                    <Card>
+                      <Box p="6" className={`legal-translation-container ${activeTranslation === 'ar' ? 'rtl-content' : 'ltr-content'}`}>
+                        {activeTranslation === 'en' ? (
+                          <div className="legal-document-translation" dir="ltr">
+                            <div className="markdown-content legal-english-content">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {document.translationEn || 'English translation will be available once document processing is complete.'}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="legal-document-translation" dir="rtl">
+                            <div className="markdown-content legal-arabic-content">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {document.translationAr || 'الترجمة العربية ستكون متاحة بمجرد اكتمال معالجة الوثيقة.'}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+                      </Box>
+                    </Card>
                   </>
                 ) : (
                   <Text color="gray">Translation will be available once processing is complete.</Text>

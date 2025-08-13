@@ -1,5 +1,5 @@
 // backend/src/db/schema.ts
-import { pgTable, serial, text, varchar, timestamp, json, integer, pgEnum, bigint, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, varchar, timestamp, json, integer, pgEnum, bigint, jsonb, date } from 'drizzle-orm/pg-core';
 
 // --- Existing User and Session Tables ---
 export const users = pgTable('users', {
@@ -22,6 +22,7 @@ export const caseTypeEnum = pgEnum('case_type', ['Civil Dispute', 'Criminal Defe
 export const caseStatusEnum = pgEnum('case_status', ['Open', 'Closed', 'Pending', 'Archived']);
 export const docProcessingStatusEnum = pgEnum('doc_processing_status', ['PENDING', 'PROCESSING', 'PROCESSED', 'FAILED']);
 export const messageSenderEnum = pgEnum('message_sender', ['user', 'bot']);
+export const timelineSourceTypeEnum = pgEnum('timeline_source_type', ['document', 'user']);
 
 export const cases = pgTable('cases', {
     id: serial('id').primaryKey(),
@@ -59,4 +60,17 @@ export const chatMessages = pgTable('chat_messages', {
     sender: messageSenderEnum('sender').notNull(),
     text: text('text').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// --- New Timeline Events Table ---
+export const timelineEvents = pgTable('timeline_events', {
+    id: serial('id').primaryKey(),
+    caseId: integer('case_id').notNull().references(() => cases.id, { onDelete: 'cascade' }),
+    eventDate: date('event_date').notNull(),
+    eventDescription: text('event_description').notNull(),
+    sourceType: timelineSourceTypeEnum('source_type').notNull(),
+    sourceId: integer('source_id'), // Document ID if source is document, null if user-added
+    userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()),
 });

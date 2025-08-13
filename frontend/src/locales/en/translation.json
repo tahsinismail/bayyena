@@ -28,5 +28,19 @@
   "statusOpen": "Open",
   "statusClosed": "Closed",
   "statusPending": "Pending",
-  "statusArchived": "Archived"
+  "statusArchived": "Archived",
+  "timeline": "Timeline",
+  "addEvent": "Add Event",
+  "editEvent": "Edit Event",
+  "deleteEvent": "Delete Event",
+  "eventDate": "Event Date",
+  "eventDescription": "Event Description",
+  "userAdded": "User Added",
+  "fromDocument": "From Document",
+  "totalEvents": "Total Events",
+  "extractedFrom": "Extracted from",
+  "addedBy": "Added by",
+  "noTimelineEvents": "No timeline events yet",
+  "addFirstEvent": "Add First Event",
+  "timelineDescription": "Upload documents to extract timeline events automatically, or add events manually."
 }

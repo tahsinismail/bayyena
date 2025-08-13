@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRoute, useLocation, Link } from 'wouter';
 import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea, Select } from '@radix-ui/themes';
-import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon, ArrowLeftIcon } from '@radix-ui/react-icons';
+import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon, ArrowLeftIcon, ImageIcon, VideoIcon, FileIcon } from '@radix-ui/react-icons';
 import { useDropzone } from 'react-dropzone';
 import type { Case, Document } from '../types';
 import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument, updateCaseStatus } from '../api';
 import CaseChat from '../components/CaseChat';
+import CaseTimeline from '../components/CaseTimeline';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,50 @@ export default function CaseDetail() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('all');
+  const [timelineKey, setTimelineKey] = useState(0); // Key to force timeline refresh
+  const prevDocumentsRef = useRef<Document[]>([]); // Track previous documents for comparison
+
+  // Helper function to refresh timeline when documents change
+  const refreshTimeline = useCallback(() => {
+    setTimelineKey(prev => prev + 1);
+  }, []);
+
+  // Helper function to categorize document types
+  const getDocumentCategory = (mimeType: string): string => {
+    if (mimeType.startsWith('image/')) return 'Images';
+    if (mimeType.startsWith('video/')) return 'Videos';
+    if (mimeType === 'application/pdf') return 'PDF';
+    if (mimeType.includes('word') || mimeType.includes('document')) return 'Word Documents';
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType === 'text/csv') return 'Spreadsheets';
+    if (mimeType.startsWith('text/')) return 'Text Files';
+    if (mimeType === 'application/rtf') return 'Rich Text';
+    if (mimeType === 'application/json' || mimeType.includes('xml') || mimeType.includes('html')) return 'Structured Data';
+    return 'Other';
+  };
+
+  // Helper function to get icon for document category
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Images': return <ImageIcon width={14} height={14} />;
+      case 'Videos': return <VideoIcon width={14} height={14} />;
+      case 'PDF': return <FileTextIcon width={14} height={14} />;
+      case 'Word Documents': return <FileTextIcon width={14} height={14} />;
+      case 'Spreadsheets': return <FileIcon width={14} height={14} />;
+      case 'Text Files': return <FileIcon width={14} height={14} />;
+      case 'Rich Text': return <FileTextIcon width={14} height={14} />;
+      case 'Structured Data': return <FileIcon width={14} height={14} />;
+      default: return <FileIcon width={14} height={14} />;
+    }
+  };
+
+  // Filter documents based on selected type
+  const filteredDocuments = documentTypeFilter === 'all' 
+    ? documents 
+    : documents.filter(doc => getDocumentCategory(doc.fileType) === documentTypeFilter);
+
+  // Get unique document categories from uploaded documents
+  const documentCategories = ['all', ...new Set(documents.map(doc => getDocumentCategory(doc.fileType)))];
 
   const fetchDocuments = useCallback(async () => {
     if (!caseId) return;
@@ -78,6 +123,27 @@ export default function CaseDetail() {
       return () => clearInterval(intervalId);
     }
   }, [documents, fetchDocuments]);
+
+  // Separate effect to detect when documents finish processing and refresh timeline
+  useEffect(() => {
+    const prevDocuments = prevDocumentsRef.current;
+    
+    // Check if any documents just finished processing
+    const justProcessed = prevDocuments.some(prevDoc => {
+      const currentDoc = documents.find(doc => doc.id === prevDoc.id);
+      return (
+        (prevDoc.processingStatus === 'PENDING' || prevDoc.processingStatus === 'PROCESSING') &&
+        currentDoc?.processingStatus === 'PROCESSED'
+      );
+    });
+    
+    if (justProcessed) {
+      refreshTimeline();
+    }
+    
+    // Update the ref for next comparison
+    prevDocumentsRef.current = documents;
+  }, [documents, refreshTimeline]);
   // --- END OF CHANGE ---
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -92,6 +158,7 @@ export default function CaseDetail() {
     try {
       await uploadDocument(caseId, formData, setUploadProgress);
       await fetchDocuments();
+      refreshTimeline(); // Refresh timeline when document is uploaded
       setUploadSuccess(true);
       // Clear success message after 5 seconds
       setTimeout(() => setUploadSuccess(false), 5000);
@@ -100,7 +167,7 @@ export default function CaseDetail() {
     } finally {
       setIsUploading(false);
     }
-  }, [caseId, fetchDocuments]);
+  }, [caseId, fetchDocuments, refreshTimeline]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: false, disabled: isUploading });
 
@@ -109,6 +176,7 @@ export default function CaseDetail() {
     try {
       await deleteDocument(caseId, docId);
       setDocuments(docs => docs.filter(d => d.id !== docId));
+      refreshTimeline(); // Refresh timeline when document is deleted
     } catch (err) {
       alert("Failed to delete document.");
     }
@@ -179,27 +247,46 @@ export default function CaseDetail() {
       <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="w-full lg:col-span-2 flex flex-col gap-8">
         <Card>
-          <Box p="4">
-            <Flex justify="between" align="start">
-              <Heading as="h1" size="7">{caseData?.title}</Heading>
+          <Box p="6">
+            <Flex justify="between" align="start" mb="4">
+              <div className="case-title-section">
+                <Heading as="h1" size="6" className="legal-case-title">{caseData?.title}</Heading>
+                <Text size="3" color="gray" className="case-subtitle">
+                  {caseData?.description || 'No case description provided.'}
+                </Text>
+              </div>
               <AlertDialog.Root>
-                <AlertDialog.Trigger><Button color="red" variant="soft">Delete Case</Button></AlertDialog.Trigger>
+                <AlertDialog.Trigger>
+                  <Button color="red" variant="soft" className="danger-action-button">
+                    🗑️ Delete Case
+                  </Button>
+                </AlertDialog.Trigger>
                 <AlertDialog.Content style={{ maxWidth: 450 }}>
-                  <AlertDialog.Title>Delete Case</AlertDialog.Title>
-                  <AlertDialog.Description size="2">Are you sure you want to delete this case and all its documents?</AlertDialog.Description>
+                  <AlertDialog.Title>⚠️ Delete Legal Case</AlertDialog.Title>
+                  <AlertDialog.Description size="2">
+                    This action will permanently delete this legal case and all associated documents. This cannot be undone.
+                  </AlertDialog.Description>
                   {deleteError && <Text color="red" size="2" mt="2">{deleteError}</Text>}
                   <Flex gap="3" mt="4" justify="end">
                     <AlertDialog.Cancel><Button variant="soft" color="gray">Cancel</Button></AlertDialog.Cancel>
-                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete</Button></AlertDialog.Action>
+                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete Case</Button></AlertDialog.Action>
                   </Flex>
                 </AlertDialog.Content>
               </AlertDialog.Root>
             </Flex>
-            <Flex gap="6" my="4">
-              <Text size="2"><strong>Case Number:</strong> {caseData?.caseNumber}</Text>
-              <Text size="2"><strong>Type:</strong> {caseData?.type}</Text>
-              <Flex align="center" gap="2">
-                <Text size="2"><strong>{t('caseStatus')}:</strong></Text>
+            <div className="legal-case-metadata">
+              <Flex gap="8" my="4" wrap="wrap">
+                <div className="metadata-item">
+                  <Text size="1" color="gray" weight="medium">CASE NUMBER</Text>
+                  <Text size="3" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
+                </div>
+                <div className="metadata-item">
+                  <Text size="1" color="gray" weight="medium">CASE TYPE</Text>
+                  <Text size="3" weight="bold" className="metadata-value">{caseData?.type}</Text>
+                </div>
+                <div className="metadata-item">
+                  <Text size="1" color="gray" weight="medium">{t('caseStatus').toUpperCase()}</Text>
+                  <Flex align="center" gap="2">
                 <Select.Root 
                   value={caseData?.status || 'Open'} 
                   onValueChange={handleStatusChange}
@@ -239,16 +326,28 @@ export default function CaseDetail() {
                     <Select.Item value="Archived">{t('statusArchived')}</Select.Item>
                   </Select.Content>
                 </Select.Root>
+                  </Flex>
+                </div>
               </Flex>
-            </Flex>
-            <Heading as="h3" size="4" mb="2">Description</Heading>
-            <Text as="p" size="3" className="whitespace-pre-wrap">{caseData?.description || 'No description provided.'}</Text>
+            </div>
+            
+            {/* <div className="case-description-section">
+              <Heading as="h3" size="4" mb="3" className="legal-section-title">
+                📄 Case Description
+              </Heading>
+              <Box p="4" className="legal-description-box">
+                <Text as="p" size="3" className="legal-description-text">
+                  {caseData?.description || 'No case description provided.'}
+                </Text>
+              </Box>
+            </div> */}
           </Box>
         </Card>
         <div>
           <Tabs.Root defaultValue="summary">
           <Tabs.List color='gold' >
             <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
+            <Tabs.Trigger value="timeline">Timeline</Tabs.Trigger>
             <Tabs.Trigger value="chat">Chat</Tabs.Trigger>
           </Tabs.List>
           <Box pt="3">
@@ -282,6 +381,9 @@ export default function CaseDetail() {
                   </Box>
                 </ScrollArea>
               </Card>
+            </Tabs.Content>
+            <Tabs.Content value="timeline">
+              {caseId && <CaseTimeline key={timelineKey} caseId={caseId} />}
             </Tabs.Content>
             <Tabs.Content value="chat">
                 {caseId && <CaseChat caseId={caseId} />}  
@@ -371,10 +473,48 @@ export default function CaseDetail() {
                 <Text size="2" color="red">Upload failed: {uploadError}</Text>
               </Box>
             )}
+            
+            {/* Document Type Filter */}
+            {documents.length > 0 && (
+              <Box className="document-type-filter">
+                <Flex align="center" gap="3" mb="2">
+                  <Text size="2" weight="medium" color="gray">📁 Filter by Document Type:</Text>
+                  <Select.Root value={documentTypeFilter} onValueChange={setDocumentTypeFilter} size="1">
+                    <Select.Trigger className="document-filter-select" style={{ minWidth: '180px' }} />
+                    <Select.Content>
+                      <Select.Item value="all">
+                        <Flex align="center" gap="2" className="document-category-item">
+                          <FileTextIcon width={14} height={14} />
+                          All Documents ({documents.length})
+                        </Flex>
+                      </Select.Item>
+                      {documentCategories.slice(1).map(category => {
+                        const count = documents.filter(doc => getDocumentCategory(doc.fileType) === category).length;
+                        return (
+                          <Select.Item key={category} value={category}>
+                            <Flex align="center" gap="2" className="document-category-item">
+                              {getCategoryIcon(category)}
+                              {category} ({count})
+                            </Flex>
+                          </Select.Item>
+                        );
+                      })}
+                    </Select.Content>
+                  </Select.Root>
+                </Flex>
+                
+                {documentTypeFilter !== 'all' && (
+                  <Text size="1" className="filter-results-text">
+                    ✓ Showing {filteredDocuments.length} of {documents.length} documents
+                  </Text>
+                )}
+              </Box>
+            )}
+            
             <Separator my="4" size="4" />
             <Flex direction="column" gap="3">
-              {documents.length > 0 ? (
-                documents.map(doc => (
+              {filteredDocuments.length > 0 ? (
+                filteredDocuments.map(doc => (
                   <Flex key={doc.id} align="center" justify="between" gap="2" className="group hover:bg-gray-100 p-2 rounded">
                     <Link href={`/documents/${doc.id}`}>
                       <span className="flex-grow flex items-center gap-3">
@@ -444,7 +584,14 @@ export default function CaseDetail() {
                   </Flex>
                 ))
               ) : (
-                <Text size="2" color="gray">No documents for this case.</Text>
+                <Text size="2" color="gray">
+                  {documents.length === 0 
+                    ? "No documents for this case." 
+                    : documentTypeFilter === 'all' 
+                      ? "No documents for this case."
+                      : `No ${documentTypeFilter.toLowerCase()} found for this case.`
+                  }
+                </Text>
               )}
             </Flex>
           </Box>
