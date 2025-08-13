@@ -4,13 +4,15 @@ import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator
 import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon, ArrowLeftIcon, ImageIcon, VideoIcon, FileIcon, Pencil1Icon, CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { useDropzone } from 'react-dropzone';
 import type { Case, Document, CaseType } from '../types';
-import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument, updateCaseStatus, updateCase, autoGenerateCaseData } from '../api';
+import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument, updateCaseStatus, updateCase, autoGenerateCaseData, getDocumentDisplayName } from '../api';
 import CaseChat from '../components/CaseChat';
 import CaseTimeline from '../components/CaseTimeline';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 
 export default function CaseDetail() {
+  const { i18n } = useTranslation();
   const [, params] = useRoute("/cases/:id");
   const caseId = params?.id || '';
   const [, navigate] = useLocation();
@@ -39,6 +41,7 @@ export default function CaseDetail() {
   const [editStatus, setEditStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [docDisplayNames, setDocDisplayNames] = useState<Record<number, string>>({});
 
   // Case types and statuses
   const caseTypes: CaseType[] = ['Civil Dispute', 'Criminal Defense', 'Family Law', 'Intellectual Property', 'Corporate Law', 'Other'];
@@ -286,29 +289,84 @@ export default function CaseDetail() {
   // --- END OF CHANGE ---
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file || !caseId) return;
+    if (!acceptedFiles || acceptedFiles.length === 0 || !caseId) return;
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError('');
     setUploadSuccess(false);
-    const formData = new FormData();
-    formData.append('document', file);
+
     try {
-      await uploadDocument(caseId, formData, setUploadProgress);
+      // Upload all files concurrently; BullMQ controls processing concurrency
+      const uploads = acceptedFiles.map((file) => {
+        const formData = new FormData();
+        formData.append('document', file);
+        // Reuse a single progress setter (last upload will win visually)
+        return uploadDocument(caseId, formData, setUploadProgress);
+      });
+
+      await Promise.allSettled(uploads);
+
       await fetchDocuments();
-      refreshTimeline(); // Refresh timeline when document is uploaded
+      refreshTimeline();
       setUploadSuccess(true);
-      // Clear success message after 5 seconds
       setTimeout(() => setUploadSuccess(false), 5000);
     } catch (err: any) {
-      setUploadError(err.response?.data?.message || 'Upload failed.');
+      setUploadError(err?.response?.data?.message || 'Upload failed.');
     } finally {
       setIsUploading(false);
     }
   }, [caseId, fetchDocuments, refreshTimeline]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: false, disabled: isUploading });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop,
+    multiple: true,
+    disabled: isUploading,
+    maxSize: 100 * 1024 * 1024,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc'],
+      'text/plain': ['.txt'],
+      'text/csv': ['.csv'],
+      'text/tab-separated-values': ['.tsv'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/rtf': ['.rtf'],
+      'text/html': ['.html', '.htm'],
+      'text/xml': ['.xml'],
+      'application/json': ['.json'],
+      'text/markdown': ['.md'],
+      'text/yaml': ['.yml', '.yaml'],
+      'text/javascript': ['.js'],
+      'text/css': ['.css'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/bmp': ['.bmp'],
+      'image/tiff': ['.tiff', '.tif'],
+      'image/webp': ['.webp'],
+      'video/mp4': ['.mp4'],
+      'video/avi': ['.avi'],
+      'video/mov': ['.mov'],
+      'video/wmv': ['.wmv'],
+      'video/flv': ['.flv'],
+      'video/webm': ['.webm']
+    },
+    onDropRejected: (rejected) => {
+      const messages: string[] = [];
+      rejected.forEach(({ file, errors }) => {
+        errors.forEach((error) => {
+          if (error.code === 'file-too-large') {
+            messages.push(`${file.name} is too large. Maximum size is 100MB.`);
+          } else if (error.code === 'file-invalid-type') {
+            messages.push(`${file.name} is not a supported file type.`);
+          } else {
+            messages.push(`${file.name}: ${error.message}`);
+          }
+        });
+      });
+      setUploadError(messages.join(' '));
+    }
+  });
 
   const handleDeleteDocument = async (docId: number) => {
     if (!caseId) return;
@@ -348,6 +406,37 @@ export default function CaseDetail() {
   );
   // --- END OF CHANGE ---
 
+  // Fetch localized display names for documents when language changes (non-EN)
+  useEffect(() => {
+    if (!caseId) return;
+    const lang = i18n.language || 'en';
+    if (lang === 'en') {
+      setDocDisplayNames({});
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const entries = await Promise.all(documents.map(async (doc) => {
+          try {
+            const { data } = await getDocumentDisplayName(caseId, doc.id, lang);
+            return [doc.id, data.displayName] as const;
+          } catch {
+            return [doc.id, doc.fileName] as const;
+          }
+        }));
+        if (cancelled) return;
+        const map: Record<number, string> = {};
+        entries.forEach(([id, name]) => { map[id] = name; });
+        setDocDisplayNames(map);
+      } catch {
+        /* ignore */
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [caseId, documents, i18n.language]);
+
   if (isLoading) return <Flex justify="center" p="8"><Spinner size="3" /></Flex>;
   if (error) return <Flex justify="center" p="8"><Text color="red">{error}</Text></Flex>;
 
@@ -360,7 +449,7 @@ export default function CaseDetail() {
           onClick={() => navigate('/')}
           className="mb-4"
         >
-          <ArrowLeftIcon /> Back to Cases
+          <ArrowLeftIcon /> Back to All Cases
         </Button>
       </Flex>
 
@@ -643,7 +732,7 @@ export default function CaseDetail() {
                             <Heading as="h3" size="4" mb="2">
                               <Flex align="center" gap="2">
                                 <FileTextIcon />
-                                {doc.fileName}
+                                {docDisplayNames[doc.id] || doc.fileName}
                               </Flex>
                             </Heading>
                             <Box pl="4" className="border-l-2 border-gray-200">
@@ -832,7 +921,7 @@ export default function CaseDetail() {
                       <span className="flex-grow flex items-center gap-3">
                         <FileTextIcon />
                         <Box>
-                          <Text as="div" size="2" weight="bold">{doc.fileName}</Text>
+                          <Text as="div" size="2" weight="bold">{docDisplayNames[doc.id] || doc.fileName}</Text>
                           <Flex justify="between" align="center" gap="1">
                             <Text as="div" size="1" color="gray">{(doc.fileSize / 1024).toFixed(2)} KB</Text>
                           </Flex>

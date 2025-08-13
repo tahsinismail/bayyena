@@ -86,7 +86,7 @@ export default function CaseList() {
                 cases.map(c => (
                   <Table.Row key={c.id}>
                     <Table.RowHeaderCell>
-                      <Link href={`/cases/${c.id}`}><a className="text-[#856A00] hover:underline">{c.title}</a></Link>
+                      <Link href={`/cases/${c.id}`}><Text size="2" weight="bold" className="text-[#856A00] hover:underline">{c.title}</Text></Link>
                     </Table.RowHeaderCell>
                     <Table.Cell>{c.caseNumber}</Table.Cell>
                     <Table.Cell>{c.type}</Table.Cell>

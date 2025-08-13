@@ -2,21 +2,24 @@ import { useState, useEffect } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { Box, Button, Card, Flex, Heading, Text, Tabs, Spinner, AlertDialog, Badge } from '@radix-ui/themes';
 import { DownloadIcon, TrashIcon, ArrowLeftIcon } from '@radix-ui/react-icons';
-import { getDocumentById, deleteDocument } from '../api';
+import { getDocumentById, deleteDocument, getDocumentDisplayName } from '../api';
 import type { Document as DocumentType } from '../types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import DocumentTimeline from '../components/DocumentTimeline';
+import { useTranslation } from 'react-i18next';
 
 export default function DocumentDetail() {
   const [, params] = useRoute("/documents/:id");
   const docId = params?.id;
   const [, navigate] = useLocation();
+  const { i18n } = useTranslation();
 
   const [document, setDocument] = useState<DocumentType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTranslation, setActiveTranslation] = useState<'en' | 'ar'>('en');
+  const [displayName, setDisplayName] = useState<string>('');
 
   // Polling for document status updates
   useEffect(() => {
@@ -44,6 +47,21 @@ export default function DocumentDetail() {
 
     return () => clearInterval(intervalId);
   }, [docId, document?.processingStatus]);
+
+  // Localized display name
+  useEffect(() => {
+    const loadDisplayName = async () => {
+      if (!document) return;
+      const lang = i18n.language || 'en';
+      try {
+        const { data } = await getDocumentDisplayName(String(document.caseId), document.id, lang);
+        setDisplayName(data.displayName);
+      } catch {
+        setDisplayName('');
+      }
+    };
+    loadDisplayName();
+  }, [document?.id, document?.caseId, i18n.language, document]);
 
   // --- CHANGE: Added Delete Functionality ---
   // REASON: To allow users to delete a document directly from its detail page,
@@ -100,7 +118,7 @@ export default function DocumentDetail() {
 
           <Flex justify="between" align="center" mb="4">
             <Flex direction="column" gap="2">
-              <Heading>{document.fileName}</Heading>
+              <Heading>{displayName || document.fileName}</Heading>
               <Flex align="center" gap="3">
                 {getStatusBadge(document.processingStatus)}
                 {document.processingStatus === 'PENDING' && <Spinner size="2" />}

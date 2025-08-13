@@ -31,6 +31,7 @@ export interface DocumentProcessingJobResult {
 export const createDocumentProcessingWorker = (redisConnection: any) => {
   if (!redisConnection) return null;
   
+  const concurrency = Number(process.env.DOC_WORKER_CONCURRENCY || '2');
   return new Worker(
     'document-processing',
     async (job: Job<DocumentProcessingJobData>): Promise<DocumentProcessingJobResult> => {
@@ -107,7 +108,7 @@ export const createDocumentProcessingWorker = (redisConnection: any) => {
     },
     {
       connection: redisConnection,
-      concurrency: 2, // Process 2 documents simultaneously
+      concurrency,
     }
   );
 };

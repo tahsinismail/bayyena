@@ -35,6 +35,7 @@ export const uploadDocument = (caseId: string, formData: FormData, onUploadProgr
     });
 };
 export const deleteDocument = (caseId: string, docId: number) => apiClient.delete(`/cases/${caseId}/documents/${docId}`);
+export const getDocumentDisplayName = (caseId: string, docId: number, lang: string) => apiClient.get<{ displayName: string }>(`/cases/${caseId}/documents/${docId}/display-name`, { params: { lang } });
 
 // --- Chat Routes ---
 export const postChatMessage = (caseId: string, message: string) => apiClient.post<{ answer: string }>(`/chat/${caseId}`, { message });

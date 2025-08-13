@@ -204,6 +204,47 @@ router.patch('/:id', async (req, res, next) => {
     }
 });
 
+// Helper: Normalize AI case type to one of our allowed enums
+const ALLOWED_CASE_TYPES = ['Civil Dispute', 'Criminal Defense', 'Family Law', 'Intellectual Property', 'Corporate Law', 'Other'] as const;
+type AllowedCaseType = typeof ALLOWED_CASE_TYPES[number];
+
+function mapToAllowedCaseType(raw: string | undefined): AllowedCaseType {
+  if (!raw) return 'Other';
+  const value = raw.trim().toLowerCase();
+  // Direct matches
+  for (const allowed of ALLOWED_CASE_TYPES) {
+    if (allowed.toLowerCase() === value) return allowed;
+  }
+  // Heuristic mapping for common synonyms
+  if (/(contract|tort|civil|breach|negligence|damages|property dispute)/i.test(raw)) return 'Civil Dispute';
+  if (/(criminal|felony|misdemeanor|prosecution|defense|arrest|indictment)/i.test(raw)) return 'Criminal Defense';
+  if (/(family|divorce|custody|alimony|marriage|guardianship|adoption)/i.test(raw)) return 'Family Law';
+  if (/(trademark|patent|copyright|ip|intellectual property|licensing)/i.test(raw)) return 'Intellectual Property';
+  if (/(corporate|shareholder|merger|acquisition|company|director|officer)/i.test(raw)) return 'Corporate Law';
+  return 'Other';
+}
+
+// Helper: Fallback generation when AI fails
+function basicFallbackFromDocs(docs: Array<{ fileName: string; summary?: string; extractedText?: string }>): { title: string; description: string; type: AllowedCaseType } {
+  const docCount = docs.length;
+  const firstDoc = docs[0];
+  const baseTitle = firstDoc?.fileName?.replace(/[_-]+/g, ' ').replace(/\.[a-zA-Z0-9]+$/, '') || 'Case';
+  const title = `${baseTitle} – ${docCount > 1 ? 'Multi-Document' : 'Document'} Review`;
+  const snippet = (firstDoc?.summary || firstDoc?.extractedText || '').replace(/\s+/g, ' ').slice(0, 160);
+  const description = snippet
+    ? `${snippet}${snippet.endsWith('.') ? '' : '...'}`
+    : `This case involves ${docCount} document${docCount > 1 ? 's' : ''} under review.`;
+  // Very light heuristic for type
+  const textAll = docs.map(d => `${d.summary || ''} ${d.extractedText || ''}`).join(' ').toLowerCase();
+  let type: AllowedCaseType = 'Other';
+  if (/(contract|civil|negligence|dispute)/.test(textAll)) type = 'Civil Dispute';
+  else if (/(criminal|prosecution|defense|arrest)/.test(textAll)) type = 'Criminal Defense';
+  else if (/(divorce|custody|family)/.test(textAll)) type = 'Family Law';
+  else if (/(patent|trademark|copyright|intellectual property|licensing)/.test(textAll)) type = 'Intellectual Property';
+  else if (/(corporate|shareholder|merger|acquisition|board)/.test(textAll)) type = 'Corporate Law';
+  return { title, description, type };
+}
+
 // POST /api/cases/:id/auto-generate - Auto-generate case title and description based on documents
 router.post('/:id/auto-generate', async (req, res, next) => {
     const user = req.user as typeof users.$inferSelect;
@@ -225,8 +266,14 @@ router.post('/:id/auto-generate', async (req, res, next) => {
 
         const currentCase = caseResult[0];
 
-        // Get processed documents for this case
-        const caseDocs = await db.select().from(documents).where(
+        // Get processed documents for this case (include fields used for richer context)
+        const caseDocs = await db.select({
+            id: documents.id,
+            fileName: documents.fileName,
+            fileType: documents.fileType,
+            summary: documents.summary,
+            extractedText: documents.extractedText,
+        }).from(documents).where(
             and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED'))
         );
 
@@ -234,18 +281,32 @@ router.post('/:id/auto-generate', async (req, res, next) => {
             return res.status(400).json({ message: 'No processed documents found to generate title and description.' });
         }
 
-        // Prepare document summaries for AI analysis
-        const documentSummaries = caseDocs.map(doc => {
-            const summary = doc.summary || 'No summary available';
-            return `Document: ${doc.fileName}\nSummary: ${summary}`;
+        // Prepare document context for AI analysis – grounded and explicit
+        const documentSummaries = caseDocs.map((doc, idx) => {
+            const summary = (doc.summary || '').replace(/\s+/g, ' ').slice(0, 1500);
+            const snippet = (doc.extractedText || '').replace(/\s+/g, ' ').slice(0, 1000);
+            return [
+              `# Document ${idx + 1}`,
+              `fileName: ${doc.fileName}`,
+              `fileType: ${doc.fileType}`,
+              `summary: ${summary || 'N/A'}`,
+              `excerpt: ${snippet || 'N/A'}`,
+            ].join('\n');
         }).join('\n\n');
 
-        const prompt = `You are a professional legal case assistant. Based on the following document summaries from a legal case, generate a concise and professional case title, description, and determine the most appropriate case type.
+        const prompt = `You are a professional legal case assistant. BASE YOUR OUTPUT STRICTLY on the provided documents. Do not add facts not present in the inputs.
+
+Generate a concise, professional case title, a 1–2 sentence description, and the most appropriate case type. The result MUST:
+- Derive language only from document summaries/excerpts below (no hallucinations)
+- Reflect the scenario indicated by the documents (parties, dispute nature, subject matter) where apparent
+- Keep the title 3–8 words, professional, and specific
+- Keep the description 1–2 sentences, precise and neutral
+- For case type, choose EXACTLY one from the allowed list. If none fits, use "Other".
 
 REQUIREMENTS:
 1. Title: Should be 3-8 words, professional, and clearly indicate the nature of the legal matter
 2. Description: Should be 1-2 sentences, professional, and provide a brief overview of the case
-3. Type: Choose the most appropriate case type from the available options
+ 3. Type: Choose the most appropriate case type from the available options (must match exactly)
 4. Use legal terminology appropriately
 5. Be specific about the type of legal issue (contract dispute, personal injury, family law, etc.)
 6. Avoid overly technical jargon that would confuse non-lawyers
@@ -263,7 +324,7 @@ ${documentSummaries}
 
 CURRENT CASE TYPE: ${currentCase.type}
 
-Please respond in the following JSON format:
+Respond ONLY with minified JSON (no markdown, no code fences):
 {
   "title": "Generated professional case title",
   "description": "Generated professional case description",
@@ -273,24 +334,41 @@ Please respond in the following JSON format:
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
-        let generatedData;
+        let generatedData: { title?: string; description?: string; type?: string } = {};
         try {
             generatedData = JSON.parse(responseText);
         } catch (parseError) {
-            // Fallback if AI doesn't return valid JSON
-            generatedData = {
-                title: `${currentCase.type} Case`,
-                description: `Legal case involving ${caseDocs.length} document${caseDocs.length > 1 ? 's' : ''} requiring analysis and review.`,
-                type: currentCase.type
-            };
+            // Ignore parse error; fallback below after validation
         }
 
-        // Update the case with generated title, description, and type
+        // Validate and normalize outputs; fallback if missing/invalid
+        const mappedType = mapToAllowedCaseType(generatedData.type) || currentCase.type as AllowedCaseType;
+        let finalTitle = (generatedData.title || '').trim();
+        let finalDescription = (generatedData.description || '').trim();
+        let finalType: AllowedCaseType = mapToAllowedCaseType(mappedType);
+
+        if (!finalTitle || !finalDescription) {
+            const fallback = basicFallbackFromDocs(caseDocs.map(d => ({
+              fileName: d.fileName,
+              summary: d.summary ?? undefined,
+              extractedText: d.extractedText ?? undefined,
+            })));
+            finalTitle = finalTitle || fallback.title;
+            finalDescription = finalDescription || fallback.description;
+            if (!finalType) finalType = fallback.type;
+        }
+
+        // Ensure type belongs to our enum; if not, pick Other
+        if (!ALLOWED_CASE_TYPES.includes(finalType)) {
+            finalType = 'Other';
+        }
+
+        // Update the case with generated title, description, and type (mapped)
         const updatedCase = await db.update(cases)
             .set({
-                title: generatedData.title,
-                description: generatedData.description,
-                type: generatedData.type || currentCase.type,
+                title: finalTitle,
+                description: finalDescription,
+                type: finalType,
                 updatedAt: new Date()
             })
             .where(eq(cases.id, caseId))
@@ -298,7 +376,7 @@ Please respond in the following JSON format:
 
         res.status(200).json({
             case: updatedCase[0],
-            generated: generatedData
+            generated: { title: finalTitle, description: finalDescription, type: finalType }
         });
     } catch (err) {
         console.error('Error auto-generating case data:', err);

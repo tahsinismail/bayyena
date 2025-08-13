@@ -9,8 +9,11 @@ import { eq, and } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
 import { QueueService } from '../services/queueService';
 import { OCRProcessor } from '../services/ocrProcessor';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const titleModel = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL! });
 
 // Configure Multer for file storage with better file filtering
 const storage = multer.diskStorage({
@@ -297,6 +300,55 @@ router.delete('/:caseId/documents/:docId', async (req, res, next) => {
     } catch (err) {
         next(err);
     }
+});
+
+// GET /:caseId/documents/:docId/display-name?lang=xx - Localized display name for a document
+router.get('/:caseId/documents/:docId/display-name', async (req, res, next) => {
+  try {
+    const caseId = parseInt(req.params.caseId);
+    const docId = parseInt(req.params.docId);
+    const lang = (req.query.lang as string | undefined)?.trim().toLowerCase() || 'en';
+
+    if (isNaN(caseId) || isNaN(docId)) {
+      return res.status(400).json({ message: 'Invalid case or document ID.' });
+    }
+
+    const docResult = await db.select().from(documents).where(
+      and(eq(documents.id, docId), eq(documents.caseId, caseId))
+    );
+
+    if (docResult.length === 0) {
+      return res.status(404).json({ message: 'Document not found in this case.' });
+    }
+
+    const doc = docResult[0];
+    const baseName = (doc.fileName || '').replace(/\.[a-zA-Z0-9]+$/, '');
+
+    // Default English
+    if (lang === 'en') {
+      return res.status(200).json({ displayName: baseName });
+    }
+
+    // Translate baseName to target language using model
+    let translated = '';
+    try {
+      const prompt = `Translate the following document title to ${lang}. Keep it concise and professional, 4-8 words, and suitable as a display title. Do not add quotes or extra commentary.\n\nTITLE:\n${baseName}`;
+      const resp = await titleModel.generateContent(prompt);
+      translated = (resp.response.text() || '').trim();
+    } catch (e) {
+      console.warn('[DISPLAY_NAME] Title translation failed:', e);
+    }
+
+    const sanitize = (s: string) => s
+      .replace(/[\u0000-\u001F]/g, '')
+      .trim()
+      .slice(0, 100);
+
+    const displayName = sanitize(translated) || baseName;
+    return res.status(200).json({ displayName });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

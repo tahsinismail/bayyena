@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { db } from '../db';
@@ -244,7 +245,28 @@ ${extractedText}
         ]);
         console.log(`[Processor] Step 2/3 SUCCESS: All AI tasks completed for doc ID ${docId}.`);
 
-        // Step 3: Update database with AI-generated content
+        // Step 3: Derive a meaningful English file name from the content
+        let derivedTitleEn = '';
+        try {
+            const titlePrompt = `You are a professional legal assistant. Based strictly on the following summary and (if needed) short excerpt, generate a concise 4-8 word professional English document title suitable as a file name. Do not include quotes or special symbols. Avoid parties' full names unless necessary. Examples: "Contract Termination Notice", "Police Incident Report", "Shareholder Agreement Amendment".\n\nSUMMARY:\n${(summary || '').slice(0, 1500)}\n\nEXCERPT:\n${extractedText.slice(0, 1200)}`;
+            const titleResp = await model.generateContent(titlePrompt);
+            derivedTitleEn = (titleResp.response.text() || '').trim();
+        } catch (e) {
+            console.warn(`[Processor] Title generation failed for doc ${docId}:`, e);
+        }
+
+        // Sanitize derived title and append original extension
+        const sanitize = (s: string) => s
+            .normalize('NFKD')
+            .replace(/[^\w\s\-\(\)\[\]&.,]/g, '') // keep letters/digits/space and a few safe chars
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 80);
+        const safeTitle = sanitize(derivedTitleEn) || sanitize((summary || '').split('. ')[0] || 'Document');
+        const ext = path.extname(filePath) || '';
+        const newFileName = `${safeTitle}${ext}`;
+
+        // Step 4: Update database with AI-generated content and new filename
         // --- CHANGE: Added Definitive Check and Logging before Database Update ---
         // REASON: This is the most critical change. We isolate the final database write to catch
         // the exact error if it fails, which is the problem you're experiencing.
@@ -253,7 +275,8 @@ ${extractedText}
             timeline: timeline ? getJSONFromString(timeline) : [],
             translationEn,
             translationAr,
-            processingStatus: 'PROCESSED' as const
+            processingStatus: 'PROCESSED' as const,
+            fileName: newFileName
         };
 
         console.log(`[Processor] Step 3/3 STARTED: Attempting to write data to database for doc ID ${docId}.`);
