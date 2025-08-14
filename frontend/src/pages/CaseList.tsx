@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button, Flex, Heading, Text, Card, Badge, Grid, Box, Spinner } from '@radix-ui/themes';
-import { PlusIcon, CalendarIcon, FileTextIcon, ClockIcon, PersonIcon } from '@radix-ui/react-icons';
+import { PlusIcon, CalendarIcon, FileTextIcon, ClockIcon } from '@radix-ui/react-icons';
 import { useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next';
 import { type Case } from '../types';
@@ -221,7 +221,7 @@ export default function CaseList() {
                       <Flex 
                         direction="column" 
                         gap="2" 
-                        className="case-metadata my-4"
+                        className="case-metadata"
                       >
                         {/* Created Date */}
                         <Flex align="center" gap="2">
@@ -240,16 +240,16 @@ export default function CaseList() {
                         </Flex>
 
                         {/* User Info */}
-                        <Flex align="center" gap="2">
+                        {/* <Flex align="center" gap="2">
                           <PersonIcon className="text-gray-400" />
                           <Text size="1" color="gray" className="text-gray-500">
                             Case ID: {caseItem.id}
                           </Text>
-                        </Flex>
+                        </Flex> */}
                       </Flex>
 
                       {/* Action Button */}
-                      <div className="flex-1 min-w-full min-h-full justify-self-end self-end">
+                      <div className="flex-1 min-w-full min-h-full justify-self-end self-end mt-4">
                         <Button 
                           variant="soft" 
                           className="w-full case-view-button"

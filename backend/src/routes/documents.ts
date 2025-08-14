@@ -210,7 +210,15 @@ router.get('/:caseId/documents', async (req, res, next) => {
 });
 
 // GET /:caseId/documents/:docId - Get detailed information about a specific document
-router.get('/:caseId/documents/:docId', async (req, res, next) => {
+// Use middleware to ensure this route only matches exact paths without additional segments
+router.get('/:caseId/documents/:docId', (req, res, next) => {
+    // Check if the path continues beyond the docId (like /timeline)
+    const expectedPath = `/api/cases/${req.params.caseId}/documents/${req.params.docId}`;
+    if (req.path !== expectedPath.replace('/api/cases', '')) {
+        return next(); // Pass to next route (likely timeline routes)
+    }
+    next();
+}, async (req, res, next) => {
     const caseId = parseInt(req.params.caseId);
     const docId = parseInt(req.params.docId);
 
@@ -261,7 +269,15 @@ router.get('/:caseId/documents/:docId', async (req, res, next) => {
 });
 
 // DELETE /:caseId/documents/:docId - Delete a single document
-router.delete('/:caseId/documents/:docId', async (req, res, next) => {
+// Use middleware to ensure this route only matches exact paths without additional segments
+router.delete('/:caseId/documents/:docId', (req, res, next) => {
+    // Check if the path continues beyond the docId (like /timeline)
+    const expectedPath = `/api/cases/${req.params.caseId}/documents/${req.params.docId}`;
+    if (req.path !== expectedPath.replace('/api/cases', '')) {
+        return next(); // Pass to next route (likely timeline routes)
+    }
+    next();
+}, async (req, res, next) => {
     const caseId = parseInt(req.params.caseId);
     const docId = parseInt(req.params.docId);
 

@@ -78,7 +78,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <button
                 type="button"
                 onClick={toggleMobileMenu}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-200"
+                className="lg:hidden px-2 py-1 rounded-md text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
               >
                 {isMobileMenuOpen ? (
                   <Cross1Icon className="w-6 h-6" />

@@ -287,12 +287,11 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  border: 1px solid #1a1a1a;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: transparent;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -613,8 +612,7 @@ button:focus-visible {
 }
 
 .metadata-value {
-  color: #0f172a;
-  font-family: 'Georgia', serif;
+  color: #1a1a1a;
 }
 
 .legal-section-title {

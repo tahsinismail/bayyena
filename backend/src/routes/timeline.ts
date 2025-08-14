@@ -313,4 +313,106 @@ router.post('/:caseId/documents/:documentId/timeline', async (req, res, next) =>
   }
 });
 
+// PUT /api/cases/:caseId/documents/:documentId/timeline/:eventId - Update timeline event for document
+router.put('/:caseId/documents/:documentId/timeline/:eventId', async (req, res, next) => {
+  const caseId = parseInt(req.params.caseId);
+  const documentId = parseInt(req.params.documentId);
+  const eventId = parseInt(req.params.eventId);
+  const userId = (req.user as any).id;
+  const { eventDate, eventDescription } = req.body;
+
+  console.log('Document Timeline UPDATE:', { caseId, documentId, eventId, userId, eventDate, eventDescription });
+
+  if (!eventDate || !eventDescription) {
+    return res.status(400).json({ message: 'Event date and description are required' });
+  }
+
+  try {
+    // Check if the event exists and belongs to the user using raw SQL
+    const [existingEvent] = await client`
+      SELECT id, user_id 
+      FROM timeline_events 
+      WHERE id = ${eventId} AND case_id = ${caseId} AND source_id = ${documentId} AND source_type = 'user'
+    `;
+
+    console.log('Existing event found:', existingEvent);
+
+    if (!existingEvent) {
+      return res.status(404).json({ message: 'Timeline event not found or cannot be modified' });
+    }
+
+    // Only allow the creator to edit the event
+    if (existingEvent.user_id !== userId) {
+      return res.status(403).json({ message: 'You can only edit your own timeline events' });
+    }
+
+    // Update using raw SQL
+    const [updatedEvent] = await client`
+      UPDATE timeline_events 
+      SET event_date = ${eventDate}, event_description = ${eventDescription}, updated_at = NOW()
+      WHERE id = ${eventId}
+      RETURNING id, event_date as "eventDate", event_description as "eventDescription", source_type as "sourceType", 
+                source_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    // Get the user name for the response
+    const [user] = await db
+      .select({ fullName: users.fullName })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const responseEvent = {
+      ...updatedEvent,
+      sourceName: user?.fullName || 'Unknown User',
+    };
+
+    console.log('Event updated successfully:', responseEvent);
+    res.json(responseEvent);
+  } catch (error: any) {
+    console.error('Error updating document timeline event:', error);
+    res.status(500).json({ message: 'Failed to update document timeline event' });
+  }
+});
+
+// DELETE /api/cases/:caseId/documents/:documentId/timeline/:eventId - Delete timeline event for document
+router.delete('/:caseId/documents/:documentId/timeline/:eventId', async (req, res, next) => {
+  const caseId = parseInt(req.params.caseId);
+  const documentId = parseInt(req.params.documentId);
+  const eventId = parseInt(req.params.eventId);
+  const userId = (req.user as any).id;
+
+  console.log('Document Timeline DELETE:', { caseId, documentId, eventId, userId });
+
+  try {
+    // Check if the event exists and belongs to the user using raw SQL
+    const [existingEvent] = await client`
+      SELECT id, user_id 
+      FROM timeline_events 
+      WHERE id = ${eventId} AND case_id = ${caseId} AND source_id = ${documentId} AND source_type = 'user'
+    `;
+
+    console.log('Existing event found for deletion:', existingEvent);
+
+    if (!existingEvent) {
+      return res.status(404).json({ message: 'Timeline event not found or cannot be deleted' });
+    }
+
+    // Only allow the creator to delete the event
+    if (existingEvent.user_id !== userId) {
+      return res.status(403).json({ message: 'You can only delete your own timeline events' });
+    }
+
+    // Delete using raw SQL
+    await client`
+      DELETE FROM timeline_events WHERE id = ${eventId}
+    `;
+
+    console.log('Event deleted successfully');
+    res.json({ message: 'Timeline event deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting document timeline event:', error);
+    res.status(500).json({ message: 'Failed to delete document timeline event' });
+  }
+});
+
 export default router;
