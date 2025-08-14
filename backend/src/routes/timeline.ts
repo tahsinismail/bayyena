@@ -24,16 +24,16 @@ router.get('/:caseId/timeline', async (req, res, next) => {
     const userEvents = await client`
       SELECT 
         te.id,
-        te.date as "eventDate",
-        te.event as "eventDescription", 
-        te.source as "sourceType",
-        te.document_id as "sourceId",
+        te.event_date as "eventDate",
+        te.event_description as "eventDescription", 
+        te.source_type as "sourceType",
+        te.source_id as "sourceId",
         te.created_at as "createdAt",
         te.updated_at as "updatedAt",
         u.full_name as "sourceName"
       FROM timeline_events te
       LEFT JOIN users u ON te.user_id = u.id
-      WHERE te.case_id = ${caseId} AND te.source = 'user'
+      WHERE te.case_id = ${caseId} AND te.source_type = 'user'
     `;
 
     // Get document-extracted timeline events
@@ -92,12 +92,12 @@ router.post('/:caseId/timeline', async (req, res, next) => {
   }
 
   try {
-    // Insert using raw SQL since schema doesn't match
+    // Insert using raw SQL matching actual DB columns
     const [newEvent] = await client`
-      INSERT INTO timeline_events (case_id, date, event, source, document_id, user_id)
+      INSERT INTO timeline_events (case_id, event_date, event_description, source_type, source_id, user_id)
       VALUES (${caseId}, ${eventDate}, ${eventDescription}, 'user', NULL, ${userId})
-      RETURNING id, date as "eventDate", event as "eventDescription", source as "sourceType", 
-                document_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
+      RETURNING id, event_date as "eventDate", event_description as "eventDescription", source_type as "sourceType", 
+                source_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
     `;
 
     // Get the user name for the response
@@ -134,7 +134,7 @@ router.put('/:caseId/timeline/:eventId', async (req, res, next) => {
     const [existingEvent] = await client`
       SELECT id, user_id 
       FROM timeline_events 
-      WHERE id = ${eventId} AND case_id = ${caseId} AND source = 'user'
+      WHERE id = ${eventId} AND case_id = ${caseId} AND source_type = 'user'
     `;
 
     if (!existingEvent) {
@@ -149,10 +149,10 @@ router.put('/:caseId/timeline/:eventId', async (req, res, next) => {
     // Update using raw SQL
     const [updatedEvent] = await client`
       UPDATE timeline_events 
-      SET date = ${eventDate}, event = ${eventDescription}, updated_at = NOW()
+      SET event_date = ${eventDate}, event_description = ${eventDescription}, updated_at = NOW()
       WHERE id = ${eventId}
-      RETURNING id, date as "eventDate", event as "eventDescription", source as "sourceType", 
-                document_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
+      RETURNING id, event_date as "eventDate", event_description as "eventDescription", source_type as "sourceType", 
+                source_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
     `;
 
     // Get the user name for the response
@@ -184,7 +184,7 @@ router.delete('/:caseId/timeline/:eventId', async (req, res, next) => {
     const [existingEvent] = await client`
       SELECT id, user_id 
       FROM timeline_events 
-      WHERE id = ${eventId} AND case_id = ${caseId} AND source = 'user'
+      WHERE id = ${eventId} AND case_id = ${caseId} AND source_type = 'user'
     `;
 
     if (!existingEvent) {
@@ -219,16 +219,16 @@ router.get('/:caseId/documents/:documentId/timeline', async (req, res, next) => 
     const userEvents = await client`
       SELECT 
         te.id,
-        te.date as "eventDate",
-        te.event as "eventDescription", 
-        te.source as "sourceType",
-        te.document_id as "sourceId",
+        te.event_date as "eventDate",
+        te.event_description as "eventDescription", 
+        te.source_type as "sourceType",
+        te.source_id as "sourceId",
         te.created_at as "createdAt",
         te.updated_at as "updatedAt",
         u.full_name as "sourceName"
       FROM timeline_events te
       LEFT JOIN users u ON te.user_id = u.id
-      WHERE te.case_id = ${caseId} AND te.document_id = ${documentId} AND te.source = 'user'
+      WHERE te.case_id = ${caseId} AND te.source_id = ${documentId} AND te.source_type = 'user'
     `;
 
     // Get document-extracted timeline events for this specific document
@@ -287,12 +287,12 @@ router.post('/:caseId/documents/:documentId/timeline', async (req, res, next) =>
   }
 
   try {
-    // Insert using raw SQL since schema doesn't match
+    // Insert using raw SQL matching actual DB columns
     const [newEvent] = await client`
-      INSERT INTO timeline_events (case_id, date, event, source, document_id, user_id)
+      INSERT INTO timeline_events (case_id, event_date, event_description, source_type, source_id, user_id)
       VALUES (${caseId}, ${eventDate}, ${eventDescription}, 'user', ${documentId}, ${userId})
-      RETURNING id, date as "eventDate", event as "eventDescription", source as "sourceType", 
-                document_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
+      RETURNING id, event_date as "eventDate", event_description as "eventDescription", source_type as "sourceType", 
+                source_id as "sourceId", created_at as "createdAt", updated_at as "updatedAt"
     `;
 
     // Get the user name for the response

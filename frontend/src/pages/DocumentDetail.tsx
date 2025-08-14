@@ -93,9 +93,31 @@ export default function DocumentDetail() {
     }
   };
 
-  if (isLoading) return <Flex justify="center" p="8"><Spinner size="3" /></Flex>;
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-8 min-w-screen">
+        <Flex justify="center" align="center" className="min-h-[400px]">
+          <Flex direction="column" align="center" gap="4">
+            <Spinner size="3" />
+            <Text size="3" color="gray">Loading...</Text>
+          </Flex>
+        </Flex>
+      </div>
+    );
+  }
   if (error) return <Flex justify="center" p="8"><Text color="red">{error}</Text></Flex>;
-  if (!document) return <Flex justify="center" p="8"><Text>Document not found.</Text></Flex>;
+  if (!document) {
+    return (
+      <div className="p-4 md:p-8 min-w-screen">
+        <Flex justify="center" align="center" className="min-h-[400px]">
+          <Flex direction="column" align="center" gap="4">
+            <Spinner size="3" />
+            <Text size="3" color="gray">Checking document status...</Text>
+          </Flex>
+        </Flex>
+      </div>
+    );
+  }
 
 
 

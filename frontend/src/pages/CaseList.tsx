@@ -278,15 +278,6 @@ export default function CaseList() {
                 <Text size="2" color="gray" className="text-gray-500 mb-6">
                   Start building your legal case portfolio by creating your first case.
                 </Text>
-                <Button 
-                  onClick={handleCreateCase} 
-                  disabled={isCreating}
-                  size="3"
-                  className="case-create-button"
-                >
-                  <PlusIcon />
-                  {isCreating ? 'Creating...' : t('createCase')}
-                </Button>
               </Box>
             </Card>
           )}
