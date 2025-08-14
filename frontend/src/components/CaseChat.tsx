@@ -1,12 +1,13 @@
 // frontend/src/components/CaseChat.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Box, Card, Flex, TextArea, Button, ScrollArea, Spinner } from '@radix-ui/themes';
+import { Box, Card, Flex, TextArea, Button, ScrollArea, Spinner, Text } from '@radix-ui/themes';
 import { PaperPlaneIcon, ReloadIcon } from '@radix-ui/react-icons';
 import type { Message } from '../types';
-import { getChatHistory, clearChatHistory } from '../api';
+import { getChatHistory, clearChatHistory, postChatMessage } from '../api';
 import ReactMarkdown from 'react-markdown'; // Import the new library
 import remarkGfm from 'remark-gfm'; // Import the GFM plugin
+import { format } from 'date-fns';
 
 interface CaseChatProps {
     caseId: string;
@@ -17,6 +18,17 @@ export default function CaseChat({ caseId }: CaseChatProps) {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    // Helper function to format timestamp
+    const formatTimestamp = (timestamp?: string) => {
+        if (!timestamp) return '';
+        try {
+            return format(new Date(timestamp), 'MMM d, yyyy • h:mm a');
+        } catch (error) {
+            console.error('Error formatting timestamp:', error);
+            return '';
+        }
+    };
 
     // Auto-scrolling Logic
     useEffect(() => {
@@ -52,8 +64,9 @@ export default function CaseChat({ caseId }: CaseChatProps) {
         setIsLoading(true);
 
         try {
-            // const { data: { answer } } = await postChatMessage(caseId, trimmedInput);
+            const { data: { answer } } = await postChatMessage(caseId, trimmedInput);
             // Fetch history again to get the saved messages, ensuring UI is in sync with DB
+            console.log("answer", answer);
             const { data: updatedHistory } = await getChatHistory(caseId);
             setMessages(updatedHistory);
         } catch (err: any) {
@@ -87,9 +100,8 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                 <ScrollArea ref={scrollAreaRef} style={{ height: '300px' }} className="bg-gray-50 rounded py-2 px-4">
                     <Flex direction="column" gap="4">
                         {messages.map((msg, index) => (
-                            <Flex key={index} justify={msg.sender === 'user' ? 'end' : 'start'}>
+                            <Flex key={index} direction="column" align={msg.sender === 'user' ? 'end' : 'start'}>
                                 <Box className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} style={{ maxWidth: '80%' }}>
-                                    {/* --- THIS IS THE KEY CHANGE --- */}
                                     {/* Use ReactMarkdown to render the text */}
                                     <div className="markdown-content">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -97,6 +109,20 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                                         </ReactMarkdown>
                                     </div>
                                 </Box>
+                                {/* Timestamp display */}
+                                {msg.createdAt && (
+                                    <Text 
+                                        size="1" 
+                                        color="gray" 
+                                        style={{ 
+                                            marginTop: '4px',
+                                            fontSize: '11px',
+                                            textAlign: msg.sender === 'user' ? 'right' : 'left'
+                                        }}
+                                    >
+                                        {formatTimestamp(msg.createdAt)}
+                                    </Text>
+                                )}
                             </Flex>
                         ))}
                         {isLoading && <Flex justify="start"><Spinner /></Flex>}

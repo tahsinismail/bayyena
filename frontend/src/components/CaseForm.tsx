@@ -1,6 +1,6 @@
 // frontend/src/components/CaseForm.tsx
 import { useState } from 'react';
-import { Button, TextField, Flex, Select, Card, Text, TextArea } from '@radix-ui/themes';
+import { Button, TextField, Flex, Select, Card, Text, TextArea, Badge } from '@radix-ui/themes';
 import { type CaseType } from '../types';
 import { createCase } from '../api';
 
@@ -73,6 +73,41 @@ export default function CaseForm({ onSuccess, onCancel }: CaseFormProps) {
                     </Select.Content>
                 </Select.Root>
             </label>
+
+            {/* Supported File Types Info */}
+            <div className="mt-4">
+                <Text as="div" size="2" mb="2" weight="bold">Supported Document Types:</Text>
+                <div className="space-y-2">
+                    <div>
+                        <Text size="1" weight="bold" color="blue">📄 Documents:</Text>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="soft" size="1">PDF</Badge>
+                            <Badge variant="soft" size="1">Word (.docx)</Badge>
+                            <Badge variant="soft" size="1">Text (.txt)</Badge>
+                        </div>
+                    </div>
+                    <div>
+                        <Text size="1" weight="bold" color="green">🖼️ Images:</Text>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="soft" size="1">JPEG</Badge>
+                            <Badge variant="soft" size="1">PNG</Badge>
+                            <Badge variant="soft" size="1">BMP</Badge>
+                            <Badge variant="soft" size="1">TIFF</Badge>
+                            <Badge variant="soft" size="1">WebP</Badge>
+                        </div>
+                    </div>
+                    <div>
+                        <Text size="1" weight="bold" color="purple">🎥 Videos:</Text>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="soft" size="1">MP4</Badge>
+                            <Badge variant="soft" size="1">AVI</Badge>
+                            <Badge variant="soft" size="1">MOV</Badge>
+                            <Badge variant="soft" size="1">WebM</Badge>
+                        </div>
+                    </div>
+                    <Text size="1" color="gray">💡 All files will be processed with AI for text extraction, summary, and translation.</Text>
+                </div>
+            </div>
             
             {error && <Text color="red" size="2">{error}</Text>}
 

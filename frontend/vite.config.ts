@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: ['bayyena.com', 'www.bayyena.com'], // Needed for Docker
+    hmr: false, // Disable WebSocket-based Hot Module Replacement
+    watch: {
+      usePolling: true // Use file system polling instead of WebSocket-based watching
+    },
     proxy: {
       '/api': {
         target: 'http://backend:3001', // Use the service name
@@ -18,6 +22,14 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  // Disable all WebSocket-related features
+  define: {
+    __VITE_DISABLE_WS__: true
+  },
+  // Additional WebSocket disabling
+  optimizeDeps: {
+    exclude: ['ws', 'websocket']
   }
 })
 // --- END OF SERVER CONFIGURATION BLOCK ---

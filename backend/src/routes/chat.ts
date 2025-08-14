@@ -22,8 +22,39 @@ router.post('/:caseId', async (req, res, next) => {
         const caseDocs = await db.select().from(documents).where(and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED')));
         if (caseDocs.length === 0) return res.status(400).json({ answer: "No processed documents to chat with." });
 
+        // Get conversation history for context
+        const chatHistory = await db.select().from(chatMessages)
+            .where(eq(chatMessages.caseId, caseId))
+            .orderBy(asc(chatMessages.createdAt))
+            .limit(20); // Last 20 messages for context
+
         const context = caseDocs.map(doc => `--- Document: ${doc.fileName} ---\n${doc.extractedText}`).join('\n\n');
-        const prompt = `Based only on the following documents, answer the user's question. If the answer is not in the documents, say so.\n\n--- DOCUMENTS ---\n${context}\n--- END DOCUMENTS ---\n\nUSER QUESTION: "${message}"`;
+        
+        const conversationHistory = chatHistory.length > 0 
+            ? chatHistory.map(msg => `${msg.sender.toUpperCase()}: ${msg.text}`).join('\n')
+            : "This is the first message in this case conversation.";
+        
+        const prompt = `You are a professional legal AI assistant helping a lawyer analyze case documents. Your role is to provide accurate, helpful, and legally-informed responses based strictly on the provided case documents.
+
+IMPORTANT GUIDELINES:
+1. **Accuracy First**: Only provide information that is directly supported by the case documents
+2. **Legal Context**: Frame responses in legal terminology and consider legal implications
+3. **Professional Tone**: Maintain a formal, professional tone appropriate for legal practice
+4. **Memory**: Remember the entire conversation context within this case
+5. **Cite Sources**: When referencing information, mention which document it comes from
+6. **No Speculation**: If information is not in the documents, clearly state this limitation
+7. **Legal Analysis**: When appropriate, provide legal analysis of the facts presented
+8. **Confidentiality**: Treat all case information as strictly confidential
+
+CASE DOCUMENTS:
+${context}
+
+PREVIOUS CONVERSATION CONTEXT:
+${conversationHistory}
+
+USER QUESTION: "${message}"
+
+Please provide a comprehensive, legally-informed response based on the case documents and conversation context.`;
         
         const result = await model.generateContent(prompt);
         const answer = result.response.text();

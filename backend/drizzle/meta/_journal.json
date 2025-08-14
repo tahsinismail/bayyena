@@ -8,6 +8,20 @@
       "when": 1754629909029,
       "tag": "0000_foamy_rockslide",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754916626818,
+      "tag": "0001_superb_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755076547940,
+      "tag": "0002_gigantic_hammerhead",
+      "breakpoints": true
     }
   ]
 }
