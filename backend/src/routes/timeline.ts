@@ -34,7 +34,6 @@ router.get('/:caseId/timeline', async (req, res, next) => {
       FROM timeline_events te
       LEFT JOIN users u ON te.user_id = u.id
       WHERE te.case_id = ${caseId} AND te.source = 'user'
-      ORDER BY te.date ASC
     `;
 
     // Get document-extracted timeline events
@@ -72,12 +71,8 @@ router.get('/:caseId/timeline', async (req, res, next) => {
       }
     });
 
-    // Combine and sort all events by date
-    const allEvents = [...userEvents, ...extractedEvents].sort((a, b) => {
-      const dateA = new Date(a.eventDate);
-      const dateB = new Date(b.eventDate);
-      return dateA.getTime() - dateB.getTime();
-    });
+    // Combine all events (frontend will handle sorting)
+    const allEvents = [...userEvents, ...extractedEvents];
 
     res.json(allEvents);
   } catch (error: any) {
@@ -234,7 +229,6 @@ router.get('/:caseId/documents/:documentId/timeline', async (req, res, next) => 
       FROM timeline_events te
       LEFT JOIN users u ON te.user_id = u.id
       WHERE te.case_id = ${caseId} AND te.document_id = ${documentId} AND te.source = 'user'
-      ORDER BY te.date ASC
     `;
 
     // Get document-extracted timeline events for this specific document
@@ -271,12 +265,8 @@ router.get('/:caseId/documents/:documentId/timeline', async (req, res, next) => 
       });
     }
 
-    // Combine and sort all events by date
-    const allEvents = [...userEvents, ...extractedEvents].sort((a, b) => {
-      const dateA = new Date(a.eventDate);
-      const dateB = new Date(b.eventDate);
-      return dateA.getTime() - dateB.getTime();
-    });
+    // Combine all events (frontend will handle sorting)
+    const allEvents = [...userEvents, ...extractedEvents];
 
     res.json(allEvents);
   } catch (error: any) {

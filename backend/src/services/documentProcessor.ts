@@ -149,7 +149,24 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
         }
         
         if (!extractedText.trim()) {
-            throw new Error('Extracted text is empty. Cannot proceed with AI analysis.');
+            // If PDF text extraction failed, try Gemini OCR fallback
+            if (mimeType === 'application/pdf') {
+                console.log(`[Processor] PDF text extraction failed, attempting Gemini OCR fallback...`);
+                try {
+                    const geminiOcrResult = await extractTextWithGemini(filePath, mimeType);
+                    if (geminiOcrResult.trim()) {
+                        extractedText = geminiOcrResult;
+                        console.log(`[Processor] Gemini OCR fallback successful, extracted ${extractedText.length} characters`);
+                    } else {
+                        throw new Error('Gemini OCR fallback also failed - no text could be extracted');
+                    }
+                } catch (geminiError) {
+                    console.error(`[Processor] Gemini OCR fallback failed:`, geminiError);
+                    throw new Error('PDF text extraction failed and Gemini OCR fallback also failed. Cannot proceed with AI analysis.');
+                }
+            } else {
+                throw new Error('Extracted text is empty. Cannot proceed with AI analysis.');
+            }
         }
         
         return extractedText;
@@ -157,6 +174,121 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
         console.error(`[Processor] Text extraction failed for ${filePath}:`, error);
         throw error;
     }
+}
+
+/**
+ * Extract text from problematic PDFs using Gemini's multimodal capabilities
+ * This serves as a fallback when standard PDF parsing fails
+ */
+async function extractTextWithGemini(filePath: string, mimeType: string): Promise<string> {
+    try {
+        console.log(`[Gemini OCR] Starting Gemini-based text extraction for: ${filePath}`);
+        
+        // Read the PDF file as a buffer
+        const pdfBuffer = fs.readFileSync(filePath);
+        
+        // Create a multimodal prompt for Gemini
+        const prompt = `You are a professional legal document analyst with expertise in OCR and text extraction.
+
+TASK: Extract and transcribe all readable text content from this PDF document.
+
+REQUIREMENTS:
+1. **Complete Extraction**: Extract ALL visible text from the document, including:
+   - Headers, titles, and section headings
+   - Body text and paragraphs
+   - Tables and structured data
+   - Footnotes and annotations
+   - Any handwritten or printed text visible in images
+
+2. **Format Preservation**: Maintain the logical structure and formatting:
+   - Preserve paragraph breaks and spacing
+   - Maintain list formatting (bullets, numbers)
+   - Keep table structures where possible
+   - Preserve section hierarchies
+
+3. **Legal Accuracy**: Pay special attention to:
+   - Legal terminology and citations
+   - Dates, names, and reference numbers
+   - Contract terms and conditions
+   - Legal document structure
+
+4. **Quality Standards**:
+   - Transcribe exactly what you see
+   - Do not add, remove, or modify content
+   - If text is unclear or partially visible, indicate with [unclear] or [partial]
+   - If a section is completely unreadable, note [unreadable section]
+
+5. **Output Format**: Provide clean, readable text that can be used for:
+   - Legal analysis and review
+   - Translation services
+   - Document indexing and search
+   - AI-powered content generation
+
+Please analyze this PDF and extract all readable text content. If the document appears to be image-based or has visual content, describe what you can see and extract any text that is visible.`;
+        
+        // Use Gemini's multimodal capabilities to analyze the PDF
+        const result = await model.generateContent([prompt, {
+            inlineData: {
+                mimeType: mimeType,
+                data: pdfBuffer.toString('base64')
+            }
+        }]);
+        
+        const extractedText = result.response.text();
+        
+        if (!extractedText || extractedText.trim().length < 10) {
+            throw new Error('Gemini OCR returned insufficient text content');
+        }
+        
+        console.log(`[Gemini OCR] Successfully extracted ${extractedText.length} characters using Gemini`);
+        return extractedText.trim();
+        
+    } catch (error) {
+        console.error(`[Gemini OCR] Failed to extract text using Gemini:`, error);
+        throw new Error(`Gemini OCR extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+/**
+ * Utility function to validate and standardize timeline dates
+ * This ensures all dates are in proper YYYY-MM-DD format for consistent processing
+ */
+function validateTimelineDates(timelineData: any[]): any[] {
+    if (!Array.isArray(timelineData)) return [];
+    
+    return timelineData.map(item => {
+        if (!item || typeof item !== 'object') return item;
+        
+        const { date, event } = item;
+        
+        // Validate date format
+        if (date && typeof date === 'string') {
+            // Check if date is already in YYYY-MM-DD format
+            const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (isoDateRegex.test(date)) {
+                // Date is already in correct format
+                return item;
+            }
+            
+            // Try to parse and convert various date formats
+            try {
+                const parsedDate = new Date(date);
+                if (!isNaN(parsedDate.getTime())) {
+                    // Convert to YYYY-MM-DD format
+                    const formattedDate = parsedDate.toISOString().split('T')[0];
+                    return {
+                        ...item,
+                        date: formattedDate,
+                        event: `${event} [Date converted from: ${date}]`
+                    };
+                }
+            } catch (error) {
+                console.warn(`[Timeline] Could not parse date: ${date}`);
+            }
+        }
+        
+        return item;
+    });
 }
 
 export const processDocument = async (docId: number, filePath: string, mimeType: string) => {
@@ -183,22 +315,87 @@ export const processDocument = async (docId: number, filePath: string, mimeType:
 
         console.log(`[Processor] Step 2/3 STARTED: Generating AI content for doc ID ${docId}.`);
         
-        // Step 2: Generate AI content using Gemini
-        // --- CHANGE: Made AI Calls More Resilient ---
-        // REASON: Each AI call is now handled individually. If one fails (e.g., timeline),
-        // the others will still complete. We log the specific failure and continue with null.
-        const [summary, timeline, translationEn, translationAr] = await Promise.all([
-            model.generateContent(`Provide a concise, professional summary of the document:\n\n---\n${extractedText}`).then(r => r.response.text()).catch(e => { 
-                const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
-                console.error(`[Processor] AI Summary failed for doc ${docId}:`, errorMessage); 
-                return null; 
-            }),
-            model.generateContent(`Extract a timeline of key events and dates. Return as a valid JSON array of objects, each with "date" and "event" keys. If none, return [].\n\n---\n${extractedText}`).then(r => r.response.text()).catch(e => { 
-                const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
-                console.error(`[Processor] AI Timeline failed for doc ${docId}:`, errorMessage); 
-                return null; 
-            }),
-            model.generateContent(`You are a professional legal translator. Translate the following legal document text to English.
+        // Step 2: Detect document language and generate smart translations
+        console.log(`[Processor] Detecting document language and generating smart translations...`);
+        
+        // First, detect the primary language of the document
+        const languageDetectionPrompt = `Analyze the following text and determine its primary language. 
+        Return ONLY one of these exact responses: "ENGLISH", "ARABIC", or "OTHER".
+        
+        Text to analyze:
+        ---
+        ${extractedText.slice(0, 1000)}
+        ---
+        
+        Language:`;
+        
+        let detectedLanguage = 'ENGLISH'; // Default fallback
+        try {
+            const languageResult = await model.generateContent(languageDetectionPrompt);
+            const languageResponse = languageResult.response.text().trim().toUpperCase();
+            if (languageResponse.includes('ARABIC')) {
+                detectedLanguage = 'ARABIC';
+            } else if (languageResponse.includes('ENGLISH')) {
+                detectedLanguage = 'ENGLISH';
+            } else {
+                detectedLanguage = 'OTHER';
+            }
+            console.log(`[Processor] Document language detected: ${detectedLanguage}`);
+        } catch (error) {
+            console.warn(`[Processor] Language detection failed, using default: ENGLISH`);
+        }
+        
+        // Generate content based on detected language
+        let summary, timeline, translationEn, translationAr;
+        
+        if (detectedLanguage === 'ARABIC') {
+            // Document is in Arabic - translate to English, keep original Arabic
+            console.log(`[Processor] Arabic document detected - translating to English, preserving original Arabic`);
+            [summary, timeline, translationEn, translationAr] = await Promise.all([
+                model.generateContent(`Provide a concise, professional summary of this Arabic legal document:\n\n---\n${extractedText}`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI Summary failed for doc ${docId}:`, errorMessage); 
+                    return null; 
+                }),
+                model.generateContent(`Extract a timeline of key events and dates from this Arabic document. 
+
+IMPORTANT: Handle different calendar systems and date formats properly.
+
+REQUIREMENTS:
+1. **Date Detection**: Identify dates in various formats:
+   - Hijri/Islamic calendar dates (e.g., ١٤٤٥ هـ, 1445 AH)
+   - Arabic numeral dates (e.g., ٢٠٢٤, ٢٠٢٥)
+   - Mixed Arabic-English dates
+   - Traditional Arabic date expressions
+
+2. **Date Conversion**: Convert all dates to international Gregorian calendar format (YYYY-MM-DD)
+
+3. **Reference Notes**: Include original date information in the event description
+
+4. **JSON Format**: Return as a valid JSON array with this structure:
+   [
+     {
+       "date": "2024-08-13",
+       "event": "Event description with original date reference: [Original: ١٤٤٥-١٢-٢٨ هـ / 1445-12-28 AH]"
+     }
+   ]
+
+5. **Date Handling Examples**:
+   - Hijri: "١٤٤٥-١٢-٢٨" → "2024-08-13" + note: "[Original: ١٤٤٥-١٢-٢٨ هـ]"
+   - Arabic numerals: "٢٠٢٤-٠٨-١٣" → "2024-08-13" + note: "[Original: ٢٠٢٤-٠٨-١٣]"
+   - Mixed: "13 August 2024" → "2024-08-13" + note: "[Original: 13 August 2024]"
+
+ARABIC DOCUMENT TEXT:
+---
+${extractedText}
+---
+
+TIMELINE JSON:`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI Timeline failed for doc ${docId}:`, errorMessage); 
+                    return null; 
+                }),
+                model.generateContent(`You are a professional legal translator. Translate this Arabic legal document to English.
 
 REQUIREMENTS:
 1. **Legal Accuracy**: Maintain precise legal terminology and concepts
@@ -206,21 +403,108 @@ REQUIREMENTS:
 3. **Completeness**: Translate all content including dates, names, and legal references
 4. **Format**: Structure the translation clearly with proper legal document formatting
 5. **Terminology**: Use standard legal English terminology where applicable
-6. **Context**: Consider this is a legal case document that may be used in court proceedings
+6. **Context**: This is a legal case document that may be used in court proceedings
 
-If the text is already in English, provide a professionally formatted and polished version.
+ARABIC DOCUMENT TEXT:
+---
+${extractedText}
+---
+
+PROFESSIONAL ENGLISH TRANSLATION:`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI EN Translation failed for doc ${docId}:`, errorMessage); 
+                    return null; 
+                }),
+                // For Arabic documents, translationAr contains the original Arabic content (formatted)
+                model.generateContent(`أنت محرر قانوني محترف. قم بتنسيق وتحرير النص القانوني العربي التالي ليكون أكثر وضوحاً ومهنية.
+
+المتطلبات:
+1. **التنسيق المهني**: هيكل النص بوضوح مع تنسيق الوثيقة القانونية المناسب
+2. **اللغة القانونية**: تأكد من استخدام المصطلحات القانونية العربية المعيارية
+3. **الوضوح**: اجعل النص واضحاً ومقروءاً مع الحفاظ على المعنى القانوني
+4. **الترقيم**: أضف ترقيماً مناسباً للفقرات والعناوين الفرعية
+5. **التنظيم**: نظم المحتوى بشكل منطقي ومهني
+
+النص العربي الأصلي:
+---
+${extractedText}
+---
+
+النص العربي المحرر والمهني:`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI AR Editing failed for doc ${docId}:`, errorMessage); 
+                    return extractedText; // Fallback to original text
+                })
+            ]);
+        } else {
+            // Document is in English or other language - translate to Arabic, keep original English
+            console.log(`[Processor] English/Other document detected - translating to Arabic, preserving original English`);
+            [summary, timeline, translationEn, translationAr] = await Promise.all([
+                model.generateContent(`Provide a concise, professional summary of the document:\n\n---\n${extractedText}`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI Summary failed for doc ${docId}:`, errorMessage); 
+                    return null; 
+                }),
+                model.generateContent(`Extract a timeline of key events and dates from this document. 
+
+IMPORTANT: Handle different calendar systems and date formats properly.
+
+REQUIREMENTS:
+1. **Date Detection**: Identify dates in various formats:
+   - Standard Gregorian dates (e.g., 2024-08-13, August 13, 2024)
+   - Different date formats (DD/MM/YYYY, MM/DD/YYYY, etc.)
+   - Relative dates (e.g., "yesterday", "next week", "3 months ago")
+   - Fiscal or academic year references
+
+2. **Date Standardization**: Convert all dates to international Gregorian calendar format (YYYY-MM-DD)
+
+3. **Reference Notes**: Include original date information when conversion is needed
+
+4. **JSON Format**: Return as a valid JSON array with this structure:
+   [
+     {
+       "date": "2024-08-13",
+       "event": "Event description with original date reference if needed: [Original: 13/08/2024]"
+     }
+   ]
+
+5. **Date Handling Examples**:
+   - US format: "08/13/2024" → "2024-08-13" + note: "[Original: 08/13/2024]"
+   - UK format: "13/08/2024" → "2024-08-13" + note: "[Original: 13/08/2024]"
+   - Text format: "August 13, 2024" → "2024-08-13" + note: "[Original: August 13, 2024]"
+   - Relative: "yesterday" → "2024-08-12" + note: "[Original: yesterday]"
 
 DOCUMENT TEXT:
 ---
 ${extractedText}
 ---
 
-PROFESSIONAL ENGLISH TRANSLATION:`).then(r => r.response.text()).catch(e => { 
-                const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
-                console.error(`[Processor] AI EN Translation failed for doc ${docId}:`, errorMessage); 
-                return null; 
-            }),
-            model.generateContent(`أنت مترجم قانوني محترف. قم بترجمة النص القانوني التالي إلى اللغة العربية.
+TIMELINE JSON:`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI Timeline failed for doc ${docId}:`, errorMessage); 
+                    return null; 
+                }),
+                // For English documents, translationEn contains the original English content (formatted)
+                model.generateContent(`You are a professional legal editor. Format and polish the following legal document text to make it more clear and professional.
+
+REQUIREMENTS:
+1. **Professional Formatting**: Structure the text clearly with proper legal document formatting
+2. **Legal Language**: Ensure standard legal English terminology is used
+3. **Clarity**: Make the text clear and readable while preserving legal meaning
+4. **Punctuation**: Add appropriate punctuation for paragraphs and subheadings
+5. **Organization**: Organize content logically and professionally
+
+ORIGINAL ENGLISH TEXT:
+---
+${extractedText}
+---
+
+PROFESSIONALLY FORMATTED ENGLISH TEXT:`).then(r => r.response.text()).catch(e => { 
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI EN Editing failed for doc ${docId}:`, errorMessage); 
+                    return extractedText; // Fallback to original text
+                }),
+                model.generateContent(`أنت مترجم قانوني محترف. قم بترجمة النص القانوني التالي إلى اللغة العربية.
 
 المتطلبات:
 1. **الدقة القانونية**: حافظ على المصطلحات والمفاهيم القانونية الدقيقة
@@ -230,22 +514,34 @@ PROFESSIONAL ENGLISH TRANSLATION:`).then(r => r.response.text()).catch(e => {
 5. **المصطلحات**: استخدم المصطلحات القانونية العربية المعيارية عند الإمكان
 6. **السياق**: اعتبر أن هذه وثيقة قضائية قد تستخدم في الإجراءات القضائية
 
-إذا كان النص باللغة العربية أصلاً، قدم نسخة منسقة ومصقولة مهنياً.
-
-نص الوثيقة:
+النص القانوني الإنجليزي:
 ---
 ${extractedText}
 ---
 
 الترجمة العربية المهنية:`).then(r => r.response.text()).catch(e => { 
-                const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
-                console.error(`[Processor] AI AR Translation failed for doc ${docId}:`, errorMessage); 
-                return null; 
-            })
-        ]);
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown AI error';
+                    console.error(`[Processor] AI AR Translation failed for doc ${docId}:`, errorMessage); 
+                    return null; 
+                })
+            ]);
+        }
         console.log(`[Processor] Step 2/3 SUCCESS: All AI tasks completed for doc ID ${docId}.`);
 
-        // Step 3: Derive a meaningful English file name from the content
+        // Step 3: Validate and standardize timeline dates
+        let validatedTimeline = [];
+        if (timeline) {
+            try {
+                const timelineData = getJSONFromString(timeline);
+                validatedTimeline = validateTimelineDates(timelineData);
+                console.log(`[Processor] Timeline dates validated: ${validatedTimeline.length} events processed`);
+            } catch (e) {
+                console.warn(`[Processor] Timeline validation failed:`, e);
+                validatedTimeline = timeline ? getJSONFromString(timeline) : [];
+            }
+        }
+        
+        // Step 4: Derive a meaningful English file name from the content
         let derivedTitleEn = '';
         try {
             const titlePrompt = `You are a professional legal assistant. Based strictly on the following summary and (if needed) short excerpt, generate a concise 4-8 word professional English document title suitable as a file name. Do not include quotes or special symbols. Avoid parties' full names unless necessary. Examples: "Contract Termination Notice", "Police Incident Report", "Shareholder Agreement Amendment".\n\nSUMMARY:\n${(summary || '').slice(0, 1500)}\n\nEXCERPT:\n${extractedText.slice(0, 1200)}`;
@@ -272,7 +568,7 @@ ${extractedText}
         // the exact error if it fails, which is the problem you're experiencing.
         const finalData = {
             summary,
-            timeline: timeline ? getJSONFromString(timeline) : [],
+            timeline: validatedTimeline,
             translationEn,
             translationAr,
             processingStatus: 'PROCESSED' as const,

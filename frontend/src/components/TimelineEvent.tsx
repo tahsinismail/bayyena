@@ -52,7 +52,7 @@ export default function TimelineEvent({ event, onEdit, onDelete, canEdit = false
         <Flex justify="between" align="start" gap="3">
           <Flex direction="column" gap="2" className="flex-1">
             {/* Date and Source Info */}
-            <Flex align="center" gap="3" mb="2">
+            <Flex align="center" gap="3" mb="2" wrap="wrap">
               <Flex align="center" gap="2">
                 <CalendarIcon className="w-4 h-4 text-gray-500" />
                 <Text size="2" weight="medium" color="gray">
@@ -75,7 +75,7 @@ export default function TimelineEvent({ event, onEdit, onDelete, canEdit = false
             </Text>
 
             {/* Source Attribution */}
-            <Flex align="center" gap="2" mt="2">
+            <Flex align="center" gap="2" mt="2" wrap="wrap">
               <Text size="1" color="gray">
                 {event.sourceType === 'document' ? 'Extracted from:' : 'Added by:'}
               </Text>

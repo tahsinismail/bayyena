@@ -152,8 +152,8 @@ export default function CaseTimeline({ caseId }: CaseTimelineProps) {
               <Text size="4" weight="bold">{t('timeline')}</Text>
             </Flex>
             <Flex align="center" gap="3">
-              {/* Timeline Ordering */}
-              <Flex align="center" gap="2" className="timeline-sort-container">
+              {/* Desktop Timeline Ordering */}
+              <div className="timeline-sort-container align-center gap-2 hidden md:flex">
                 <Text size="2" color="gray">📅 Sort:</Text>
                 <Select.Root value={sortOrder} onValueChange={(value: 'latest-first' | 'oldest-first') => setSortOrder(value)} size="1">
                   <Select.Trigger className="timeline-sort-select" style={{ minWidth: '140px' }} />
@@ -172,17 +172,38 @@ export default function CaseTimeline({ caseId }: CaseTimelineProps) {
                     </Select.Item>
                   </Select.Content>
                 </Select.Root>
-              </Flex>
+              </div>
               <Button onClick={() => setIsFormOpen(true)} size="2">
                 <PlusIcon />
                 {t('addEvent')}
               </Button>
             </Flex>
           </Flex>
+          {/* Mobile Sorting */}
+          <div className="timeline-sort-container align-center gap-2 my-4 flex md:hidden">
+                <Text size="2" color="gray">📅 Sort:</Text>
+                <Select.Root value={sortOrder} onValueChange={(value: 'latest-first' | 'oldest-first') => setSortOrder(value)} size="1">
+                  <Select.Trigger className="timeline-sort-select" style={{ minWidth: '140px' }} />
+                  <Select.Content>
+                    <Select.Item value="latest-first">
+                      <Flex align="center" gap="2" className="timeline-sort-item">
+                        <ArrowDownIcon width={14} height={14} className="timeline-sort-icon" />
+                        Latest First
+                      </Flex>
+                    </Select.Item>
+                    <Select.Item value="oldest-first">
+                      <Flex align="center" gap="2" className="timeline-sort-item">
+                        <ArrowUpIcon width={14} height={14} className="timeline-sort-icon" />
+                        Oldest First
+                      </Flex>
+                    </Select.Item>
+                  </Select.Content>
+                </Select.Root>
+          </div>
 
           {/* Timeline Stats */}
           {sortedEvents.length > 0 && (
-            <Flex gap="4" mb="4" p="3" className="timeline-stats">
+            <Flex gap="4" mb="4" p="3" wrap="wrap" className="timeline-stats">
               <Flex align="center" gap="2">
                 <Text size="2" color="gray">{t('totalEvents')}:</Text>
                 <Text size="2" weight="medium">{sortedEvents.length}</Text>
@@ -199,6 +220,7 @@ export default function CaseTimeline({ caseId }: CaseTimelineProps) {
               </Flex>
             </Flex>
           )}
+          
 
           {/* Timeline Events */}
           <ScrollArea type="auto" scrollbars="vertical" style={{ maxHeight: '70vh' }}>

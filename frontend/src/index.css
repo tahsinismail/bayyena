@@ -44,10 +44,208 @@
     border-radius: 0.5rem;
     overflow-x: auto;
     margin-bottom: 1rem;
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .markdown-content pre code {
     background-color: transparent;
     padding: 0;
+}
+
+/* Additional overflow handling for markdown elements */
+.markdown-content table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
+}
+
+/* Handle long words and URLs that cause overflow */
+.markdown-content * {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Specific handling for translation tab content */
+.translation-tab-content {
+    max-width: 100%;
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Case List Card Design */
+.case-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.case-card {
+    background: white;
+    transition: all 0.2s ease-in-out;
+    overflow: hidden;
+    position: relative;
+}
+
+.case-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+}
+
+.case-card:active {
+    transform: translateY(0);
+}
+
+.case-create-button {
+    background: linear-gradient(135deg, #856A00 0%, #a17a1a 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.case-create-button:hover {
+    background: linear-gradient(135deg, #6b5500 0%, #856A00 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(133, 106, 0, 0.3);
+}
+
+.case-view-button {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.case-view-button:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.empty-state-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px dashed #cbd5e1;
+    text-align: center;
+}
+
+.empty-state-card:hover {
+    border-color: #856A00;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.case-metadata {
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.case-metadata svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .case-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .case-card {
+        margin: 0 0.5rem;
+    }
+    
+    .case-card .case-metadata {
+        padding: 0.5rem;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    .case-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+}
+
+@media (min-width: 1025px) {
+    .case-grid {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+}
+
+/* Line Clamp Utilities */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* RTL Support for Case Cards */
+[dir="rtl"] .case-card {
+    text-align: right;
+}
+
+[dir="rtl"] .case-metadata {
+    text-align: right;
+}
+
+[dir="rtl"] .case-view-button {
+    text-align: center;
+}
+
+
+
+
+
+/* Footer */
+.footer-links {
+    transition: color 0.2s ease;
+}
+
+.footer-links:hover {
+    color: #856A00;
+}
+
+
+
+
+
+.markdown-content a {
+    word-break: break-all;
+    max-width: 100%;
+}
+
+.markdown-content table td,
+.markdown-content table th {
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 200px;
+}
+
+.markdown-content blockquote {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.markdown-content img {
+    max-width: 100%;
+    height: auto;
 }
 
 /* Spinner animation */
@@ -197,10 +395,18 @@ button:focus-visible {
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   min-height: 400px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .legal-document-translation {
   width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .translation-header {
@@ -226,6 +432,10 @@ button:focus-visible {
   line-height: 1.8;
   direction: rtl;
   text-align: right;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .rtl-content .legal-arabic-content h1,
@@ -274,6 +484,10 @@ button:focus-visible {
   line-height: 1.7;
   direction: ltr;
   text-align: left;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .ltr-content .legal-english-content h1,
@@ -594,9 +808,6 @@ button:focus-visible {
 
 /* Timeline Sort Selector Styles */
 .timeline-sort-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   padding: 4px 8px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border: 1px solid #e2e8f0;

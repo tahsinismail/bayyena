@@ -132,14 +132,14 @@ export default function DocumentTimeline({ caseId, documentId, documentName }: D
   return (
     <Card>
       <Box p="4">
-        <Flex justify="between" align="center" mb="4">
+        <Flex justify="between" align="center" mb="4" gap="4" wrap="wrap">
           <Flex align="center" gap="2">
             <CalendarIcon />
             <Text size="4" weight="bold">{t('timeline')} - {documentName}</Text>
           </Flex>
           <Flex align="center" gap="3">
             {/* Timeline Ordering */}
-            <Flex align="center" gap="2" className="timeline-sort-container">
+            <div className="timeline-sort-container align-center gap-2 hidden md:flex">
               <Text size="2" color="gray">📅 Sort:</Text>
               <Select.Root value={sortOrder} onValueChange={(value: 'latest-first' | 'oldest-first') => setSortOrder(value)} size="1">
                 <Select.Trigger className="timeline-sort-select" style={{ minWidth: '140px' }} />
@@ -158,13 +158,34 @@ export default function DocumentTimeline({ caseId, documentId, documentName }: D
                   </Select.Item>
                 </Select.Content>
               </Select.Root>
-            </Flex>
+            </div>
             <Button onClick={() => setIsFormOpen(true)} size="2">
               <PlusIcon />
               {t('addEvent')}
             </Button>
           </Flex>
         </Flex>
+
+        <div className="timeline-sort-container align-center gap-2 my-4 flex md:hidden">
+              <Text size="2" color="gray">📅 Sort:</Text>
+              <Select.Root value={sortOrder} onValueChange={(value: 'latest-first' | 'oldest-first') => setSortOrder(value)} size="1">
+                <Select.Trigger className="timeline-sort-select" style={{ minWidth: '140px' }} />
+                <Select.Content>
+                  <Select.Item value="latest-first">
+                    <Flex align="center" gap="2" className="timeline-sort-item">
+                      <ArrowDownIcon width={14} height={14} className="timeline-sort-icon" />
+                      Latest First
+                    </Flex>
+                  </Select.Item>
+                  <Select.Item value="oldest-first">
+                    <Flex align="center" gap="2" className="timeline-sort-item">
+                      <ArrowUpIcon width={14} height={14} className="timeline-sort-icon" />
+                      Oldest First
+                    </Flex>
+                  </Select.Item>
+                </Select.Content>
+              </Select.Root>
+        </div>
 
         {/* Error Display */}
         {error && (
@@ -179,7 +200,7 @@ export default function DocumentTimeline({ caseId, documentId, documentName }: D
         {sortedEvents.length > 0 && (
           <Card className="bg-blue-50 border-blue-200 mb-4">
             <Box p="3">
-              <Flex justify="between" align="center">
+              <Flex justify="between" align="center" wrap="wrap">
                 <Text size="2" weight="medium" color="blue">
                   📊 {t('totalEvents')}: {sortedEvents.length}
                 </Text>

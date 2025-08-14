@@ -3,7 +3,7 @@ import { Button, Flex } from '@radix-ui/themes';
 import { useEffect, useState } from 'react';
 
 export default function LanguageSwitcher() {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const [currentLanguage, setCurrentLanguage] = useState(() => {
     // Initialize with stored language or default to English
     const stored = localStorage.getItem('i18nextLng');
@@ -44,20 +44,24 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <Flex gap="3">
+    <Flex gap="2" className="language-switcher">
       <Button
-        color='gold'
+        size="2"
         variant={currentLanguage === 'en' ? 'solid' : 'soft'}
+        color={currentLanguage === 'en' ? 'gold' : 'gray'}
         onClick={() => changeLanguage('en')}
+        className="language-button"
       >
-        {t('english')}
+        <span className="text-sm font-medium">EN</span>
       </Button>
       <Button
-        color='gold'
+        size="2"
         variant={currentLanguage === 'ar' ? 'solid' : 'soft'}
+        color={currentLanguage === 'ar' ? 'gold' : 'gray'}
         onClick={() => changeLanguage('ar')}
+        className="language-button"
       >
-        {t('arabic')}
+        <span className="text-sm font-medium">عربي</span>
       </Button>
     </Flex>
   );

@@ -100,7 +100,7 @@ export default function DocumentDetail() {
 
 
   return (
-    <div className="p-4 md:p-8 min-w-screen">
+    <div className="p-4 md:p-8 min-w-screen max-w-screen">
       <Card>
         <Box p="4">
           {/* Back Button */}
@@ -116,7 +116,7 @@ export default function DocumentDetail() {
             </Flex>
           )}
 
-          <Flex justify="between" align="center" mb="4">
+          <Flex justify="between" align="center" mb="4" gap="4" wrap="wrap">
             <Flex direction="column" gap="2">
               <Heading>{displayName || document.fileName}</Heading>
               <Flex align="center" gap="3">
@@ -235,13 +235,13 @@ export default function DocumentDetail() {
                       </Button>
                     </Flex>
                     
-                    <Card>
-                      <Box p="6" className={`legal-translation-container ${activeTranslation === 'ar' ? 'rtl-content' : 'ltr-content'}`}>
+                    <Card className='max-w-screen flex flex-wrap'>
+                      <Box p="6" className={`legal-translation-container translation-tab-content ${activeTranslation === 'ar' ? 'rtl-content' : 'ltr-content'}`}>
                         {activeTranslation === 'en' ? (
                           <div className="legal-document-translation" dir="ltr">
                             <div className="markdown-content legal-english-content">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {document.translationEn || 'English translation will be available once document processing is complete.'}
+                                {document.translationEn || 'English content will be available once document processing is complete.'}
                               </ReactMarkdown>
                             </div>
                           </div>
@@ -249,11 +249,26 @@ export default function DocumentDetail() {
                           <div className="legal-document-translation" dir="rtl">
                             <div className="markdown-content legal-arabic-content">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {document.translationAr || 'الترجمة العربية ستكون متاحة بمجرد اكتمال معالجة الوثيقة.'}
+                                {document.translationAr || 'المحتوى العربي سيكون متاحاً بمجرد اكتمال معالجة الوثيقة.'}
                               </ReactMarkdown>
                             </div>
                           </div>
                         )}
+                      </Box>
+                    </Card>
+                    
+                    {/* Language Information */}
+                    <Card className="mt-4 bg-blue-50 border-blue-200">
+                      <Box p="4">
+                        <Text size="2" color="blue" weight="medium">
+                          ℹ️ Translation Information
+                        </Text>
+                        <Text size="2" color="gray" mt="2">
+                          {activeTranslation === 'en' 
+                            ? 'English tab shows: ' + (document.translationEn?.includes('ARABIC DOCUMENT TEXT') ? 'English translation of Arabic document' : 'Original English content (formatted)')
+                            : 'Arabic tab shows: ' + (document.translationAr?.includes('النص العربي المحرر') ? 'Original Arabic content (formatted)' : 'Arabic translation of English document')
+                          }
+                        </Text>
                       </Box>
                     </Card>
                   </>

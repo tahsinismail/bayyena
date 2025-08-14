@@ -25,9 +25,9 @@ export default function Login() {
   };
 
   return (
-    <Flex direction="column" align="center" justify="center" className="min-h-screen min-w-screen">
+    <Flex direction="column" align="center" justify="center" className="min-h-screen max-w-screen min-w-screen mx-auto">
       <img src={logo} alt="Logo" className="mb-8"  width={150} height={150}/>
-      <Card className="p-16 min-w-md min-h-max w-1/3 h-1/2">
+      <Card className="p-16 min-w-sm min-h-max w-1/3 h-1/2">
         <form onSubmit={handleSubmit}>
           <Flex direction="column" gap="4">
             <Text as="label" size="6" weight="bold" align="center">Sign In</Text>

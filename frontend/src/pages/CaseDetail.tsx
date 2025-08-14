@@ -456,8 +456,8 @@ export default function CaseDetail() {
       <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="w-full lg:col-span-2 flex flex-col gap-8">
         <Card>
-          <Box p="6">
-            <Flex justify="between" align="start" mb="4">
+          <Box p={{sm: '2', md: '6'}}>
+            <Flex justify="between" align="start" mb="4" className='flex-col gap-4 md:flex-row'>
               <div className="case-title-section" style={{ flex: 1, marginRight: '16px' }}>
                 {/* Title Section */}
                 <Flex align="center" gap="2" mb="2">
@@ -589,7 +589,7 @@ export default function CaseDetail() {
               </AlertDialog.Root>
             </Flex>
             <div className="legal-case-metadata">
-              <Flex justify="between" my="4" wrap="wrap">
+              <Flex justify="between" my="4" className='flex-col gap-6 md:gap-2 md:flex-row'>
                 <div className="metadata-item">
                   <Text size="1" color="gray" weight="medium">CASE NUMBER</Text>
                   <Text size="3" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
@@ -700,17 +700,6 @@ export default function CaseDetail() {
                 </div>
               </Flex>
             </div>
-            
-            {/* <div className="case-description-section">
-              <Heading as="h3" size="4" mb="3" className="legal-section-title">
-                📄 Case Description
-              </Heading>
-              <Box p="4" className="legal-description-box">
-                <Text as="p" size="3" className="legal-description-text">
-                  {caseData?.description || 'No case description provided.'}
-                </Text>
-              </Box>
-            </div> */}
           </Box>
         </Card>
         <div>
@@ -764,36 +753,6 @@ export default function CaseDetail() {
    
         </div>
 
-        {/* Right Sidebar
-        <div className="w-full lg:col-span-1 flex flex-col gap-8">
-          <Card>
-            <Box p="4">
-              <Heading as="h3" size="4" mb="4" className="legal-section-title">Case Details</Heading>
-              
-              <Separator my="3" size="4" />
-              
-              <div className="legal-case-metadata">
-                <div className="metadata-item">
-                  <Text size="2" color="gray" weight="medium">Case Number</Text>
-                  <Text size="2" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
-                </div>
-                <div className="metadata-item">
-                  <Text size="2" color="gray" weight="medium">Date Created</Text>
-                  <Text size="2" weight="bold" className="metadata-value">
-                    {caseData?.createdAt ? new Date(caseData.createdAt).toLocaleDateString() : 'N/A'}
-                  </Text>
-                </div>
-                <div className="metadata-item">
-                  <Text size="2" color="gray" weight="medium">Last Updated</Text>
-                  <Text size="2" weight="bold" className="metadata-value">
-                    {caseData?.updatedAt ? new Date(caseData.updatedAt).toLocaleDateString() : 'N/A'}
-                  </Text>
-                </div>
-              </div>
-            </Box>
-          </Card>
-          {caseId && <CaseChat caseId={caseId} />}
-        </div> */}
       </div>
       <div className="lg:col-span-1">
         <Card>
@@ -879,7 +838,7 @@ export default function CaseDetail() {
             {documents.length > 0 && (
               <Box className="document-type-filter">
                 <Flex align="center" gap="3" mb="2">
-                  <Text size="2" weight="medium" color="gray">📁 Filter by Document Type:</Text>
+                  <Text size="2" weight="medium" color="gray">📁 Filter Documents:</Text>
                   <Select.Root value={documentTypeFilter} onValueChange={setDocumentTypeFilter} size="1">
                     <Select.Trigger className="document-filter-select" style={{ minWidth: '180px' }} />
                     <Select.Content>
