@@ -43,6 +43,65 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Simple test endpoint
+app.get('/api/test-simple', (req, res) => {
+  res.json({ message: 'Simple test working' });
+});
+
+// Public endpoints that don't require authentication - MUST be before any auth middleware
+app.get('/api/upload/supported-types', async (req, res) => {
+  try {
+    const { OCRProcessor } = await import('./services/ocrProcessor');
+    const { GeminiProcessor } = await import('./services/geminiProcessor');
+    
+    const ocrTypes = OCRProcessor.getSupportedTypes();
+    const geminiTypes = GeminiProcessor.getSupportedMimeTypes();
+    const allTypes = [...new Set([...ocrTypes, ...geminiTypes])];
+    
+    // Categorize file types for better UX
+    const categorized = {
+      documents: allTypes.filter(type => 
+        type.includes('pdf') || 
+        type.includes('word') || 
+        type.includes('document') || 
+        type.includes('spreadsheet') || 
+        type.includes('presentation') || 
+        type.includes('text') || 
+        type.includes('rtf') || 
+        type.includes('csv') || 
+        type.includes('json') || 
+        type.includes('html') || 
+        type.includes('xml')
+      ),
+      images: allTypes.filter(type => type.startsWith('image/')),
+      videos: allTypes.filter(type => type.startsWith('video/')),
+      audio: allTypes.filter(type => type.startsWith('audio/'))
+    };
+    
+    res.json({
+      total: allTypes.length,
+      categories: categorized,
+      processing: {
+        ocr: {
+          count: ocrTypes.length,
+          description: 'Traditional OCR and text extraction'
+        },
+        gemini: {
+          count: geminiTypes.length,
+          description: 'AI-powered multimodal analysis including audio transcription and advanced OCR'
+        }
+      },
+      limits: {
+        maxFileSize: '200MB',
+        maxFileSizeBytes: 200 * 1024 * 1024
+      }
+    });
+  } catch (error) {
+    console.error('[Routes] Error getting supported types:', error);
+    res.status(500).json({ message: 'Failed to get supported file types' });
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', caseRoutes);

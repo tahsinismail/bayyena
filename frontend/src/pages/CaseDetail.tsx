@@ -846,6 +846,15 @@ export default function CaseDetail() {
               </Box>
             )}
             
+            {/* Note for user */}
+            <Box className='space-y-4 px-2 pt-2'>
+                <Text size="3" color="gray" className="" style={{ flex: 1 }}>
+                  ⓘ For best results, please upload documents in PDF format
+                </Text>
+            </Box>
+
+            <Separator my="4" size="4" />
+            
             {/* Document Type Filter */}
             {documents.length > 0 && (
               <Box className="document-type-filter">

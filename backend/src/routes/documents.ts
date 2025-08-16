@@ -9,13 +9,66 @@ import { eq, and } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
 import { QueueService } from '../services/queueService';
 import { OCRProcessor } from '../services/ocrProcessor';
+import { GeminiProcessor } from '../services/geminiProcessor';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const titleModel = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL! });
 
-// Configure Multer for file storage with better file filtering
+// GET /supported-types - Get information about supported file types (no auth required)
+router.get('/supported-types', async (req, res) => {
+  try {
+    const ocrTypes = OCRProcessor.getSupportedTypes();
+    const geminiTypes = GeminiProcessor.getSupportedMimeTypes();
+    const allTypes = [...new Set([...ocrTypes, ...geminiTypes])];
+    
+    // Categorize file types for better UX
+    const categorized = {
+      documents: allTypes.filter(type => 
+        type.includes('pdf') || 
+        type.includes('word') || 
+        type.includes('document') || 
+        type.includes('spreadsheet') || 
+        type.includes('presentation') || 
+        type.includes('text') || 
+        type.includes('rtf') || 
+        type.includes('csv') || 
+        type.includes('json') || 
+        type.includes('html') || 
+        type.includes('xml')
+      ),
+      images: allTypes.filter(type => type.startsWith('image/')),
+      videos: allTypes.filter(type => type.startsWith('video/')),
+      audio: allTypes.filter(type => type.startsWith('audio/'))
+    };
+    
+    res.json({
+      total: allTypes.length,
+      categories: categorized,
+      processing: {
+        ocr: {
+          count: ocrTypes.length,
+          description: 'Traditional OCR and text extraction'
+        },
+        gemini: {
+          count: geminiTypes.length,
+          description: 'AI-powered multimodal analysis including audio transcription and advanced OCR'
+        }
+      },
+      limits: {
+        maxFileSize: '200MB',
+        maxFileSizeBytes: 200 * 1024 * 1024
+      }
+    });
+  } catch (error) {
+    console.error('[Routes] Error getting supported types:', error);
+    res.status(500).json({ message: 'Failed to get supported file types' });
+  }
+});
+
+// Apply auth middleware to all other document routes
+router.use(isAuthenticated);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/';
@@ -34,44 +87,17 @@ const storage = multer.diskStorage({
 
 // File filter function to validate supported file types
 const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const supportedTypes = [
-    // Documents
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword',
-    'text/plain',
-    'text/csv',
-    'text/tab-separated-values',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/rtf',
-    'text/html',
-    'text/xml',
-    'application/json',
-    'text/markdown',
-    'text/yaml',
-    'text/javascript',
-    'text/css',
-    // Images
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/bmp',
-    'image/tiff',
-    'image/webp',
-    // Videos
-    'video/mp4',
-    'video/avi',
-    'video/mov',
-    'video/wmv',
-    'video/flv',
-    'video/webm'
-  ];
+  // Get all supported types from both OCR processor and Gemini processor
+  const ocrSupportedTypes = OCRProcessor.getSupportedTypes();
+  const geminiSupportedTypes = GeminiProcessor.getSupportedMimeTypes();
+  
+  // Combine both sets of supported types
+  const allSupportedTypes = [...new Set([...ocrSupportedTypes, ...geminiSupportedTypes])];
 
-  if (supportedTypes.includes(file.mimetype)) {
+  if (allSupportedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error(`Unsupported file type: ${file.mimetype}. Supported types: ${supportedTypes.join(', ')}`));
+    cb(new Error(`Unsupported file type: ${file.mimetype}. Supported types include: PDF, Word documents, images, videos, audio files, text files, and more. Total supported: ${allSupportedTypes.length} file types.`));
   }
 };
 
@@ -79,12 +105,63 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fileSize: 200 * 1024 * 1024, // 200MB limit to accommodate larger audio/video files
   }
 });
 
 // Apply auth middleware to all document routes
 router.use(isAuthenticated);
+
+// GET /supported-types - Get information about supported file types
+router.get('/supported-types', async (req, res) => {
+  try {
+    const ocrTypes = OCRProcessor.getSupportedTypes();
+    const geminiTypes = GeminiProcessor.getSupportedMimeTypes();
+    const allTypes = [...new Set([...ocrTypes, ...geminiTypes])];
+    
+    // Categorize file types for better UX
+    const categorized = {
+      documents: allTypes.filter(type => 
+        type.includes('pdf') || 
+        type.includes('word') || 
+        type.includes('document') || 
+        type.includes('spreadsheet') || 
+        type.includes('presentation') || 
+        type.includes('text') || 
+        type.includes('rtf') || 
+        type.includes('csv') || 
+        type.includes('json') || 
+        type.includes('html') || 
+        type.includes('xml')
+      ),
+      images: allTypes.filter(type => type.startsWith('image/')),
+      videos: allTypes.filter(type => type.startsWith('video/')),
+      audio: allTypes.filter(type => type.startsWith('audio/'))
+    };
+    
+    res.json({
+      total: allTypes.length,
+      categories: categorized,
+      processing: {
+        ocr: {
+          count: ocrTypes.length,
+          description: 'Traditional OCR and text extraction'
+        },
+        gemini: {
+          count: geminiTypes.length,
+          description: 'AI-powered multimodal analysis including audio transcription and advanced OCR'
+        }
+      },
+      limits: {
+        maxFileSize: '200MB',
+        maxFileSizeBytes: 200 * 1024 * 1024
+      }
+    });
+  } catch (error) {
+    console.error('[Routes] Error getting supported types:', error);
+    res.status(500).json({ message: 'Failed to get supported file types' });
+  }
+});
 
 // POST /:caseId/documents - Upload a new document for a case
 router.post('/:caseId/documents', upload.single('document'), async (req, res, next) => {
@@ -97,10 +174,29 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
 
   try {
     // Validate file size
-    if (file.size > 100 * 1024 * 1024) { // 100MB
+    if (file.size > 200 * 1024 * 1024) { // 200MB
       fs.unlinkSync(file.path);
-      return res.status(400).json({ message: 'File size exceeds 100MB limit.' });
+      return res.status(400).json({ message: 'File size exceeds 200MB limit.' });
     }
+
+    console.log(`[Upload] Processing ${file.mimetype} file: ${file.originalname} (${file.size} bytes)`);
+    
+    // Check if file type is supported by our processing pipeline
+    const isOcrSupported = OCRProcessor.isSupported(file.mimetype);
+    const isGeminiSupported = GeminiProcessor.isSupported(file.mimetype);
+    
+    if (!isOcrSupported && !isGeminiSupported) {
+      fs.unlinkSync(file.path);
+      return res.status(400).json({ 
+        message: `File type ${file.mimetype} is not supported by our processing pipeline.`,
+        supportedTypes: {
+          ocr: OCRProcessor.getSupportedTypes(),
+          gemini: GeminiProcessor.getSupportedMimeTypes()
+        }
+      });
+    }
+
+    console.log(`[Upload] File type ${file.mimetype} supported - OCR: ${isOcrSupported}, Gemini: ${isGeminiSupported}`);
 
     // Check if the case exists (you might want to add this validation)
     // const caseExists = await db.select().from(cases).where(eq(cases.id, caseId));
@@ -109,29 +205,14 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
     //   return res.status(404).json({ message: 'Case not found.' });
     // }
 
-    // Determine if the file is processable (images, videos, PDFs, Word docs, text files)
-    const isProcessable = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/tiff', 'image/webp',
-      'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm',
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword',
-      'text/plain',
-      'text/csv',
-      'text/tab-separated-values',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/rtf',
-      'text/html',
-      'text/xml',
-      'application/json',
-      'text/markdown',
-      'text/yaml',
-      'text/javascript',
-      'text/css'
-    ].includes(file.mimetype);
+    // Determine if the file is processable using our enhanced processing pipeline
+    const isProcessable = OCRProcessor.isSupported(file.mimetype) || GeminiProcessor.isSupported(file.mimetype);
+    
+    console.log(`[Upload] File ${file.originalname} is ${isProcessable ? 'processable' : 'not processable'} for text extraction`);
 
     // Insert document record into database
+    const processingMessage = isProcessable ? null : 'File type not supported for text extraction by current processing pipeline';
+    
     const [newDocument] = await db.insert(documents).values({
       caseId: caseId,
       fileName: file.originalname,
@@ -139,7 +220,7 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
       fileSize: file.size,
       storagePath: file.path,
       processingStatus: isProcessable ? 'PENDING' : 'PROCESSED',
-      extractedText: isProcessable ? null : 'File type not supported for text extraction'
+      extractedText: processingMessage
     }).returning();
 
     // If the file is processable, submit to processing queue
