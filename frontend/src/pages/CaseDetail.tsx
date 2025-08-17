@@ -849,7 +849,7 @@ export default function CaseDetail() {
             {/* Note for user */}
             <Box className='space-y-4 px-2 pt-2'>
                 <Text size="3" color="gray" className="" style={{ flex: 1 }}>
-                  ⓘ For best results, please upload documents in PDF format
+                  ⓘ For best results, please upload the document in PDF format and the law(s) you want to be considered for analysis
                 </Text>
             </Box>
 
