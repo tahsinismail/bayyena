@@ -496,13 +496,23 @@ Please analyze this document and provide comprehensive content extraction and an
      * Process an image buffer directly with Gemini OCR
      */
     private async processImageBuffer(base64Data: string, mimeType: string): Promise<string> {
-        const prompt = `Extract all text from this image. This image is from within a legal document (DOCX file). Please provide:
+    const prompt = `You are a professional legal document and visual analyst.
 
-1. **Complete Text Extraction**: Extract all visible text, maintaining structure and formatting where possible
-2. **Legal Context**: Pay attention to legal terminology, formal language, and document structure
-3. **Quality Notes**: If text is unclear or partially visible, please note this
+TASK: Analyze this image extracted from a Word document (DOCX) for legal case documentation.
 
-Provide only the extracted text content:`;
+REQUIREMENTS:
+1. **Text Extraction (OCR)**: Extract all visible text, maintaining structure and formatting where possible.
+2. **Object & Scene Description**: Identify and describe any visible objects, scenes, or elements (e.g., doors, cars, people, stamps, signatures, etc.).
+   - For each object, provide a brief description and its possible relevance to a legal case.
+3. **Legal Context**: Note any legal markings, seals, or contextually important visual features.
+4. **Quality Notes**: If text or objects are unclear or partially visible, please note this.
+
+OUTPUT:
+- Start with the extracted text (OCR)
+- Then provide a list of identified objects/scenes with descriptions
+- Add any legal context or quality notes
+
+Format your response clearly for legal case documentation.`;
 
         try {
             const result = await model.generateContent([
