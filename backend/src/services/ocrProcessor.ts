@@ -3,31 +3,12 @@ import path from 'path';
 import { createWorker, Worker, createScheduler, Scheduler } from 'tesseract.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegStatic from 'ffmpeg-static';
 
 // Set ffmpeg path
-if (ffmpegStatic) {
-  ffmpeg.setFfmpegPath(ffmpegStatic);
-}
+// Use system ffmpeg installed via Docker; no need to set path
 
 // Check if ffprobe is available
-let ffprobeAvailable = false;
-try {
-  // Simple test to see if ffmpeg can access ffprobe
-  ffmpeg.ffprobe('test', (err) => {
-    // If we get here, ffprobe is available
-    ffprobeAvailable = true;
-  });
-  // Give it a moment to check
-  setTimeout(() => {
-    if (!ffprobeAvailable) {
-      console.warn('[OCR] FFprobe not available, video processing will be limited');
-    }
-  }, 100);
-} catch (error) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  console.warn('[OCR] FFprobe not available, video processing will be limited:', errorMessage);
-}
+// FFmpeg and ffprobe should be available in system PATH (installed via Docker)
 
 export interface OCRResult {
   text: string;
@@ -421,15 +402,6 @@ export class OCRProcessor {
     try {
       console.log(`[OCR] Processing video: ${filePath}`);
       
-      // Check if ffprobe is available
-      if (!ffprobeAvailable) {
-        console.warn('[OCR] FFprobe not available, skipping video processing');
-        return {
-          text: '[VIDEO] Video processing not available - FFprobe not installed. Please install FFmpeg to enable video OCR.',
-          confidence: 0,
-          processingTime: 0
-        };
-      }
       
       const frames = await this.extractVideoFrames(filePath);
       const frameResults: VideoFrame[] = [];
@@ -472,10 +444,6 @@ export class OCRProcessor {
   private async extractVideoFrames(filePath: string): Promise<Array<{ path: string; timestamp: number }>> {
     return new Promise((resolve, reject) => {
       // Double-check ffprobe availability
-      if (!ffprobeAvailable) {
-        reject(new Error('FFprobe not available for video processing'));
-        return;
-      }
 
       const frames: Array<{ path: string; timestamp: number }> = [];
       const outputDir = path.dirname(filePath);
@@ -610,7 +578,7 @@ export class OCRProcessor {
    * Check if video processing is supported (requires ffprobe)
    */
   static isVideoProcessingSupported(): boolean {
-    return ffprobeAvailable;
+  return true;
   }
 
   /**
@@ -618,7 +586,7 @@ export class OCRProcessor {
    */
   static canProcess(mimeType: string): boolean {
     if (mimeType.startsWith('video/')) {
-      return ffprobeAvailable;
+      return true;
     }
     return this.isSupported(mimeType);
   }
@@ -627,19 +595,7 @@ export class OCRProcessor {
    * Get installation instructions for video processing
    */
   static getVideoProcessingInstructions(): string {
-    if (ffprobeAvailable) {
-      return 'Video processing is available';
-    }
-    
-    return `Video processing requires FFmpeg to be installed on the system.
-    
-Installation instructions:
-- macOS: brew install ffmpeg
-- Ubuntu/Debian: sudo apt update && sudo apt install ffmpeg
-- Windows: Download from https://ffmpeg.org/download.html
-- Docker: Use an image with FFmpeg pre-installed
-
-After installation, restart the application.`;
+  return 'Video processing is available (FFmpeg is installed in Docker container)';
   }
 
   /**

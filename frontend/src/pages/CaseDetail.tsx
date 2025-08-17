@@ -461,7 +461,7 @@ export default function CaseDetail() {
           onClick={() => navigate('/')}
           className="mb-4"
         >
-          <ArrowLeftIcon /> Back to All Cases
+          <ArrowLeftIcon /> Back to All Matters
         </Button>
       </Flex>
 
@@ -479,7 +479,7 @@ export default function CaseDetail() {
                         style={{ flex: 1 }}
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        placeholder="Enter case title"
+                        placeholder="Enter matter title"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') saveTitle();
                           if (e.key === 'Escape') cancelEditing();
@@ -527,7 +527,7 @@ export default function CaseDetail() {
                       <TextArea
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
-                        placeholder="Enter case description"
+                        placeholder="Enter matter description"
                         rows={3}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && e.ctrlKey) saveDescription();
@@ -584,18 +584,18 @@ export default function CaseDetail() {
               <AlertDialog.Root>
                 <AlertDialog.Trigger>
                   <Button color="red" variant="soft" className="danger-action-button">
-                    🗑️ Delete Case
+                    🗑️ Delete Matter
                   </Button>
                 </AlertDialog.Trigger>
                 <AlertDialog.Content style={{ maxWidth: 450 }}>
-                  <AlertDialog.Title>⚠️ Delete Legal Case</AlertDialog.Title>
+                  <AlertDialog.Title>⚠️ Delete Legal Matter</AlertDialog.Title>
                   <AlertDialog.Description size="2">
                     This action will permanently delete this legal case and all associated documents. This cannot be undone.
                   </AlertDialog.Description>
                   {deleteError && <Text color="red" size="2" mt="2">{deleteError}</Text>}
                   <Flex gap="3" mt="4" justify="end">
                     <AlertDialog.Cancel><Button variant="soft" color="gray">Cancel</Button></AlertDialog.Cancel>
-                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete Case</Button></AlertDialog.Action>
+                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete Matter</Button></AlertDialog.Action>
                   </Flex>
                 </AlertDialog.Content>
               </AlertDialog.Root>
@@ -603,11 +603,11 @@ export default function CaseDetail() {
             <div className="legal-case-metadata">
               <Flex justify="between" my="4" className='flex-col gap-6 md:gap-2 md:flex-row'>
                 <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">CASE NUMBER</Text>
+                  <Text size="1" color="gray" weight="medium">MATTER NUMBER</Text>
                   <Text size="3" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
                 </div>
                 <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">CASE TYPE</Text>
+                  <Text size="1" color="gray" weight="medium">MATTER TYPE</Text>
                   <Flex align="center" gap="2">
                   {isEditingType ? (
                     <Flex align="center" gap="2" style={{ width: '100%' }}>
@@ -657,7 +657,7 @@ export default function CaseDetail() {
                 </Flex>
                 </div>
                 <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">CASE STATUS</Text>
+                  <Text size="1" color="gray" weight="medium">MATTER STATUS</Text>
                   {/* Case Status Section */}
                  <Flex align="center" gap="2">
                    {isEditingStatus ? (
@@ -770,7 +770,7 @@ export default function CaseDetail() {
         <Card>
           <Box p="4">
             <Flex justify="start" align="center" mb="4">
-              <Heading size="5">Case Documents</Heading>
+              <Heading size="5">Matter Documents</Heading>
             </Flex>
             
             {/* Processing Status Summary */}
@@ -853,7 +853,7 @@ export default function CaseDetail() {
                 </Text>
             </Box>
 
-            <Separator my="4" size="4" />
+            {documents.length > 0 && <Separator my="4" size="4" />}
             
             {/* Document Type Filter */}
             {documents.length > 0 && (
@@ -967,10 +967,10 @@ export default function CaseDetail() {
               ) : (
                 <Text size="2" color="gray">
                   {documents.length === 0 
-                    ? "No documents for this case." 
+                    ? "No documents for this matter." 
                     : documentTypeFilter === 'all' 
-                      ? "No documents for this case."
-                      : `No ${documentTypeFilter.toLowerCase()} found for this case.`
+                      ? "No documents for this matter."
+                      : `No ${documentTypeFilter.toLowerCase()} found for this matter.`
                   }
                 </Text>
               )}

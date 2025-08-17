@@ -33,11 +33,11 @@ router.post('/', async (req, res, next) => {
 
     // Only type is required now, title defaults to "Untitled"
     if (!type) {
-        return res.status(400).json({ message: 'Case type is required.' });
+        return res.status(400).json({ message: 'Matter type is required.' });
     }
 
     // Generate a unique case number (simple version)
-    const caseNumber = `CASE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const caseNumber = `MATTER-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     try {
         const newCase = await db.insert(cases).values({
@@ -80,7 +80,7 @@ router.delete('/:id', isAuthenticated, async (req, res, next) => {
     const caseId = parseInt(req.params.id);
 
     if (isNaN(caseId)) {
-        return res.status(400).json({ message: 'Invalid case ID.' });
+        return res.status(400).json({ message: 'Invalid matter ID.' });
     }
 
     try {
@@ -91,7 +91,7 @@ router.delete('/:id', isAuthenticated, async (req, res, next) => {
         const caseToDelete = caseResult[0];
 
         if (!caseToDelete) {
-            return res.status(404).json({ message: 'Case not found or you do not have permission to delete it.' });
+            return res.status(404).json({ message: 'Matter not found or you do not have permission to delete it.' });
         }
 
         // Step 2: Find all documents associated with this case
@@ -116,7 +116,7 @@ router.delete('/:id', isAuthenticated, async (req, res, next) => {
         // Due to 'onDelete: cascade', this will also delete all associated document records from the DB.
         await db.delete(cases).where(eq(cases.id, caseId));
 
-        res.status(200).json({ message: 'Case and all associated documents deleted successfully.' });
+        res.status(200).json({ message: 'The matter and all associated documents deleted successfully.' });
 
     } catch (err) {
         next(err);
@@ -130,7 +130,7 @@ router.patch('/:id/status', async (req, res, next) => {
     const { status } = req.body;
 
     if (isNaN(caseId)) {
-        return res.status(400).json({ message: 'Invalid case ID.' });
+        return res.status(400).json({ message: 'Invalid matter ID.' });
     }
 
     if (!status || !['Open', 'Closed', 'Pending', 'Archived'].includes(status)) {
@@ -144,7 +144,7 @@ router.patch('/:id/status', async (req, res, next) => {
         );
         
         if (caseResult.length === 0) {
-            return res.status(404).json({ message: 'Case not found or you do not have permission to update it.' });
+            return res.status(404).json({ message: 'Matter not found or you do not have permission to update it.' });
         }
 
         // Update the case status
@@ -169,7 +169,7 @@ router.patch('/:id', async (req, res, next) => {
     const { title, description, type } = req.body;
 
     if (isNaN(caseId)) {
-        return res.status(400).json({ message: 'Invalid case ID.' });
+        return res.status(400).json({ message: 'Invalid matter ID.' });
     }
 
     if (!title && !description && !type) {
@@ -183,7 +183,7 @@ router.patch('/:id', async (req, res, next) => {
         );
         
         if (caseResult.length === 0) {
-            return res.status(404).json({ message: 'Case not found or you do not have permission to update it.' });
+            return res.status(404).json({ message: 'Matter not found or you do not have permission to update it.' });
         }
 
         // Prepare update data
@@ -228,12 +228,12 @@ function mapToAllowedCaseType(raw: string | undefined): AllowedCaseType {
 function basicFallbackFromDocs(docs: Array<{ fileName: string; summary?: string; extractedText?: string }>): { title: string; description: string; type: AllowedCaseType } {
   const docCount = docs.length;
   const firstDoc = docs[0];
-  const baseTitle = firstDoc?.fileName?.replace(/[_-]+/g, ' ').replace(/\.[a-zA-Z0-9]+$/, '') || 'Case';
+  const baseTitle = firstDoc?.fileName?.replace(/[_-]+/g, ' ').replace(/\.[a-zA-Z0-9]+$/, '') || 'Matter';
   const title = `${baseTitle} – ${docCount > 1 ? 'Multi-Document' : 'Document'} Review`;
   const snippet = (firstDoc?.summary || firstDoc?.extractedText || '').replace(/\s+/g, ' ').slice(0, 160);
   const description = snippet
     ? `${snippet}${snippet.endsWith('.') ? '' : '...'}`
-    : `This case involves ${docCount} document${docCount > 1 ? 's' : ''} under review.`;
+    : `This matter involves ${docCount} document${docCount > 1 ? 's' : ''} under review.`;
   // Very light heuristic for type
   const textAll = docs.map(d => `${d.summary || ''} ${d.extractedText || ''}`).join(' ').toLowerCase();
   let type: AllowedCaseType = 'Other';
@@ -261,7 +261,7 @@ router.post('/:id/auto-generate', async (req, res, next) => {
         );
         
         if (caseResult.length === 0) {
-            return res.status(404).json({ message: 'Case not found or you do not have permission to update it.' });
+            return res.status(404).json({ message: 'Matter not found or you do not have permission to update it.' });
         }
 
         const currentCase = caseResult[0];

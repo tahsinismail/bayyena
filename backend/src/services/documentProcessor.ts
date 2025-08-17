@@ -1,13 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import pdf from 'pdf-parse';
-import mammoth from 'mammoth';
 import { db } from '../db';
 import { documents } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { ocrProcessor, OCRProcessor } from './ocrProcessor';
-import { visualAnalyzer, VisualAnalysisResult } from './visualAnalyzer';
 import { geminiProcessor, GeminiProcessor } from './geminiProcessor';
 
 // --- CHANGE: Added Definitive API Key Check ---
@@ -52,187 +48,42 @@ const getJSONFromString = (str: string): any[] => {
 }
 
 /**
- * Extract text from different file types using appropriate methods with comprehensive Gemini support
+ * Extract text from different file types using only Gemini API
  */
 async function extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
-    console.log(`[Processor] Extracting text from ${mimeType} file: ${filePath}`);
+    console.log(`[Processor] Extracting text from ${mimeType} file: ${filePath} using Gemini API only`);
     
     try {
         let extractedText = '';
-        let useGeminiFallback = false;
         
-        // Step 1: Try traditional extraction methods first
-        if (mimeType === 'application/pdf') {
-            // Use pdf-parse for PDFs
-            try {
-                extractedText = (await pdf(fs.readFileSync(filePath))).text;
-                console.log(`[Processor] PDF text extracted, length: ${extractedText.length}`);
-                
-                // If PDF extraction yields minimal text, flag for Gemini fallback
-                if (!extractedText.trim() || extractedText.trim().length < 50) {
-                    console.log(`[Processor] PDF extraction yielded minimal text, will use Gemini fallback`);
-                    useGeminiFallback = true;
-                }
-            } catch (pdfError) {
-                console.warn(`[Processor] PDF parsing failed, will use Gemini fallback:`, pdfError);
-                useGeminiFallback = true;
-            }
-        } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            // Use mammoth for Word documents
-            try {
-                extractedText = (await mammoth.extractRawText({ path: filePath })).value;
-                console.log(`[Processor] Word document text extracted, length: ${extractedText.length}`);
-                
-                // If DOCX extraction yields minimal text, flag for Gemini fallback
-                if (!extractedText.trim() || extractedText.trim().length < 50) {
-                    console.log(`[Processor] DOCX extraction yielded minimal text, will use Gemini fallback`);
-                    useGeminiFallback = true;
-                }
-            } catch (mammothError) {
-                console.warn(`[Processor] Mammoth parsing failed, will use Gemini fallback:`, mammothError);
-                useGeminiFallback = true;
-            }
-        } else if (mimeType.startsWith('audio/')) {
-            // Audio files go directly to Gemini
-            console.log(`[Processor] Audio file detected, using Gemini transcription`);
-            useGeminiFallback = true;
-        } else if (GeminiProcessor.isSupported(mimeType)) {
-            // For other Gemini-supported file types, try traditional methods first if available
-            if (OCRProcessor.isSupported(mimeType)) {
-                console.log(`[Processor] Using OCR processor for ${mimeType}`);
-                
-                // Check if we can actually process this file type
-                if (!OCRProcessor.canProcess(mimeType)) {
-                    if (mimeType.startsWith('video/')) {
-                        const instructions = OCRProcessor.getVideoProcessingInstructions();
-                        console.log(`[Processor] Video processing not available via OCR, using Gemini: ${instructions}`);
-                        useGeminiFallback = true;
-                    } else {
-                        console.log(`[Processor] OCR processing not available for ${mimeType}, using Gemini`);
-                        useGeminiFallback = true;
-                    }
-                } else {
-                    try {
-                        // For images and videos, check if they contain extractable text first
-                        if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
-                            console.log(`[Processor] Checking if ${mimeType} contains extractable text before OCR...`);
-                            
-                            try {
-                                const hasText = await visualAnalyzer.hasExtractableText(filePath, mimeType);
-                                
-                                if (!hasText) {
-                                    // No extractable text, go directly to visual analysis
-                                    console.log(`[Processor] No extractable text detected, proceeding directly to visual analysis`);
-                                    
-                                    const visualResult = await visualAnalyzer.analyzeContent(filePath, mimeType, { text: '', confidence: 0, processingTime: 0 });
-                                    extractedText = visualResult.content;
-                                    
-                                    console.log(`[Processor] VISUAL analysis completed: ${visualResult.description}`);
-                                    console.log(`[Processor] Final content length: ${extractedText.length}, confidence: ${visualResult.confidence.toFixed(1)}%`);
-                                    
-                                    // If visual analysis also yields minimal text, try Gemini
-                                    if (!extractedText.trim() || extractedText.trim().length < 50) {
-                                        console.log(`[Processor] Visual analysis yielded minimal text, will use Gemini fallback`);
-                                        useGeminiFallback = true;
-                                    }
-                                    
-                                } else {
-                                    // Text is present, proceed with OCR
-                                    console.log(`[Processor] Extractable text detected, proceeding with OCR`);
-                                    
-                                    const ocrResult = await ocrProcessor.processFile(filePath, mimeType);
-                                    const visualResult = await visualAnalyzer.analyzeContent(filePath, mimeType, ocrResult);
-                                    extractedText = visualResult.content;
-                                    
-                                    console.log(`[Processor] ${visualResult.analysisType.toUpperCase()} analysis completed: ${visualResult.description}`);
-                                    console.log(`[Processor] Final content length: ${extractedText.length}, confidence: ${visualResult.confidence.toFixed(1)}%`);
-                                    
-                                    // If OCR + visual analysis yields minimal text, try Gemini
-                                    if (!extractedText.trim() || extractedText.trim().length < 50) {
-                                        console.log(`[Processor] OCR/Visual analysis yielded minimal text, will use Gemini fallback`);
-                                        useGeminiFallback = true;
-                                    }
-                                }
-                                
-                            } catch (visualError) {
-                                console.warn(`[Processor] Visual analysis failed, will use Gemini fallback:`, visualError);
-                                useGeminiFallback = true;
-                            }
-                            
-                        } else {
-                            // For text documents, use OCR directly
-                            const ocrResult = await ocrProcessor.processFile(filePath, mimeType);
-                            extractedText = ocrResult.text;
-                            
-                            if (mimeType.startsWith('text/') || mimeType.includes('application/')) {
-                                console.log(`[Processor] Text document processed, length: ${extractedText.length}`);
-                            } else {
-                                console.log(`[Processor] OCR completed with ${ocrResult.confidence.toFixed(1)}% confidence, text length: ${extractedText.length}`);
-                            }
-                            
-                            // If OCR yields minimal text, try Gemini
-                            if (!extractedText.trim() || extractedText.trim().length < 50) {
-                                console.log(`[Processor] OCR yielded minimal text, will use Gemini fallback`);
-                                useGeminiFallback = true;
-                            }
-                        }
-                    } catch (ocrError) {
-                        console.warn(`[Processor] OCR processing failed, will use Gemini fallback:`, ocrError);
-                        useGeminiFallback = true;
-                    }
-                }
+        console.log(`[Processor] Processing ${mimeType} file with Gemini...`);
+        
+        try {
+            let geminiResult: any;
+            
+            // Special handling for DOCX files (not directly supported by Gemini)
+            if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                console.log(`[Processor] Using special DOCX image extraction for ${filePath}`);
+                geminiResult = await geminiProcessor.processDOCXWithImages(filePath, '');
             } else {
-                // Not supported by OCR, use Gemini directly
-                console.log(`[Processor] File type ${mimeType} not supported by OCR, using Gemini`);
-                useGeminiFallback = true;
+                // Check if the file type is supported by Gemini for direct processing
+                if (!GeminiProcessor.isSupported(mimeType)) {
+                    throw new Error(`Unsupported file type: ${mimeType}. Supported types: ${GeminiProcessor.getSupportedMimeTypes().join(', ')}`);
+                }
+                
+                // Standard Gemini processing for all file types
+                geminiResult = await geminiProcessor.processWithRetry(filePath, mimeType);
             }
-        } else {
-            throw new Error(`Unsupported file type: ${mimeType}. Supported types: ${GeminiProcessor.getSupportedMimeTypes().join(', ')}`);
-        }
-        
-        // Step 2: Use Gemini fallback if needed
-        if (useGeminiFallback || !extractedText.trim()) {
-            console.log(`[Processor] Using Gemini processing for ${mimeType}...`);
-            try {
-                let geminiResult: any;
-                
-                // Special handling for DOCX files with potential images
-                if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                    console.log(`[Processor] Using special DOCX image extraction for ${filePath}`);
-                    geminiResult = await geminiProcessor.processDOCXWithImages(filePath, extractedText);
-                } else {
-                    // Standard Gemini processing for other file types
-                    geminiResult = await geminiProcessor.processWithRetry(filePath, mimeType);
-                }
-                
-                if (geminiResult.text.trim()) {
-                    extractedText = geminiResult.text;
-                    console.log(`[Processor] Gemini ${geminiResult.method} successful, extracted ${extractedText.length} characters with ${geminiResult.confidence}% confidence`);
-                } else {
-                    throw new Error('Gemini processing returned insufficient content');
-                }
-            } catch (geminiError) {
-                console.error(`[Processor] Gemini processing failed:`, geminiError);
-                
-                // Final fallback for legacy extractTextWithGemini for PDFs
-                if (mimeType === 'application/pdf') {
-                    console.log(`[Processor] Trying legacy PDF Gemini extraction as final fallback...`);
-                    try {
-                        const legacyGeminiResult = await extractTextWithGemini(filePath, mimeType);
-                        if (legacyGeminiResult.trim()) {
-                            extractedText = legacyGeminiResult;
-                            console.log(`[Processor] Legacy Gemini PDF extraction successful, extracted ${extractedText.length} characters`);
-                        } else {
-                            throw new Error('All extraction methods failed - no text could be extracted');
-                        }
-                    } catch (legacyError) {
-                        console.error(`[Processor] Legacy Gemini extraction also failed:`, legacyError);
-                        throw new Error('All text extraction methods failed. Cannot proceed with AI analysis.');
-                    }
-                } else {
-                    throw new Error(`Text extraction failed for ${mimeType}. Cannot proceed with AI analysis.`);
-                }
+            
+            if (geminiResult.text.trim()) {
+                extractedText = geminiResult.text;
+                console.log(`[Processor] Gemini ${geminiResult.method} successful, extracted ${extractedText.length} characters with ${geminiResult.confidence}% confidence`);
+            } else {
+                throw new Error('Gemini processing returned insufficient content');
             }
+        } catch (geminiError) {
+            console.error(`[Processor] Gemini processing failed:`, geminiError);
+            throw new Error(`Gemini processing failed: ${geminiError instanceof Error ? geminiError.message : 'Unknown error'}`);
         }
         
         // Final validation
@@ -240,85 +91,12 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
             throw new Error('No text could be extracted from the file. Cannot proceed with AI analysis.');
         }
         
-        console.log(`[Processor] Text extraction completed successfully, final length: ${extractedText.length}`);
+        console.log(`[Processor] Text extraction completed successfully using Gemini API, final length: ${extractedText.length}`);
         return extractedText;
         
     } catch (error) {
         console.error(`[Processor] Text extraction failed for ${filePath}:`, error);
         throw error;
-    }
-}
-
-/**
- * Extract text from problematic PDFs using Gemini's multimodal capabilities
- * This serves as a fallback when standard PDF parsing fails
- */
-async function extractTextWithGemini(filePath: string, mimeType: string): Promise<string> {
-    try {
-        console.log(`[Gemini OCR] Starting Gemini-based text extraction for: ${filePath}`);
-        
-        // Read the PDF file as a buffer
-        const pdfBuffer = fs.readFileSync(filePath);
-        
-        // Create a multimodal prompt for Gemini
-        const prompt = `You are a professional legal document analyst with expertise in OCR and text extraction.
-
-TASK: Extract and transcribe all readable text content from this PDF document.
-
-REQUIREMENTS:
-1. **Complete Extraction**: Extract ALL visible text from the document, including:
-   - Headers, titles, and section headings
-   - Body text and paragraphs
-   - Tables and structured data
-   - Footnotes and annotations
-   - Any handwritten or printed text visible in images
-
-2. **Format Preservation**: Maintain the logical structure and formatting:
-   - Preserve paragraph breaks and spacing
-   - Maintain list formatting (bullets, numbers)
-   - Keep table structures where possible
-   - Preserve section hierarchies
-
-3. **Legal Accuracy**: Pay special attention to:
-   - Legal terminology and citations
-   - Dates, names, and reference numbers
-   - Contract terms and conditions
-   - Legal document structure
-
-4. **Quality Standards**:
-   - Transcribe exactly what you see
-   - Do not add, remove, or modify content
-   - If text is unclear or partially visible, indicate with [unclear] or [partial]
-   - If a section is completely unreadable, note [unreadable section]
-
-5. **Output Format**: Provide clean, readable text that can be used for:
-   - Legal analysis and review
-   - Translation services
-   - Document indexing and search
-   - AI-powered content generation
-
-Please analyze this PDF and extract all readable text content. If the document appears to be image-based or has visual content, describe what you can see and extract any text that is visible.`;
-        
-        // Use Gemini's multimodal capabilities to analyze the PDF
-        const result = await model.generateContent([prompt, {
-            inlineData: {
-                mimeType: mimeType,
-                data: pdfBuffer.toString('base64')
-            }
-        }]);
-        
-        const extractedText = result.response.text();
-        
-        if (!extractedText || extractedText.trim().length < 10) {
-            throw new Error('Gemini OCR returned insufficient text content');
-        }
-        
-        console.log(`[Gemini OCR] Successfully extracted ${extractedText.length} characters using Gemini`);
-        return extractedText.trim();
-        
-    } catch (error) {
-        console.error(`[Gemini OCR] Failed to extract text using Gemini:`, error);
-        throw new Error(`Gemini OCR extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
 
@@ -471,12 +249,12 @@ TIMELINE JSON:`).then(r => r.response.text()).catch(e => {
                 model.generateContent(`You are a professional legal translator. Translate this Arabic legal document to English.
 
 REQUIREMENTS:
-1. **Legal Accuracy**: Maintain precise legal terminology and concepts
+1. **Legal Accuracy**: Maintain precise legal terminology and concepts if it is a legal document.
 2. **Professional Tone**: Use formal, professional legal language
 3. **Completeness**: Translate all content including dates, names, and legal references
 4. **Format**: Structure the translation clearly with proper legal document formatting
 5. **Terminology**: Use standard legal English terminology where applicable
-6. **Context**: This is a legal case document that may be used in court proceedings
+6. **Context**: First, assess whether the document is a legal document. If it is a legal case document that may be used in court proceedings, treat it accordingly; otherwise, do not include any legal context.
 
 ARABIC DOCUMENT TEXT:
 ---
@@ -561,8 +339,8 @@ TIMELINE JSON:`).then(r => r.response.text()).catch(e => {
                 model.generateContent(`You are a professional legal editor. Format and polish the following legal document text to make it more clear and professional.
 
 REQUIREMENTS:
-1. **Professional Formatting**: Structure the text clearly with proper legal document formatting
-2. **Legal Language**: Ensure standard legal English terminology is used
+1. **Professional Formatting**: Structure the text clearly with proper legal document formatting if it is a legal document.
+2. **Legal Language**: Ensure standard legal English terminology is used if it is a legal document.
 3. **Clarity**: Make the text clear and readable while preserving legal meaning
 4. **Punctuation**: Add appropriate punctuation for paragraphs and subheadings
 5. **Organization**: Organize content logically and professionally
@@ -673,7 +451,7 @@ ${extractedText}
 // Cleanup function to be called when the server shuts down
 export const cleanupDocumentProcessor = async () => {
     try {
-        await ocrProcessor.cleanup();
+        // No cleanup needed for Gemini processor
         console.log('[Processor] Cleanup completed');
     } catch (error) {
         console.error('[Processor] Cleanup failed:', error);

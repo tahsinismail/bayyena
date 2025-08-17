@@ -15,6 +15,9 @@ interface CaseChatProps {
 
 export default function CaseChat({ caseId }: CaseChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
+    const lastBotMsgRef = useRef<HTMLDivElement>(null);
+    const lastUserMsgRef = useRef<HTMLDivElement>(null);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -32,13 +35,24 @@ export default function CaseChat({ caseId }: CaseChatProps) {
 
     // Auto-scrolling Logic
     useEffect(() => {
-        if (scrollAreaRef.current) {
+        // Scroll to the last user message if just sent, else scroll to last bot message
+        if (lastUserMsgRef.current) {
+            lastUserMsgRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (lastBotMsgRef.current) {
+            lastBotMsgRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (scrollAreaRef.current) {
             const scrollContainer = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
             if (scrollContainer) {
                 scrollContainer.scrollTop = scrollContainer.scrollHeight;
             }
         }
     }, [messages]);
+    // Copy to clipboard handler
+    const handleCopy = (text: string, index: number) => {
+        navigator.clipboard.writeText(text);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 1200);
+    };
 
     // Data Fetching and Management
     useEffect(() => {
@@ -99,32 +113,56 @@ export default function CaseChat({ caseId }: CaseChatProps) {
 
                 <ScrollArea ref={scrollAreaRef} style={{ height: '300px' }} className="bg-gray-50 rounded py-2 px-4">
                     <Flex direction="column" gap="4">
-                        {messages.map((msg, index) => (
-                            <Flex key={index} direction="column" align={msg.sender === 'user' ? 'end' : 'start'}>
-                                <Box className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} style={{ maxWidth: '80%' }}>
-                                    {/* Use ReactMarkdown to render the text */}
-                                    <div className="markdown-content">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {msg.text}
-                                        </ReactMarkdown>
+                        {messages.map((msg, index) => {
+                            const isBot = msg.sender === 'bot';
+                            const isLastBot = isBot && index === messages.length - 1;
+                            const isLastUser = msg.sender === 'user' && index === messages.length - 1;
+                            return (
+                                <Flex key={index} direction="column" align={msg.sender === 'user' ? 'end' : 'start'} position="relative">
+                                    <Box className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} style={{ maxWidth: '80%' }} ref={isLastBot ? lastBotMsgRef : isLastUser ? lastUserMsgRef : undefined}>
+                                        <div className="markdown-content">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {msg.text}
+                                            </ReactMarkdown>
+                                        </div>
+                                    {/* Copy icon outside the response bubble for bot messages */}
+                                    {isBot && (
+                                       <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
+                                            <button
+                                                title="Copy response"
+                                                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                                                onClick={() => handleCopy(msg.text, index)}
+                                            >
+                                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <rect x="5" y="5" width="10" height="12" rx="2" fill="#888" />
+                                                    <rect x="3" y="3" width="10" height="12" rx="2" stroke="#888" strokeWidth="2" />
+                                                </svg>
+                                                <span style={{fontSize: '14px', color: '#888', fontWeight: 'bold'}}>Copy</span>
+                                                {copiedIndex === index && (
+                                                    <span style={{ marginLeft: 6, color: '#888', fontSize: 12 }}>Copied</span>
+                                                )}
+                                            </button>
+
                                     </div>
-                                </Box>
-                                {/* Timestamp display */}
-                                {msg.createdAt && (
-                                    <Text 
-                                        size="1" 
-                                        color="gray" 
-                                        style={{ 
-                                            marginTop: '4px',
-                                            fontSize: '11px',
-                                            textAlign: msg.sender === 'user' ? 'right' : 'left'
-                                        }}
-                                    >
-                                        {formatTimestamp(msg.createdAt)}
-                                    </Text>
-                                )}
-                            </Flex>
-                        ))}
+                                    )}
+                                    </Box>
+                                    
+                                    {msg.createdAt && (
+                                        <Text 
+                                            size="1" 
+                                            color="gray" 
+                                            style={{ 
+                                                marginTop: '4px',
+                                                fontSize: '11px',
+                                                textAlign: msg.sender === 'user' ? 'right' : 'left'
+                                            }}
+                                        >
+                                            {formatTimestamp(msg.createdAt)}
+                                        </Text>
+                                    )}
+                                </Flex>
+                            );
+                        })}
                         {isLoading && <Flex justify="start"><Spinner /></Flex>}
                     </Flex>
                 </ScrollArea>

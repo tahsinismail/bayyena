@@ -13,6 +13,9 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# Install FFmpeg for audio/video processing
+RUN apk update && apk add ffmpeg
+
 # Build the TypeScript application
 RUN npm run build
 

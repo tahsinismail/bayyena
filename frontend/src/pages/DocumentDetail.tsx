@@ -133,7 +133,7 @@ export default function DocumentDetail() {
                 onClick={() => navigate(`/cases/${document.caseId}`)}
                 className="mb-4"
               >
-                <ArrowLeftIcon /> Back to Case
+                <ArrowLeftIcon /> Back to Matter
               </Button>
             </Flex>
           )}
@@ -281,17 +281,17 @@ export default function DocumentDetail() {
                     
                     {/* Language Information */}
                     <Card className="mt-4 bg-blue-50 border-blue-200">
-                      <Box p="4">
+                      <Flex p="4" align="center" gap="2">
                         <Text size="2" color="blue" weight="medium">
-                          ℹ️ Translation Information
+                          ℹ️ Translation Information 
                         </Text>
-                        <Text size="2" color="gray" mt="2">
+                        <Text size="2" color="gray">
                           {activeTranslation === 'en' 
                             ? 'English tab shows: ' + (document.translationEn?.includes('ARABIC DOCUMENT TEXT') ? 'English translation of Arabic document' : 'Original English content (formatted)')
                             : 'Arabic tab shows: ' + (document.translationAr?.includes('النص العربي المحرر') ? 'Original Arabic content (formatted)' : 'Arabic translation of English document')
                           }
                         </Text>
-                      </Box>
+                      </Flex>
                     </Card>
                   </>
                 ) : (

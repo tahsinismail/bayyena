@@ -32,7 +32,7 @@ export default function CaseForm({ onSuccess, onCancel }: CaseFormProps) {
       await createCase({ title, description, type }); // Use the new function
       onSuccess(); // Trigger the success callback
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create case');
+      setError(err.response?.data?.message || 'Failed to create matter');
     } finally {
       setIsSubmitting(false);
     }
@@ -43,7 +43,7 @@ export default function CaseForm({ onSuccess, onCancel }: CaseFormProps) {
         <Card className="p-6 max-w-lg w-full">
         <form onSubmit={handleSubmit}>
             <Flex direction="column" gap="4">
-            <Text as="label" size="5" weight="bold">Create New Case</Text>
+            <Text as="label" size="5" weight="bold">Create New Matter</Text>
             <label>
                 <Text as="div" size="2" mb="1" weight="bold">Title</Text>
                 <TextField.Root
@@ -56,14 +56,14 @@ export default function CaseForm({ onSuccess, onCancel }: CaseFormProps) {
             <label>
                 <Text as="div" size="2" mb="1" weight="bold">Description</Text>
                 <TextArea
-                    placeholder="Brief summary of the case (optional)"
+                    placeholder="Brief summary of the matter (optional)"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
                 />
             </label>
             <label>
-                <Text as="div" size="2" mb="1" weight="bold">Case Type</Text>
+                <Text as="div" size="2" mb="1" weight="bold">Matter Type</Text>
                 <Select.Root value={type} onValueChange={(v) => setType(v as CaseType)}>
                     <Select.Trigger />
                     <Select.Content>

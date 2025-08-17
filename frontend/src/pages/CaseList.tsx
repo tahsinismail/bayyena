@@ -134,7 +134,7 @@ export default function CaseList() {
             <Flex direction="column" gap="2">
               <Heading size="6" className="text-gray-900">{t('myCases')}</Heading>
               <Text size="2" color="gray" className="text-gray-600">
-                {cases.length > 0 ? `${cases.length} case${cases.length !== 1 ? 's' : ''} found` : 'No cases yet'}
+                {cases.length > 0 ? `${cases.length} case${cases.length !== 1 ? 's' : ''} found` : 'No matter yet'}
               </Text>
             </Flex>
             <Button 
@@ -187,7 +187,7 @@ export default function CaseList() {
                             weight="bold" 
                             className="text-gray-900 line-clamp-2 hover:text-[#856A00] transition-colors"
                           >
-                            {caseItem.title || 'Untitled Case'}
+                            {caseItem.title || 'Untitled Matter'}
                           </Text>
                           <Text size="1" color="gray" className="text-gray-500 font-mono">
                             #{caseItem.caseNumber}
@@ -276,7 +276,7 @@ export default function CaseList() {
                   {t('noCasesFound')}
                 </Heading>
                 <Text size="2" color="gray" className="text-gray-500 mb-6">
-                  Start building your legal case portfolio by creating your first case.
+                  Start building your legal matter portfolio by creating your first matter.
                 </Text>
               </Box>
             </Card>

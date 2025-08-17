@@ -53,11 +53,28 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
   }, [showError]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('Files dropped:', acceptedFiles); // Debug logging
     setIsUploading(true);
     setError('');
 
     try {
       for (const file of acceptedFiles) {
+        console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`); // Debug logging
+        
+        // Additional validation for compressed files
+        const compressedExtensions = ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2'];
+        const compressedMimeTypes = [
+          'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed',
+          'application/x-7z-compressed', 'application/x-tar', 'application/gzip', 'application/x-bzip2'
+        ];
+        const fileNameLower = file.name.toLowerCase();
+        const hasCompressedExt = compressedExtensions.some(ext => fileNameLower.endsWith(ext));
+        const hasCompressedMime = compressedMimeTypes.includes(file.type);
+        if (hasCompressedExt || hasCompressedMime) {
+          showError('Unsupported File Type', `${file.name} is a compressed file and is not supported. Please upload a valid document.`);
+          continue;
+        }
+
         // Check if this is a video file and video processing is not available
         if (file.type.startsWith('video/') && serverCapabilities && !serverCapabilities.videoProcessing) {
           showError('Video Processing Not Available', 
@@ -157,42 +174,45 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/msword': ['.doc'],
-      'text/plain': ['.txt'],
-      'text/csv': ['.csv'],
-      'text/tab-separated-values': ['.tsv'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/rtf': ['.rtf'],
-      'text/html': ['.html', '.htm'],
-      'text/xml': ['.xml'],
-      'application/json': ['.json'],
-      'text/markdown': ['.md'],
-      'text/yaml': ['.yml', '.yaml'],
-      'text/javascript': ['.js'],
-      'text/css': ['.css'],
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'image/bmp': ['.bmp'],
-      'image/tiff': ['.tiff', '.tif'],
-      'image/webp': ['.webp'],
-      'video/mp4': ['.mp4'],
-      'video/avi': ['.avi'],
-      'video/mov': ['.mov'],
-      'video/wmv': ['.wmv'],
-      'video/flv': ['.flv'],
-      'video/webm': ['.webm']
+    // Remove MIME type restrictions from react-dropzone and handle validation manually
+    accept: undefined,
+    // Use file extension validation instead
+    validator: (file) => {
+      const allowedExtensions = [
+        '.pdf', '.docx', '.doc', '.txt', '.csv', '.tsv', '.xls', '.xlsx', '.rtf', '.html', '.htm', '.xml', '.json', '.md', '.yml', '.yaml', '.js', '.css',
+        '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm',
+        '.mp3', '.wav', '.aiff', '.aac', '.ogg', '.flac', '.m4a', '.wma'
+      ];
+      
+      const fileName = file.name.toLowerCase();
+      const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+      
+      if (!hasValidExtension) {
+        return {
+          code: 'file-invalid-type',
+          message: `File type not supported. Allowed types: ${allowedExtensions.join(', ')}`
+        };
+      }
+      
+      // Check file size (200MB limit)
+      if (file.size > 200 * 1024 * 1024) {
+        return {
+          code: 'file-too-large',
+          message: 'File is larger than 200MB'
+        };
+      }
+      
+      return null;
     },
     onDropRejected: (rejectedFiles) => {
+      console.log('Files rejected:', rejectedFiles); // Debug logging
       rejectedFiles.forEach(({ file, errors }) => {
+        console.log(`Rejected file: ${file.name}, type: ${file.type}, size: ${file.size}`, errors); // Debug logging
         errors.forEach((error) => {
           if (error.code === 'file-too-large') {
-            showError('File Too Large', `${file.name} is too large. Maximum size is 100MB.`);
+            showError('File Too Large', `${file.name} is too large. Maximum size is 200MB.`);
           } else if (error.code === 'file-invalid-type') {
-            showError('Invalid File Type', `${file.name} is not a supported file type.`);
+            showError('Invalid File Type', `${file.name} (${file.type}) is not a supported file type.`);
           } else {
             showError('Upload Rejected', `${file.name}: ${error.message}`);
           }
@@ -215,6 +235,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) return <ImageIcon className="text-blue-500" />;
     if (fileType.startsWith('video/')) return <VideoIcon className="text-purple-500" />;
+    if (fileType.startsWith('audio/')) return <FileIcon className="text-green-600" />;
     if (fileType === 'application/pdf') return <FileIcon className="text-red-500" />;
     if (fileType.includes('word') || fileType.includes('excel') || fileType.includes('spreadsheet')) return <FileIcon className="text-green-500" />;
     if (fileType.startsWith('text/') || fileType.includes('json') || fileType.includes('markdown') || fileType.includes('yaml') || fileType.includes('javascript') || fileType.includes('css')) return <FileIcon className="text-orange-500" />;
@@ -238,7 +259,18 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
       'text/markdown': 'Markdown',
       'text/yaml': 'YAML File',
       'text/javascript': 'JavaScript',
-      'text/css': 'CSS File'
+      'text/css': 'CSS File',
+      'audio/wav': 'WAV Audio',
+      'audio/mp3': 'MP3 Audio',
+      'audio/mpeg': 'MP3 Audio',
+      'audio/mp4': 'M4A Audio',
+      'audio/aiff': 'AIFF Audio',
+      'audio/aac': 'AAC Audio',
+      'audio/ogg': 'OGG Audio',
+      'audio/flac': 'FLAC Audio',
+      'audio/x-wav': 'WAV Audio',
+      'audio/x-mp3': 'MP3 Audio',
+      'audio/x-aiff': 'AIFF Audio'
     };
     return typeMap[mimeType] || 'Unknown Type';
   };

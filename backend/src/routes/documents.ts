@@ -87,17 +87,35 @@ const storage = multer.diskStorage({
 
 // File filter function to validate supported file types
 const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  console.log(`[Upload] File filter check: ${file.originalname} (${file.mimetype})`);
+  
   // Get all supported types from both OCR processor and Gemini processor
   const ocrSupportedTypes = OCRProcessor.getSupportedTypes();
   const geminiSupportedTypes = GeminiProcessor.getSupportedMimeTypes();
   
   // Combine both sets of supported types
   const allSupportedTypes = [...new Set([...ocrSupportedTypes, ...geminiSupportedTypes])];
+  
+  // Log for debugging
+  console.log(`[Upload] Checking MIME type: ${file.mimetype} against ${allSupportedTypes.length} supported types`);
+  console.log(`[Upload] Audio types supported:`, allSupportedTypes.filter(t => t.startsWith('audio/')));
 
+  // Check if file type is supported
   if (allSupportedTypes.includes(file.mimetype)) {
+    console.log(`[Upload] ✅ File accepted: ${file.mimetype}`);
     cb(null, true);
   } else {
-    cb(new Error(`Unsupported file type: ${file.mimetype}. Supported types include: PDF, Word documents, images, videos, audio files, text files, and more. Total supported: ${allSupportedTypes.length} file types.`));
+    // For audio files, try to be more permissive with common variations
+    const fileExt = path.extname(file.originalname).toLowerCase();
+    const isAudioExtension = ['.mp3', '.wav', '.aiff', '.aac', '.ogg', '.flac', '.m4a', '.wma'].includes(fileExt);
+    
+    if (isAudioExtension && file.mimetype.startsWith('audio/')) {
+      console.log(`[Upload] ✅ Audio file accepted by extension: ${fileExt} (${file.mimetype})`);
+      cb(null, true);
+    } else {
+      console.log(`[Upload] ❌ File rejected: ${file.mimetype} with extension ${fileExt}`);
+      cb(new Error(`Unsupported file type: ${file.mimetype}. Supported types include: PDF, Word documents, images, videos, audio files, text files, and more. Total supported: ${allSupportedTypes.length} file types.`));
+    }
   }
 };
 
@@ -407,7 +425,7 @@ router.get('/:caseId/documents/:docId/display-name', async (req, res, next) => {
     const lang = (req.query.lang as string | undefined)?.trim().toLowerCase() || 'en';
 
     if (isNaN(caseId) || isNaN(docId)) {
-      return res.status(400).json({ message: 'Invalid case or document ID.' });
+      return res.status(400).json({ message: 'Invalid matter or document ID.' });
     }
 
     const docResult = await db.select().from(documents).where(
@@ -415,7 +433,7 @@ router.get('/:caseId/documents/:docId/display-name', async (req, res, next) => {
     );
 
     if (docResult.length === 0) {
-      return res.status(404).json({ message: 'Document not found in this case.' });
+      return res.status(404).json({ message: 'Document not found in this matter.' });
     }
 
     const doc = docResult[0];
