@@ -223,7 +223,7 @@ export default function CaseTimeline({ caseId }: CaseTimelineProps) {
           
 
           {/* Timeline Events */}
-          <ScrollArea type="auto" scrollbars="vertical" style={{ maxHeight: '70vh' }}>
+          <ScrollArea type="auto" scrollbars="vertical" className='h-[400px] md:min-h-[400px]'>
             {sortedEvents.length > 0 ? (
               <Flex direction="column" gap="3">
                 {sortedEvents.map((event, index) => (

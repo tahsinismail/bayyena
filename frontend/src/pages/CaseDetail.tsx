@@ -724,7 +724,7 @@ export default function CaseDetail() {
           <Box pt="3">
             <Tabs.Content value="summary">
               <Card>
-                <ScrollArea type="auto" scrollbars="vertical" style={{ maxHeight: '60vh' }}>
+                <ScrollArea type="auto" scrollbars="vertical" className='h-[400px] md:min-h-[400px]'>
                   <Box p="4">
                     {summarizedDocs.length > 0 ? (
                       <Flex direction="column" gap="5">
@@ -767,11 +767,12 @@ export default function CaseDetail() {
 
       </div>
       <div className="lg:col-span-1">
-        <Card>
-          <Box p="4">
-            <Flex justify="start" align="center" mb="4">
-              <Heading size="5">Matter Documents</Heading>
-            </Flex>
+        <div className="lg:sticky lg:top-26 lg:max-h-[90vh] lg:overflow-y-auto">
+          <Card>
+            <Box p="4">
+              <Flex justify="start" align="center" mb="4">
+                <Heading size="5">Matter Documents</Heading>
+              </Flex>
             
             {/* Processing Status Summary */}
             {documents.length > 0 && (
@@ -977,6 +978,7 @@ export default function CaseDetail() {
             </Flex>
           </Box>
         </Card>
+        </div>
       </div>
     </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import LanguageSwitcher from './LanguageSwitcher';
-import { HamburgerMenuIcon, Cross1Icon } from '@radix-ui/react-icons';
+import { HamburgerMenuIcon, Cross1Icon, ChevronUpIcon } from '@radix-ui/react-icons';
 import logo from '../assets/logo.png';
 import { navigate } from 'wouter/use-browser-location';
 
@@ -12,11 +12,14 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, setUser } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 10);
+      setShowBackToTop(scrollTop > 300); // Show back to top after 300px scroll
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -34,6 +37,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleLogout = () => {
     setUser(null);
     navigate('/login');
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   if (!user) {
@@ -130,11 +140,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <footer className={`w-full mt-8 border-t border-gray-200 grid place-items-center transition-all duration-300 ${
-        isScrolled 
-          ? 'relative' 
-          : 'fixed bottom-0 bg-white'
-      }`}>
+      <footer className={`w-full mt-8 border-t border-gray-200 grid place-items-center transition-all duration-300`}>
+      
         <div className="max-w-full">
             <div className="flex justify-center items-center py-6">
               <p className="text-sm text-[#856A00]">
@@ -144,6 +151,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           
         </div>
       </footer>
+
+      {/* Floating Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="back-to-top-button"
+          aria-label="Back to top"
+        >
+          <ChevronUpIcon className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 };

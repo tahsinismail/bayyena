@@ -111,7 +111,7 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                     <Button variant="soft" color="red" size="1" onClick={handleClearChat}><ReloadIcon /> Clear Chat</Button>
                 </Flex>
 
-                <ScrollArea ref={scrollAreaRef} style={{ height: '300px' }} className="bg-gray-50 rounded py-2 px-4">
+                <ScrollArea ref={scrollAreaRef} className="h-[400px] md:min-h-[400px] bg-gray-50 rounded py-2 px-4">
                     <Flex direction="column" gap="4">
                         {messages.map((msg, index) => {
                             const isBot = msg.sender === 'bot';
@@ -119,7 +119,7 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                             const isLastUser = msg.sender === 'user' && index === messages.length - 1;
                             return (
                                 <Flex key={index} direction="column" align={msg.sender === 'user' ? 'end' : 'start'} position="relative">
-                                    <Box className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} style={{ maxWidth: '80%' }} ref={isLastBot ? lastBotMsgRef : isLastUser ? lastUserMsgRef : undefined}>
+                                    <Box className={`w-full lg:max-w-[90%] p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} ref={isLastBot ? lastBotMsgRef : isLastUser ? lastUserMsgRef : undefined}>
                                         <div className="markdown-content">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {msg.text}
