@@ -236,7 +236,7 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                                 <Box className="p-3 rounded-lg bg-white border border-gray-200 shadow-sm">
                                     <Flex align="center" gap="2">
                                         <Spinner size="2" />
-                                        <Text size="2" color="gray">AI is thinking...</Text>
+                                        <Text size="2" color="gray">Bayyena is thinking...</Text>
                                     </Flex>
                                 </Box>
                             </Flex>

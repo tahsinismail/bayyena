@@ -1072,3 +1072,60 @@ button:focus-visible {
   }
 }
 
+/* Authentication Error Styling */
+.auth-error-box {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.auth-error-box .error-title {
+  color: #dc2626;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.auth-error-box .error-message {
+  color: #b91c1c;
+  line-height: 1.5;
+}
+
+/* Loading Button Styling */
+.loading-button {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+}
+
+.loading-button:hover {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+}
+
+/* Form Input Styling */
+.auth-input:disabled {
+  background-color: #f9fafb;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Success Message Styling */
+.auth-success-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.auth-success-box .success-title {
+  color: #16a34a;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.auth-success-box .success-message {
+  color: #15803d;
+  line-height: 1.5;
+}
+

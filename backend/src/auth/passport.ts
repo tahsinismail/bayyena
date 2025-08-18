@@ -9,20 +9,26 @@ import { users } from '../db/schema';
 passport.use(
   new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
     try {
+      console.log('Passport strategy called with email:', email);
+      
       const userResult = await db.select().from(users).where(eq(users.email, email));
       const user = userResult[0];
       
       if (!user) {
-        return done(null, false, { message: 'Incorrect email or password.' });
+        console.log('User not found for email:', email);
+        return done(null, false, { message: 'No account found with this email address. Please check your email or register for a new account.' });
       }
 
       const isMatch = await bcrypt.compare(password, user.hashedPassword);
       if (!isMatch) {
-        return done(null, false, { message: 'Incorrect email or password.' });
+        console.log('Password mismatch for user:', email);
+        return done(null, false, { message: 'Incorrect password. Please check your password and try again.' });
       }
       
+      console.log('Authentication successful for user:', email);
       return done(null, user);
     } catch (err) {
+      console.error('Passport strategy error:', err);
       return done(err);
     }
   })
