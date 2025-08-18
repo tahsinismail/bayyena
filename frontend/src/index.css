@@ -12,6 +12,21 @@
   outline: none !important;
 }
 
+/* Hide scrollbars for chat area */
+.chat-scroll-area {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.chat-scroll-area::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+
+/* Hide Radix ScrollArea scrollbars */
+.rt-ScrollAreaScrollbar {
+  display: none !important;
+}
+
 /* Add these new styles for rendered markdown */
 .markdown-content p {
     margin-bottom: 0.5rem;

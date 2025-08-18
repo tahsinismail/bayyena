@@ -17,14 +17,51 @@ export default function CaseChat({ caseId }: CaseChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const lastBotMsgRef = useRef<HTMLDivElement>(null);
     const lastUserMsgRef = useRef<HTMLDivElement>(null);
+    const chatInputRef = useRef<HTMLDivElement>(null);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const [streamingMessage, setStreamingMessage] = useState('');
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-    // Helper function to format timestamp
+  // Auto-scroll logic
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      // If this is initial load, scroll to bottom (input area)
+      if (isInitialLoad) {
+        setTimeout(() => {
+          if (chatInputRef.current) {
+            chatInputRef.current.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'end' 
+            });
+          }
+        }, 100);
+        setIsInitialLoad(false);
+      }
+      // If last message is from bot and there's a corresponding user message, scroll to the user message
+      else if (lastMessage.sender === 'bot' && lastUserMsgRef.current) {
+        setTimeout(() => {
+          lastUserMsgRef.current?.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }, 100);
+      }
+    } else {
+      // If no messages (empty chat), scroll to chat input box
+      setTimeout(() => {
+        if (chatInputRef.current) {
+          chatInputRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }, 100);
+      setIsInitialLoad(false);
+    }
+  }, [messages, isInitialLoad]);    // Helper function to format timestamp
     const formatTimestamp = (timestamp?: string) => {
         if (!timestamp) return '';
         try {
@@ -33,38 +70,6 @@ export default function CaseChat({ caseId }: CaseChatProps) {
             console.error('Error formatting timestamp:', error);
             return '';
         }
-    };
-
-    // Auto-scrolling Logic
-    useEffect(() => {
-        // Always scroll to bottom when messages change or when typing
-        if (scrollAreaRef.current) {
-            const scrollContainer = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-            if (scrollContainer) {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            }
-        }
-    }, [messages, isTyping, streamingMessage]);
-
-    // Simulate typing animation for AI response
-    const animateTyping = (text: string, callback: () => void) => {
-        setIsTyping(true);
-        setStreamingMessage('');
-        
-        let index = 0;
-        const typeSpeed = 48; // Adjust typing speed (ms per character)
-        
-        const typeInterval = setInterval(() => {
-            if (index < text.length) {
-                setStreamingMessage(prev => prev + text[index]);
-                index++;
-            } else {
-                clearInterval(typeInterval);
-                setIsTyping(false);
-                setStreamingMessage('');
-                callback();
-            }
-        }, typeSpeed);
     };
     // Copy to clipboard handler
     const handleCopy = (text: string, index: number) => {
@@ -104,19 +109,16 @@ export default function CaseChat({ caseId }: CaseChatProps) {
         try {
             const { data: { answer } } = await postChatMessage(caseId, trimmedInput);
             
-            // Create bot message with typing animation
+            // Create bot message and show immediately
             const botMessage: Message = {
                 sender: 'bot',
                 text: answer,
                 createdAt: new Date().toISOString()
             };
 
-            // Use typing animation for the bot response
-            animateTyping(answer, () => {
-                // Add the complete bot message after typing animation
-                setMessages(prev => [...prev, botMessage]);
-                setIsLoading(false);
-            });
+            // Show response immediately without typing animation
+            setMessages(prev => [...prev, botMessage]);
+            setIsLoading(false);
 
         } catch (err: any) {
             const errorMessage: Message = {
@@ -125,11 +127,9 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                 createdAt: new Date().toISOString()
             };
             
-            // Even error messages should have typing animation
-            animateTyping(errorMessage.text, () => {
-                setMessages(prev => [...prev, errorMessage]);
-                setIsLoading(false);
-            });
+            // Show error message immediately
+            setMessages(prev => [...prev, errorMessage]);
+            setIsLoading(false);
         }
     };
 
@@ -150,12 +150,23 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                     <Button variant="soft" color="red" size="1" onClick={handleClearChat}><ReloadIcon /> Clear Chat</Button>
                 </Flex>
 
-                <ScrollArea ref={scrollAreaRef} className="min-h-[200px] max-h-[400px] md:min-h-[200px] md:max-h-max bg-gray-50 rounded py-2 px-4">
+                <ScrollArea 
+                    ref={scrollAreaRef} 
+                    className="min-h-[200px] max-h-[400px] md:min-h-[200px] md:max-h-max bg-gray-50 rounded py-2 px-4 chat-scroll-area"
+                    type="hover"
+                    scrollbars="vertical"
+                >
                     <Flex direction="column" gap="4">
                         {messages.map((msg, index) => {
                             const isBot = msg.sender === 'bot';
                             const isLastBot = isBot && index === messages.length - 1;
-                            const isLastUser = msg.sender === 'user' && index === messages.length - 1;
+                            
+                            // Check if this user message is the one that corresponds to the latest bot response
+                            const isCorrespondingUserMsg = msg.sender === 'user' && 
+                                                          index === messages.length - 2 && 
+                                                          messages.length > 1 && 
+                                                          messages[messages.length - 1].sender === 'bot';
+                            
                             return (
                                 <Flex 
                                     key={`${msg.sender}-${index}-${msg.createdAt}`} 
@@ -170,7 +181,7 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                                                 ? 'bg-[#856A00] text-white ml-auto max-w-[85%]' 
                                                 : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'
                                         }`} 
-                                        ref={isLastBot ? lastBotMsgRef : isLastUser ? lastUserMsgRef : undefined}
+                                        ref={isLastBot ? lastBotMsgRef : isCorrespondingUserMsg ? lastUserMsgRef : undefined}
                                     >
                                         <div className={`markdown-content ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}>
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -216,22 +227,8 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                             );
                         })}
                         
-                        {/* Typing indicator and streaming message */}
-                        {isTyping && (
-                            <Flex direction="column" align="start" className="animate-slideInUp">
-                                <Box className="w-full lg:max-w-[90%] p-3 rounded-lg bg-white border border-gray-200 shadow-sm">
-                                    <div className="markdown-content text-gray-800">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {streamingMessage}
-                                        </ReactMarkdown>
-                                        {/* <span className="inline-block w-2 h-5 bg-[#856A00] animate-pulse ml-1 align-text-bottom"></span> */}
-                                    </div>
-                                </Box>
-                            </Flex>
-                        )}
-                        
                         {/* Loading spinner when waiting for response */}
-                        {isLoading && !isTyping && (
+                        {isLoading && (
                             <Flex justify="start" className="animate-slideInUp">
                                 <Box className="p-3 rounded-lg bg-white border border-gray-200 shadow-sm">
                                     <Flex align="center" gap="2">
@@ -244,7 +241,7 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                     </Flex>
                 </ScrollArea>
 
-                <Flex mt="4" gap="3" align="center" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
+                <Flex mt="4" gap="3" align="center" onSubmit={(e) => { e.preventDefault(); handleSend(); }} ref={chatInputRef}>
                     <TextArea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
