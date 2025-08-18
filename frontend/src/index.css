@@ -969,3 +969,106 @@ button:focus-visible {
   animation: fadeInUp 0.3s ease-out;
 }
 
+/* Chat message animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* Typing cursor animation */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.animate-pulse {
+  animation: blink 1s infinite;
+}
+
+/* Enhanced chat bubble styles */
+.markdown-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* User message styling */
+.chat-message-user {
+  background: linear-gradient(135deg, #856A00 0%, #a17a1a 100%);
+  box-shadow: 0 2px 8px rgba(133, 106, 0, 0.2);
+}
+
+.chat-message-user:hover {
+  box-shadow: 0 4px 12px rgba(133, 106, 0, 0.3);
+}
+
+/* Bot message styling */
+.chat-message-bot {
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.chat-message-bot:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #d1d5db;
+}
+
+/* Copy button styling */
+.copy-button {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.chat-message-bot:hover .copy-button {
+  opacity: 1;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.typing-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+  animation: typingDots 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typingDots {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+

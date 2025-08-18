@@ -20,6 +20,8 @@ export default function CaseChat({ caseId }: CaseChatProps) {
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
+    const [streamingMessage, setStreamingMessage] = useState('');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     // Helper function to format timestamp
@@ -35,18 +37,35 @@ export default function CaseChat({ caseId }: CaseChatProps) {
 
     // Auto-scrolling Logic
     useEffect(() => {
-        // Scroll to the last user message if just sent, else scroll to last bot message
-        if (lastUserMsgRef.current) {
-            lastUserMsgRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else if (lastBotMsgRef.current) {
-            lastBotMsgRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else if (scrollAreaRef.current) {
+        // Always scroll to bottom when messages change or when typing
+        if (scrollAreaRef.current) {
             const scrollContainer = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
             if (scrollContainer) {
                 scrollContainer.scrollTop = scrollContainer.scrollHeight;
             }
         }
-    }, [messages]);
+    }, [messages, isTyping, streamingMessage]);
+
+    // Simulate typing animation for AI response
+    const animateTyping = (text: string, callback: () => void) => {
+        setIsTyping(true);
+        setStreamingMessage('');
+        
+        let index = 0;
+        const typeSpeed = 48; // Adjust typing speed (ms per character)
+        
+        const typeInterval = setInterval(() => {
+            if (index < text.length) {
+                setStreamingMessage(prev => prev + text[index]);
+                index++;
+            } else {
+                clearInterval(typeInterval);
+                setIsTyping(false);
+                setStreamingMessage('');
+                callback();
+            }
+        }, typeSpeed);
+    };
     // Copy to clipboard handler
     const handleCopy = (text: string, index: number) => {
         navigator.clipboard.writeText(text);
@@ -72,25 +91,45 @@ export default function CaseChat({ caseId }: CaseChatProps) {
         const trimmedInput = input.trim();
         if (!trimmedInput || isLoading) return;
 
-        const userMessage: Message = { sender: 'user', text: trimmedInput };
+        // Add user message immediately to maintain correct order
+        const userMessage: Message = { 
+            sender: 'user', 
+            text: trimmedInput,
+            createdAt: new Date().toISOString()
+        };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
 
         try {
             const { data: { answer } } = await postChatMessage(caseId, trimmedInput);
-            // Fetch history again to get the saved messages, ensuring UI is in sync with DB
-            console.log("answer", answer);
-            const { data: updatedHistory } = await getChatHistory(caseId);
-            setMessages(updatedHistory);
+            
+            // Create bot message with typing animation
+            const botMessage: Message = {
+                sender: 'bot',
+                text: answer,
+                createdAt: new Date().toISOString()
+            };
+
+            // Use typing animation for the bot response
+            animateTyping(answer, () => {
+                // Add the complete bot message after typing animation
+                setMessages(prev => [...prev, botMessage]);
+                setIsLoading(false);
+            });
+
         } catch (err: any) {
             const errorMessage: Message = {
                 sender: 'bot',
-                text: err.response?.data?.answer || "Sorry, an error occurred."
+                text: err.response?.data?.answer || "Sorry, an error occurred.",
+                createdAt: new Date().toISOString()
             };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
+            
+            // Even error messages should have typing animation
+            animateTyping(errorMessage.text, () => {
+                setMessages(prev => [...prev, errorMessage]);
+                setIsLoading(false);
+            });
         }
     };
 
@@ -111,40 +150,53 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                     <Button variant="soft" color="red" size="1" onClick={handleClearChat}><ReloadIcon /> Clear Chat</Button>
                 </Flex>
 
-                <ScrollArea ref={scrollAreaRef} className="h-[400px] md:min-h-[400px] bg-gray-50 rounded py-2 px-4">
+                <ScrollArea ref={scrollAreaRef} className="min-h-[200px] max-h-[400px] md:min-h-[200px] md:max-h-max bg-gray-50 rounded py-2 px-4">
                     <Flex direction="column" gap="4">
                         {messages.map((msg, index) => {
                             const isBot = msg.sender === 'bot';
                             const isLastBot = isBot && index === messages.length - 1;
                             const isLastUser = msg.sender === 'user' && index === messages.length - 1;
                             return (
-                                <Flex key={index} direction="column" align={msg.sender === 'user' ? 'end' : 'start'} position="relative">
-                                    <Box className={`w-full lg:max-w-[90%] p-3 rounded-lg ${msg.sender === 'user' ? 'bg-[#856A00] text-white' : 'bg-gray-200'}`} ref={isLastBot ? lastBotMsgRef : isLastUser ? lastUserMsgRef : undefined}>
-                                        <div className="markdown-content">
+                                <Flex 
+                                    key={`${msg.sender}-${index}-${msg.createdAt}`} 
+                                    direction="column" 
+                                    align={msg.sender === 'user' ? 'end' : 'start'} 
+                                    position="relative"
+                                    className="animate-slideInUp"
+                                >
+                                    <Box 
+                                        className={`w-full lg:max-w-[90%] p-3 rounded-lg transition-all duration-300 ease-in-out ${
+                                            msg.sender === 'user' 
+                                                ? 'bg-[#856A00] text-white ml-auto max-w-[85%]' 
+                                                : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'
+                                        }`} 
+                                        ref={isLastBot ? lastBotMsgRef : isLastUser ? lastUserMsgRef : undefined}
+                                    >
+                                        <div className={`markdown-content ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}>
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {msg.text}
                                             </ReactMarkdown>
                                         </div>
-                                    {/* Copy icon outside the response bubble for bot messages */}
-                                    {isBot && (
-                                       <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
-                                            <button
-                                                title="Copy response"
-                                                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                                                onClick={() => handleCopy(msg.text, index)}
-                                            >
-                                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <rect x="5" y="5" width="10" height="12" rx="2" fill="#888" />
-                                                    <rect x="3" y="3" width="10" height="12" rx="2" stroke="#888" strokeWidth="2" />
-                                                </svg>
-                                                <span style={{fontSize: '14px', color: '#888', fontWeight: 'bold'}}>Copy</span>
-                                                {copiedIndex === index && (
-                                                    <span style={{ marginLeft: 6, color: '#888', fontSize: 12 }}>Copied</span>
-                                                )}
-                                            </button>
-
-                                    </div>
-                                    )}
+                                        
+                                        {/* Copy icon for bot messages */}
+                                        {isBot && (
+                                            <div className="flex justify-end mt-2">
+                                                <button
+                                                    title="Copy response"
+                                                    className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xs p-1 rounded hover:bg-gray-100"
+                                                    onClick={() => handleCopy(msg.text, index)}
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <rect x="5" y="5" width="10" height="12" rx="2" fill="currentColor" />
+                                                        <rect x="3" y="3" width="10" height="12" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                                                    </svg>
+                                                    <span>Copy</span>
+                                                    {copiedIndex === index && (
+                                                        <span className="text-green-600 font-medium">✓</span>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        )}
                                     </Box>
                                     
                                     {msg.createdAt && (
@@ -163,7 +215,32 @@ export default function CaseChat({ caseId }: CaseChatProps) {
                                 </Flex>
                             );
                         })}
-                        {isLoading && <Flex justify="start"><Spinner /></Flex>}
+                        
+                        {/* Typing indicator and streaming message */}
+                        {isTyping && (
+                            <Flex direction="column" align="start" className="animate-slideInUp">
+                                <Box className="w-full lg:max-w-[90%] p-3 rounded-lg bg-white border border-gray-200 shadow-sm">
+                                    <div className="markdown-content text-gray-800">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {streamingMessage}
+                                        </ReactMarkdown>
+                                        {/* <span className="inline-block w-2 h-5 bg-[#856A00] animate-pulse ml-1 align-text-bottom"></span> */}
+                                    </div>
+                                </Box>
+                            </Flex>
+                        )}
+                        
+                        {/* Loading spinner when waiting for response */}
+                        {isLoading && !isTyping && (
+                            <Flex justify="start" className="animate-slideInUp">
+                                <Box className="p-3 rounded-lg bg-white border border-gray-200 shadow-sm">
+                                    <Flex align="center" gap="2">
+                                        <Spinner size="2" />
+                                        <Text size="2" color="gray">AI is thinking...</Text>
+                                    </Flex>
+                                </Box>
+                            </Flex>
+                        )}
                     </Flex>
                 </ScrollArea>
 
