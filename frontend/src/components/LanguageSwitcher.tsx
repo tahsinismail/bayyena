@@ -48,18 +48,16 @@ export default function LanguageSwitcher() {
       <Button
         size="2"
         variant={currentLanguage === 'en' ? 'solid' : 'soft'}
-        color={currentLanguage === 'en' ? 'gold' : 'gray'}
         onClick={() => changeLanguage('en')}
-        className="language-button"
+        className={`language-button ${currentLanguage === 'en' ? 'text-[#a17a1a]' : 'text-gray-200'}`}
       >
         <span className="text-sm font-medium">EN</span>
       </Button>
       <Button
         size="2"
         variant={currentLanguage === 'ar' ? 'solid' : 'soft'}
-        color={currentLanguage === 'ar' ? 'gold' : 'gray'}
         onClick={() => changeLanguage('ar')}
-        className="language-button"
+        className={`language-button ${currentLanguage === 'ar' ? 'text-[#a17a1a]' : 'text-gray-200'}`}
       >
         <span className="text-sm font-medium">عربي</span>
       </Button>

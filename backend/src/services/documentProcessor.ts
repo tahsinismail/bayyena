@@ -51,7 +51,14 @@ const getJSONFromString = (str: string): any[] => {
  * Extract text from different file types using only Gemini API
  */
 async function extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
-    console.log(`[Processor] Extracting text from ${mimeType} file: ${filePath} using Gemini API only`);
+    // Ensure we use absolute path for file operations
+    const absoluteFilePath = path.resolve(filePath);
+    console.log(`[Processor] Extracting text from ${mimeType} file: ${absoluteFilePath} using Gemini API only`);
+    
+    // Check if file exists before processing
+    if (!fs.existsSync(absoluteFilePath)) {
+        throw new Error(`File not found: ${absoluteFilePath}`);
+    }
     
     try {
         let extractedText = '';
@@ -63,8 +70,8 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
             
             // Special handling for DOCX files (not directly supported by Gemini)
             if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                console.log(`[Processor] Using special DOCX image extraction for ${filePath}`);
-                geminiResult = await geminiProcessor.processDOCXWithImages(filePath, '');
+                console.log(`[Processor] Using special DOCX image extraction for ${absoluteFilePath}`);
+                geminiResult = await geminiProcessor.processDOCXWithImages(absoluteFilePath, '');
             } else {
                 // Check if the file type is supported by Gemini for direct processing
                 if (!GeminiProcessor.isSupported(mimeType)) {
@@ -72,7 +79,7 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
                 }
                 
                 // Standard Gemini processing for all file types
-                geminiResult = await geminiProcessor.processWithRetry(filePath, mimeType);
+                geminiResult = await geminiProcessor.processWithRetry(absoluteFilePath, mimeType);
             }
             
             if (geminiResult.text.trim()) {

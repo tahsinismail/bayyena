@@ -7,6 +7,7 @@ import { db } from '../db';
 import { documents } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
+import path from 'path';
 
 // Job data interface
 export interface DocumentProcessingJobData {
@@ -37,7 +38,27 @@ export const createDocumentProcessingWorker = (redisConnection: any) => {
     async (job: Job<DocumentProcessingJobData>): Promise<DocumentProcessingJobResult> => {
       const { documentId, filePath, mimeType, userId, caseId } = job.data;
       
+      // Ensure we use absolute path for file operations
+      const absoluteFilePath = path.resolve(filePath);
+      
       console.log(`[DocumentWorker] Processing document ${documentId} for case ${caseId}`);
+      console.log(`[DocumentWorker] File path: ${filePath} -> ${absoluteFilePath}`);
+      
+      // Check if file exists before processing
+      if (!fs.existsSync(absoluteFilePath)) {
+        console.error(`[DocumentWorker] File not found: ${absoluteFilePath}`);
+        
+        // Update document status to failed
+        await db
+          .update(documents)
+          .set({ 
+            processingStatus: 'FAILED',
+            extractedText: `File not found: ${absoluteFilePath}`
+          })
+          .where(eq(documents.id, documentId));
+          
+        throw new Error(`File not found: ${absoluteFilePath}`);
+      }
       
       try {
         // Update document status to processing
@@ -46,8 +67,8 @@ export const createDocumentProcessingWorker = (redisConnection: any) => {
           .set({ processingStatus: 'PROCESSING' })
           .where(eq(documents.id, documentId));
         
-        // Process the document
-        await processDocument(documentId, filePath, mimeType);
+        // Process the document using absolute path
+        await processDocument(documentId, absoluteFilePath, mimeType);
         
         // Get the updated document to retrieve the processed content
         const updatedDoc = await db
@@ -91,9 +112,9 @@ export const createDocumentProcessingWorker = (redisConnection: any) => {
         
         // Clean up file if processing failed
         try {
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`[DocumentWorker] Cleaned up failed document file: ${filePath}`);
+          if (fs.existsSync(absoluteFilePath)) {
+            fs.unlinkSync(absoluteFilePath);
+            console.log(`[DocumentWorker] Cleaned up failed document file: ${absoluteFilePath}`);
           }
         } catch (cleanupError) {
           console.error(`[DocumentWorker] Error cleaning up file:`, cleanupError);

@@ -205,7 +205,16 @@ Please transcribe this audio file and provide comprehensive analysis for legal c
         console.log(`[Gemini] Transcribing audio file: ${filePath} (MIME: ${mimeType})`);
 
         const { actualFilePath, actualMimeType } = await this.ensureCompatibleAudioFormat(filePath, mimeType);
-        const audioBuffer = fs.readFileSync(actualFilePath);
+        
+        // Ensure we use absolute path for file reading
+        const absoluteFilePath = path.resolve(actualFilePath);
+        
+        // Check if file exists before reading
+        if (!fs.existsSync(absoluteFilePath)) {
+            throw new Error(`Audio file not found: ${absoluteFilePath}`);
+        }
+        
+        const audioBuffer = fs.readFileSync(absoluteFilePath);
         const base64Audio = audioBuffer.toString('base64');
 
         try {
@@ -235,16 +244,19 @@ Please transcribe this audio file and provide comprehensive analysis for legal c
      * Ensure audio format is compatible with Gemini, convert if necessary
      */
     private async ensureCompatibleAudioFormat(filePath: string, mimeType: string): Promise<{ actualFilePath: string; actualMimeType: string }> {
+        // Ensure we use absolute path for input file
+        const absoluteFilePath = path.resolve(filePath);
+        
         if (SUPPORTED_AUDIO_TYPES.includes(mimeType)) {
-            return { actualFilePath: filePath, actualMimeType: mimeType };
+            return { actualFilePath: absoluteFilePath, actualMimeType: mimeType };
         }
 
         // Convert to WAV using ffmpeg
-        const wavPath = filePath.replace(path.extname(filePath), '.wav');
-        console.log(`[Gemini] Converting ${filePath} to WAV for Gemini compatibility...`);
+        const wavPath = absoluteFilePath.replace(path.extname(absoluteFilePath), '.wav');
+        console.log(`[Gemini] Converting ${absoluteFilePath} to WAV for Gemini compatibility...`);
         
         await new Promise((resolve, reject) => {
-            ffmpeg(filePath)
+            ffmpeg(absoluteFilePath)
                 .toFormat('wav')
                 .on('end', () => {
                     console.log(`[Gemini] Conversion to WAV completed: ${wavPath}`);
@@ -266,7 +278,15 @@ Please transcribe this audio file and provide comprehensive analysis for legal c
     private async processVisualFile(filePath: string, mimeType: string): Promise<string> {
         console.log(`[Gemini] Analyzing visual file: ${filePath}`);
         
-        const fileBuffer = fs.readFileSync(filePath);
+        // Ensure we use absolute path for file reading
+        const absoluteFilePath = path.resolve(filePath);
+        
+        // Check if file exists before reading
+        if (!fs.existsSync(absoluteFilePath)) {
+            throw new Error(`Visual file not found: ${absoluteFilePath}`);
+        }
+        
+        const fileBuffer = fs.readFileSync(absoluteFilePath);
         const base64File = fileBuffer.toString('base64');
 
         try {
@@ -347,7 +367,15 @@ Please analyze this file and provide complete text extraction and, if no text is
     private async processDocumentFile(filePath: string, mimeType: string): Promise<string> {
         console.log(`[Gemini] Analyzing document file: ${filePath}`);
         
-        const fileBuffer = fs.readFileSync(filePath);
+        // Ensure we use absolute path for file reading
+        const absoluteFilePath = path.resolve(filePath);
+        
+        // Check if file exists before reading
+        if (!fs.existsSync(absoluteFilePath)) {
+            throw new Error(`Document file not found: ${absoluteFilePath}`);
+        }
+        
+        const fileBuffer = fs.readFileSync(absoluteFilePath);
         const base64File = fileBuffer.toString('base64');
 
         try {
@@ -456,11 +484,26 @@ Please analyze this document and provide comprehensive content extraction and an
         return new Promise((resolve, reject) => {
             const extractedImages: string[] = [];
             
-            yauzl.open(filePath, { lazyEntries: true }, (err, zipfile) => {
+            // Ensure we have an absolute path
+            const absoluteFilePath = path.resolve(filePath);
+            
+            // Check if file exists before attempting to open
+            if (!fs.existsSync(absoluteFilePath)) {
+                reject(new Error(`DOCX file not found: ${absoluteFilePath}`));
+                return;
+            }
+            
+            console.log(`[Gemini] Opening DOCX file for image extraction: ${absoluteFilePath}`);
+            
+            yauzl.open(absoluteFilePath, { lazyEntries: true }, (err, zipfile) => {
                 if (err || !zipfile) {
-                    reject(new Error(`Failed to open DOCX file: ${err?.message || 'Unknown error'}`));
+                    const errorMsg = `Failed to open DOCX file: ${err?.message || 'Unknown error'}`;
+                    console.error(`[Gemini] ${errorMsg}`);
+                    reject(new Error(errorMsg));
                     return;
                 }
+                
+                console.log(`[Gemini] Successfully opened DOCX file, starting entry extraction`);
                 
                 zipfile.readEntry();
                 zipfile.on("entry", (entry) => {
@@ -472,8 +515,14 @@ Please analyze this document and provide comprehensive content extraction and an
                 });
                 
                 zipfile.on("end", async () => {
+                    console.log(`[Gemini] DOCX entry extraction completed, found ${extractedImages.length} images`);
                     await new Promise(resolve => setTimeout(resolve, DOCX_PROCESSING_DELAY));
                     resolve(extractedImages);
+                });
+                
+                zipfile.on("error", (zipError) => {
+                    console.error(`[Gemini] Error reading DOCX zip file:`, zipError);
+                    reject(new Error(`DOCX zip file error: ${zipError.message}`));
                 });
             });
         });
@@ -617,6 +666,125 @@ Format your response clearly for legal case documentation.`;
         }
         
         throw new Error(`Gemini processing failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
+    }
+
+    /**
+     * Generate a relevant case title based on document content and/or chat context
+     */
+    async generateCaseTitle(context: {
+        documentSummaries?: string[];
+        chatMessages?: string[];
+        existingTitle?: string;
+    }): Promise<string> {
+        try {
+            console.log('[Gemini] Generating case title from context');
+            
+            const { documentSummaries = [], chatMessages = [], existingTitle } = context;
+            
+            // Build context for title generation
+            let contextText = '';
+            
+            if (documentSummaries.length > 0) {
+                contextText += 'Document Summaries:\n';
+                documentSummaries.forEach((summary, index) => {
+                    contextText += `Document ${index + 1}: ${summary.substring(0, 500)}...\n\n`;
+                });
+            }
+            
+            if (chatMessages.length > 0) {
+                contextText += 'Recent Chat Messages:\n';
+                chatMessages.slice(-5).forEach((message, index) => {
+                    contextText += `Message ${index + 1}: ${message.substring(0, 200)}...\n`;
+                });
+            }
+            
+            if (!contextText.trim()) {
+                return 'Untitled';
+            }
+            
+            const prompt = this.getCaseTitleGenerationPrompt(existingTitle);
+            
+            const result = await model.generateContent([prompt, contextText]);
+            const generatedTitle = result.response.text().trim();
+            
+            // Validate and clean the generated title
+            const cleanTitle = this.validateAndCleanTitle(generatedTitle);
+            
+            console.log(`[Gemini] Generated case title: "${cleanTitle}"`);
+            return cleanTitle;
+            
+        } catch (error) {
+            console.error('[Gemini] Case title generation failed:', error);
+            return 'Untitled';
+        }
+    }
+
+    /**
+     * Get case title generation prompt
+     */
+    private getCaseTitleGenerationPrompt(existingTitle?: string): string {
+        return `You are a professional legal assistant tasked with generating concise, descriptive case titles.
+
+TASK: Generate a brief, professional case title (maximum 60 characters) based on the provided context.
+
+REQUIREMENTS:
+1. **Brevity**: Keep the title under 60 characters
+2. **Professionalism**: Use formal, legal language appropriate for case management
+3. **Clarity**: The title should clearly indicate the type of legal matter
+4. **Specificity**: Include relevant details like case type, parties, or subject matter when available
+
+GUIDELINES:
+- Focus on the primary legal issue or case type
+- Include key parties or subject matter if mentioned
+- Use standard legal terminology
+- Avoid generic terms like "Legal Matter" or "Case"
+- Do not include case numbers, dates, or file references
+- If the context suggests multiple issues, focus on the primary one
+
+${existingTitle && existingTitle !== 'Untitled' ? `EXISTING TITLE: "${existingTitle}" (improve if the new context provides better information)` : ''}
+
+EXAMPLES:
+- "Smith v. Johnson Contract Dispute"
+- "ABC Corp Employment Termination"
+- "Property Rights Violation Claim"
+- "Patent Infringement Defense"
+- "Family Custody Modification"
+
+OUTPUT: Provide ONLY the title text, nothing else.`;
+    }
+
+    /**
+     * Validate and clean the generated title
+     */
+    private validateAndCleanTitle(title: string): string {
+        if (!title || title.trim().length === 0) {
+            return 'Untitled';
+        }
+        
+        // Clean the title
+        let cleanTitle = title.trim();
+        
+        // Remove quotes if they wrap the entire title
+        if ((cleanTitle.startsWith('"') && cleanTitle.endsWith('"')) ||
+            (cleanTitle.startsWith("'") && cleanTitle.endsWith("'"))) {
+            cleanTitle = cleanTitle.slice(1, -1).trim();
+        }
+        
+        // Remove any prefix like "Title:" or "Case Title:"
+        cleanTitle = cleanTitle.replace(/^(title|case title|matter title):\s*/i, '');
+        
+        // Ensure it's not too long
+        if (cleanTitle.length > 60) {
+            cleanTitle = cleanTitle.substring(0, 57) + '...';
+        }
+        
+        // Check for error messages and return Untitled if found
+        const errorKeywords = ['error', 'failed', 'unable', 'cannot', 'invalid', 'exception'];
+        if (errorKeywords.some(keyword => cleanTitle.toLowerCase().includes(keyword))) {
+            return 'Untitled';
+        }
+        
+        return cleanTitle || 'Untitled';
     }
 }
 

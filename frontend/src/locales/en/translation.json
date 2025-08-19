@@ -1,7 +1,11 @@
 {
-  "appName": "LegalCaseBuilder",
+  "appName": "Bayyena",
+  "slogan": "Bayyena | AI-powered legal assistant",
   "welcome": "Welcome, {{name}}",
   "logout": "Logout",
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
   "myCases": "My Matters",
   "createCase": "Create New Matter",
   "caseTitle": "Matter Title",

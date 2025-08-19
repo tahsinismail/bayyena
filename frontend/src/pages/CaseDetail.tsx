@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRoute, useLocation, Link } from 'wouter';
-import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea, Select, TextField, TextArea, IconButton, Badge } from '@radix-ui/themes';
+import { Heading, Text, Card, Flex, Box, Spinner, Button, AlertDialog, Separator, Progress, Tabs, ScrollArea, Select, TextField, IconButton } from '@radix-ui/themes';
 import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon, ArrowLeftIcon, ImageIcon, VideoIcon, FileIcon, Pencil1Icon, CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { useDropzone } from 'react-dropzone';
-import type { Case, Document, CaseType } from '../types';
-import { getCaseById, getDocumentsForCase, uploadDocument, deleteCase, deleteDocument, updateCaseStatus, updateCase, autoGenerateCaseData, getDocumentDisplayName } from '../api';
+import type { Case, Document } from '../types';
+import { getCaseById, getDocumentsForCase, uploadDocument, deleteDocument, updateCase, getDocumentDisplayName, generateCaseTitle } from '../api';
 import CaseChat from '../components/CaseChat';
 import CaseTimeline from '../components/CaseTimeline';
 import ReactMarkdown from 'react-markdown';
@@ -25,63 +25,33 @@ export default function CaseDetail() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('all');
   const [timelineKey, setTimelineKey] = useState(0); // Key to force timeline refresh
   const prevDocumentsRef = useRef<Document[]>([]); // Track previous documents for comparison
-  
-  // Editing states
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [isEditingType, setIsEditingType] = useState(false);
-  const [isEditingStatus, setIsEditingStatus] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editType, setEditType] = useState<CaseType>('Civil Dispute');
-  const [editStatus, setEditStatus] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [docDisplayNames, setDocDisplayNames] = useState<Record<number, string>>({});
-
-  // Case types and statuses
-  const caseTypes: CaseType[] = ['Civil Dispute', 'Criminal Defense', 'Family Law', 'Intellectual Property', 'Corporate Law', 'Other'];
-  const caseStatuses: string[] = ['Open', 'Pending', 'Closed', 'Archived'];
+  
+  // Title editing states
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Title generation states
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
 
   // Helper function to refresh timeline when documents change
   const refreshTimeline = useCallback(() => {
     setTimelineKey(prev => prev + 1);
   }, []);
 
-  // Inline editing functions
+  // Title editing functions
   const startEditingTitle = () => {
     setEditTitle(caseData?.title || '');
     setIsEditingTitle(true);
   };
 
-  const startEditingDescription = () => {
-    setEditDescription(caseData?.description || '');
-    setIsEditingDescription(true);
-  };
-
-  const startEditingType = () => {
-    setEditType(caseData?.type || 'Civil Dispute');
-    setIsEditingType(true);
-  };
-
-  const startEditingStatus = () => {
-    setEditStatus(caseData?.status || 'Open');
-    setIsEditingStatus(true);
-  };
-
-  const cancelEditing = () => {
+  const cancelEditingTitle = () => {
     setIsEditingTitle(false);
-    setIsEditingDescription(false);
-    setIsEditingType(false);
-    setIsEditingStatus(false);
     setEditTitle('');
-    setEditDescription('');
-    setEditType('Civil Dispute');
-    setEditStatus('');
   };
 
   const saveTitle = async () => {
@@ -103,73 +73,26 @@ export default function CaseDetail() {
     }
   };
 
-  const saveDescription = async () => {
-    if (!caseId || editDescription.trim() === caseData?.description) {
-      setIsEditingDescription(false);
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      const { data: updatedCase } = await updateCase(caseId, { description: editDescription.trim() });
-      setCaseData(updatedCase);
-      setIsEditingDescription(false);
-    } catch (err: any) {
-      console.error('Failed to update description:', err);
-      // You could add error handling here
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const saveType = async () => {
-    if (!caseId || editType === caseData?.type) {
-      setIsEditingType(false);
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      const { data: updatedCase } = await updateCase(caseId, { type: editType });
-      setCaseData(updatedCase);
-      setIsEditingType(false);
-    } catch (err: any) {
-      console.error('Failed to update case type:', err);
-      // You could add error handling here
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const saveStatus = async () => {
-    if (!caseId || editStatus === caseData?.status) {
-      setIsEditingStatus(false);
-      return;
-    }
-    try {
-      setIsSaving(true);
-      const { data: updatedCase } = await updateCaseStatus(caseId, editStatus);
-      setCaseData(updatedCase);
-      setIsEditingStatus(false);
-    } catch (err: any) {
-      console.error('Failed to update case status:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleAutoGenerate = async () => {
+  // Generate title based on documents and chat context
+  const generateTitle = async (chatMessages?: string[]) => {
     if (!caseId) return;
 
     try {
-      setIsGenerating(true);
-      const { data } = await autoGenerateCaseData(caseId);
-      setCaseData(data.case);
+      setIsGeneratingTitle(true);
+      const { data } = await generateCaseTitle(caseId, chatMessages);
+      setCaseData(prev => prev ? { ...prev, title: data.title } : null);
     } catch (err: any) {
-      console.error('Failed to auto-generate case data:', err);
-      // You could add error handling here
+      console.error('Failed to generate title:', err);
+      // Don't show error to user, just keep existing title
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingTitle(false);
+    }
+  };
+
+  // Handle title generation request from chat (only for Untitled cases)
+  const handleTitleGenerationFromChat = (chatMessages: string[]) => {
+    if (caseData?.title === 'Untitled') {
+      generateTitle(chatMessages);
     }
   };
 
@@ -277,15 +200,15 @@ export default function CaseDetail() {
     if (justProcessed) {
       refreshTimeline();
       
-      // Auto-generate title and description if case is still "Untitled" or has no description
-      if (caseData && (caseData.title === 'Untitled' || !caseData.description || caseData.description.trim() === '')) {
-        handleAutoGenerate();
+      // Auto-generate title if case still has default title and we have processed documents
+      if (caseData?.title === 'Untitled' && documents.some(doc => doc.processingStatus === 'PROCESSED')) {
+        generateTitle();
       }
     }
     
     // Update the ref for next comparison
     prevDocumentsRef.current = documents;
-  }, [documents, refreshTimeline, caseData, handleAutoGenerate]);
+  }, [documents, refreshTimeline, caseData?.title]);
   // --- END OF CHANGE ---
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -321,7 +244,7 @@ export default function CaseDetail() {
     onDrop,
     multiple: true,
     disabled: isUploading,
-    maxSize: 100 * 1024 * 1024,
+  maxSize: 512 * 1024 * 1024,
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
@@ -355,8 +278,8 @@ export default function CaseDetail() {
       const messages: string[] = [];
       rejected.forEach(({ file, errors }) => {
         errors.forEach((error) => {
-          if (error.code === 'file-too-large') {
-            messages.push(`${file.name} is too large. Maximum size is 100MB.`);
+            if (error.code === 'file-too-large') {
+            messages.push(`${file.name} is too large. Maximum size is 512MB.`);
           } else if (error.code === 'file-invalid-type') {
             messages.push(`${file.name} is not a supported file type.`);
           } else {
@@ -376,28 +299,6 @@ export default function CaseDetail() {
       refreshTimeline(); // Refresh timeline when document is deleted
     } catch (err) {
       alert("Failed to delete document.");
-    }
-  };
-
-  const handleDeleteCase = async () => {
-    if (!caseId) return;
-    setDeleteError('');
-    try {
-      await deleteCase(caseId);
-      navigate('/');
-    } catch (err: any) {
-      setDeleteError(err.response?.data?.message || 'Failed to delete the case.');
-    }
-  };
-
-  const getStatusProps = (status: string | undefined) => {
-    if (!status) return { color: 'gray' as const, variant: 'soft' as const };
-    switch (status) {
-      case 'Open': return { color: 'blue' as const, variant: 'solid' as const };
-      case 'Pending': return { color: 'orange' as const, variant: 'solid' as const };
-      case 'Closed': return { color: 'green' as const, variant: 'solid' as const };
-      case 'Archived': return { color: 'gray' as const, variant: 'solid' as const };
-      default: return { color: 'gray' as const, variant: 'soft' as const };
     }
   };
 
@@ -465,49 +366,61 @@ export default function CaseDetail() {
         </Button>
       </Flex>
 
-      <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="w-full lg:col-span-2 flex flex-col gap-8">
-        <Card>
-          <Box p={{sm: '2', md: '6'}}>
-            <Flex justify="between" align="start" mb="4" className='flex-col gap-4 md:flex-row'>
-              <div className="case-title-section" style={{ flex: 1, marginRight: '16px' }}>
-                {/* Title Section */}
-                <Flex align="center" gap="2" mb="2">
-                  {isEditingTitle ? (
-                    <Flex align="center" gap="2" style={{ width: '100%' }}>
-                      <TextField.Root 
-                        style={{ flex: 1 }}
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        placeholder="Enter matter title"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveTitle();
-                          if (e.key === 'Escape') cancelEditing();
-                        }}
-                      />
-                      <IconButton 
-                        size="1" 
-                        onClick={saveTitle} 
-                        disabled={isSaving}
-                        variant="solid"
-                        color="green"
-                      >
-                        <CheckIcon />
-                      </IconButton>
-                      <IconButton 
-                        size="1" 
-                        onClick={cancelEditing}
-                        variant="soft"
-                        color="gray"
-                      >
-                        <Cross2Icon />
-                      </IconButton>
-                    </Flex>
-                  ) : (
-                    <Flex align="center" gap="2" style={{ width: '100%' }}>
-                      <Heading as="h1" size="6" className="legal-case-title" style={{ flex: 1 }}>
-                        {caseData?.title}
-                      </Heading>
+    <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <div className="lg:col-span-1 gap-8">
+        <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
+          <ScrollArea type="hover" scrollbars="vertical" className="max-h-[96vh] pr-4 left-section-scroll">
+            <Flex direction="column" gap="4">
+              <Card>
+          <Box p="4">
+            <Flex direction="column" gap="4">
+              {/* Case Title with Editing */}
+              <Flex align="center" gap="2" mb="2">
+                {isEditingTitle ? (
+                  <Flex align="center" gap="2" style={{ width: '100%' }}>
+                    <TextField.Root 
+                      style={{ flex: 1 }}
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      placeholder="Enter matter title"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveTitle();
+                        if (e.key === 'Escape') cancelEditingTitle();
+                      }}
+                      autoFocus
+                    />
+                    <IconButton 
+                      size="1" 
+                      onClick={saveTitle} 
+                      disabled={isSaving}
+                      variant="solid"
+                      color="green"
+                    >
+                      <CheckIcon />
+                    </IconButton>
+                    <IconButton 
+                      size="1" 
+                      onClick={cancelEditingTitle}
+                      variant="soft"
+                      color="gray"
+                    >
+                      <Cross2Icon />
+                    </IconButton>
+                  </Flex>
+                ) : (
+                  <Flex align="center" gap="2" style={{ width: '100%' }}>
+                    <Heading as="h1" size="6" className="legal-case-title" style={{ flex: 1 }}>
+                      {isGeneratingTitle ? (
+                        <Flex align="center" gap="2">
+                          <Spinner size="2" />
+                          <Text color="gray">Generating title...</Text>
+                        </Flex>
+                      ) : (
+                        caseData?.title
+                      )}
+                    </Heading>
+                    {!isGeneratingTitle && (
                       <IconButton 
                         size="1" 
                         onClick={startEditingTitle}
@@ -516,259 +429,22 @@ export default function CaseDetail() {
                       >
                         <Pencil1Icon />
                       </IconButton>
-                    </Flex>
-                  )}
-                </Flex>
-
-                {/* Description Section */}
-                <Flex align="start" gap="2">
-                  {isEditingDescription ? (
-                    <Flex direction="column" gap="2" style={{ width: '100%' }}>
-                      <TextArea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        placeholder="Enter matter description"
-                        rows={3}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.ctrlKey) saveDescription();
-                          if (e.key === 'Escape') cancelEditing();
-                        }}
-                      />
-                      <Flex gap="2">
-                        <Button 
-                          size="1" 
-                          onClick={saveDescription} 
-                          disabled={isSaving}
-                          variant="solid"
-                          color="green"
-                        >
-                          <CheckIcon /> Save
-                        </Button>
-                        <Button 
-                          size="1" 
-                          onClick={cancelEditing}
-                          variant="soft"
-                          color="gray"
-                        >
-                          <Cross2Icon /> Cancel
-                        </Button>
-                      </Flex>
-                    </Flex>
-                  ) : (
-                    <Flex align="start" gap="2" style={{ width: '100%' }}>
-                      <Text size="3" color="gray" className="case-subtitle" style={{ flex: 1 }}>
-                        {caseData?.description || 'No case description provided.'}
-                      </Text>
-                      <IconButton 
-                        size="1" 
-                        onClick={startEditingDescription}
-                        variant="ghost"
-                        className="edit-button"
-                      >
-                        <Pencil1Icon />
-                      </IconButton>
-                    </Flex>
-                  )}
-                </Flex>
-
-                 
-
-                {/* Auto-generation status */}
-                {isGenerating && (
-                  <Flex mt="3" align="center" gap="2">
-                    <Spinner size="1" />
-                    <Text size="2" color="blue">Generating title, description, and type from documents...</Text>
+                    )}
                   </Flex>
                 )}
-              </div>
-              <AlertDialog.Root>
-                <AlertDialog.Trigger>
-                  <Button color="red" variant="soft" className="danger-action-button">
-                    🗑️ Delete Matter
-                  </Button>
-                </AlertDialog.Trigger>
-                <AlertDialog.Content style={{ maxWidth: 450 }}>
-                  <AlertDialog.Title>⚠️ Delete Legal Matter</AlertDialog.Title>
-                  <AlertDialog.Description size="2">
-                    This action will permanently delete this legal case and all associated documents. This cannot be undone.
-                  </AlertDialog.Description>
-                  {deleteError && <Text color="red" size="2" mt="2">{deleteError}</Text>}
-                  <Flex gap="3" mt="4" justify="end">
-                    <AlertDialog.Cancel><Button variant="soft" color="gray">Cancel</Button></AlertDialog.Cancel>
-                    <AlertDialog.Action><Button variant="solid" color="red" onClick={handleDeleteCase}>Yes, Delete Matter</Button></AlertDialog.Action>
-                  </Flex>
-                </AlertDialog.Content>
-              </AlertDialog.Root>
-            </Flex>
-            <div className="legal-case-metadata">
-              <Flex justify="between" my="4" className='flex-col gap-6 md:gap-2 md:flex-row'>
+              </Flex>
+
+              {/* Case Metadata - Only Matter Number */}
+              <div className="legal-case-metadata">
                 <div className="metadata-item">
                   <Text size="1" color="gray" weight="medium">MATTER NUMBER</Text>
                   <Text size="3" weight="bold" className="metadata-value">{caseData?.caseNumber}</Text>
                 </div>
-                <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">MATTER TYPE</Text>
-                  <Flex align="center" gap="2">
-                  {isEditingType ? (
-                    <Flex align="center" gap="2" style={{ width: '100%' }}>
-                      <Select.Root value={editType} onValueChange={(value) => setEditType(value as CaseType)}>
-                        <Select.Trigger style={{ flex: 1, maxWidth: '300px' }} />
-                        <Select.Content>
-                          {caseTypes.map((type) => (
-                            <Select.Item key={type} value={type}>
-                              {type}
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Root>
-                      <IconButton 
-                        size="1" 
-                        onClick={saveType} 
-                        disabled={isSaving}
-                        variant="solid"
-                        color="green"
-                      >
-                        <CheckIcon />
-                      </IconButton>
-                      <IconButton 
-                        size="1" 
-                        onClick={cancelEditing}
-                        variant="soft"
-                        color="gray"
-                      >
-                        <Cross2Icon />
-                      </IconButton>
-                    </Flex>
-                  ) : (
-                    <Flex align="center" gap="2">
-                      <Text size="2" color="gray" weight="medium">
-                        <Text size="3" weight="bold" className="metadata-value">{caseData?.type}</Text>
-                      </Text>
-                      <IconButton 
-                        size="1" 
-                        onClick={startEditingType}
-                        variant="ghost"
-                        className="edit-button"
-                      >
-                        <Pencil1Icon />
-                      </IconButton>
-                    </Flex>
-                  )}
-                </Flex>
-                </div>
-                <div className="metadata-item">
-                  <Text size="1" color="gray" weight="medium">MATTER STATUS</Text>
-                  {/* Case Status Section */}
-                 <Flex align="center" gap="2">
-                   {isEditingStatus ? (
-                     <Flex align="center" gap="2" style={{ width: '100%' }}>
-                       <Select.Root value={editStatus} onValueChange={(value) => setEditStatus(value)}>
-                         <Select.Trigger style={{ flex: 1, maxWidth: '200px' }} />
-                         <Select.Content>
-                           {caseStatuses.map((status) => (
-                             <Select.Item key={status} value={status}>
-                               {status}
-                             </Select.Item>
-                           ))}
-                         </Select.Content>
-                       </Select.Root>
-                       <IconButton 
-                         size="1" 
-                         onClick={saveStatus} 
-                         disabled={isSaving}
-                         variant="solid"
-                         color="green"
-                       >
-                         <CheckIcon />
-                       </IconButton>
-                       <IconButton 
-                         size="1" 
-                         onClick={cancelEditing}
-                         variant="soft"
-                         color="gray"
-                       >
-                         <Cross2Icon />
-                       </IconButton>
-                     </Flex>
-                   ) : (
-                     <Flex align="center" gap="2">
-                       <Text size="3" weight="bold" className="metadata-value">
-                      
-                         <Badge {...getStatusProps(caseData?.status)}>
-                           {caseData?.status}
-                         </Badge>
-                       </Text>
-                       <IconButton 
-                         size="1" 
-                         onClick={startEditingStatus}
-                         variant="ghost"
-                         className="edit-button"
-                       >
-                         <Pencil1Icon />
-                       </IconButton>
-                     </Flex>
-                   )}
-                 </Flex>
-                </div>
-              </Flex>
-            </div>
+              </div>
+            </Flex>
           </Box>
         </Card>
-        <div>
-          <Tabs.Root defaultValue="summary">
-          <Tabs.List color='gold' >
-            <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
-            <Tabs.Trigger value="timeline">Timeline</Tabs.Trigger>
-            <Tabs.Trigger value="chat">Chat</Tabs.Trigger>
-          </Tabs.List>
-          <Box pt="3">
-            <Tabs.Content value="summary">
-              <Card>
-                <ScrollArea type="auto" scrollbars="vertical" className='min-h-[200px] max-h-[400px] md:min-h-[200px] md:max-h-max'>
-                  <Box p="4">
-                    {summarizedDocs.length > 0 ? (
-                      <Flex direction="column" gap="5">
-                        {summarizedDocs.map(doc => (
-                          <Box key={doc.id}>
-                            <Heading as="h3" size="4" mb="2">
-                              <Flex align="center" gap="2">
-                                <FileTextIcon />
-                                {docDisplayNames[doc.id] || doc.fileName}
-                              </Flex>
-                            </Heading>
-                            <Box pl="4" className="border-l-2 border-gray-200">
-                                <div className="markdown-content">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.summary}</ReactMarkdown>
-                                </div>
-                            </Box>
-                          </Box>
-                        ))}
-                      </Flex>
-                    ) : (
-                      <Flex justify="center" align="center" style={{ minHeight: '200px' }}>
-                        <Text color="gray">No document summaries available. Please upload and process documents.</Text>
-                      </Flex>
-                    )}
-                  </Box>
-                </ScrollArea>
-              </Card>
-            </Tabs.Content>
-            <Tabs.Content value="timeline">
-              {caseId && <CaseTimeline key={timelineKey} caseId={caseId} />}
-            </Tabs.Content>
-            <Tabs.Content value="chat">
-                {caseId && <CaseChat caseId={caseId} />}  
-            </Tabs.Content>
-          </Box>
-        </Tabs.Root>
-        {/* --- END OF CHANGE --- */}
-   
-        </div>
-
-      </div>
-      <div className="lg:col-span-1">
-        <div className="lg:sticky lg:top-26 lg:max-h-[90vh] lg:overflow-y-auto">
-          <Card>
+        <Card>
             <Box p="4">
               <Flex justify="start" align="center" mb="4">
                 <Heading size="5">Matter Documents</Heading>
@@ -978,7 +654,64 @@ export default function CaseDetail() {
             </Flex>
           </Box>
         </Card>
+            </Flex>
+          </ScrollArea>
         </div>
+      </div>
+      <div className="w-full lg:col-span-2 flex flex-col gap-8">
+        <div>
+          <Tabs.Root defaultValue="summary">
+          <Tabs.List color='gold' >
+            <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
+            <Tabs.Trigger value="timeline">Timeline</Tabs.Trigger>
+            <Tabs.Trigger value="chat">Legal Assistant</Tabs.Trigger>
+          </Tabs.List>
+          <Box pt="3">
+            <Tabs.Content value="summary">
+              <Card>
+                <ScrollArea type="auto" scrollbars="vertical" className='min-h-max'>
+                  <Box p="4">
+                    {summarizedDocs.length > 0 ? (
+                      <Flex direction="column" gap="5">
+                        {summarizedDocs.map(doc => (
+                          <Box key={doc.id}>
+                            <Heading as="h3" size="4" mb="2">
+                              <Flex align="center" gap="2">
+                                <FileTextIcon />
+                                {docDisplayNames[doc.id] || doc.fileName}
+                              </Flex>
+                            </Heading>
+                            <Box pl="4" className="border-l-2 border-gray-200">
+                                <div className="markdown-content">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.summary}</ReactMarkdown>
+                                </div>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Flex>
+                    ) : (
+                      <Flex justify="center" align="center" style={{ minHeight: '100%' }}>
+                        <Text color="gray">No document summaries available. Please upload and process documents.</Text>
+                      </Flex>
+                    )}
+                  </Box>
+                </ScrollArea>
+              </Card>
+            </Tabs.Content>
+            <Tabs.Content value="timeline">
+              {caseId && <CaseTimeline key={timelineKey} caseId={caseId} />}
+            </Tabs.Content>
+            <Tabs.Content value="chat">
+              <div className="flex-1">
+                {caseId && <CaseChat caseId={caseId} onTitleGenerationRequest={handleTitleGenerationFromChat} />}
+              </div>
+            </Tabs.Content>
+          </Box>
+        </Tabs.Root>
+        {/* --- END OF CHANGE --- */}
+   
+        </div>
+
       </div>
     </div>
     </div>

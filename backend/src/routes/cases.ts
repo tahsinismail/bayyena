@@ -7,6 +7,7 @@ import { isAuthenticated } from '../middleware/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { geminiProcessor } from '../services/geminiProcessor';
 
 const router = Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -380,6 +381,70 @@ Respond ONLY with minified JSON (no markdown, no code fences):
         });
     } catch (err) {
         console.error('Error auto-generating case data:', err);
+        next(err);
+    }
+});
+
+// POST /api/cases/:id/generate-title - Generate case title based on documents and chat
+router.post('/:id/generate-title', async (req, res, next) => {
+    const user = req.user as typeof users.$inferSelect;
+    const caseId = parseInt(req.params.id);
+
+    if (isNaN(caseId)) {
+        return res.status(400).json({ message: 'Invalid matter ID.' });
+    }
+
+    try {
+        // Find the case to ensure it belongs to the logged-in user
+        const caseResult = await db.select().from(cases).where(
+            and(eq(cases.id, caseId), eq(cases.userId, user.id))
+        );
+        
+        if (caseResult.length === 0) {
+            return res.status(404).json({ message: 'Matter not found or you do not have permission to update it.' });
+        }
+
+        const currentCase = caseResult[0];
+
+        // Get processed documents for this case
+        const caseDocuments = await db.select().from(documents).where(
+            and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED'))
+        );
+
+        // Collect document summaries
+        const documentSummaries: string[] = [];
+        for (const doc of caseDocuments) {
+            if (doc.summary) {
+                documentSummaries.push(doc.summary);
+            }
+        }
+
+        // Get recent chat messages from request body (optional)
+        const { chatMessages = [] } = req.body;
+
+        // Generate the title using Gemini
+        const generatedTitle = await geminiProcessor.generateCaseTitle({
+            documentSummaries,
+            chatMessages: Array.isArray(chatMessages) ? chatMessages : [],
+            existingTitle: currentCase.title
+        });
+
+        // Update the case with the new title
+        const updatedCase = await db.update(cases)
+            .set({ 
+                title: generatedTitle,
+                updatedAt: new Date()
+            })
+            .where(eq(cases.id, caseId))
+            .returning();
+
+        res.status(200).json({
+            title: generatedTitle,
+            case: updatedCase[0]
+        });
+
+    } catch (err) {
+        console.error('Error generating case title:', err);
         next(err);
     }
 });

@@ -22,9 +22,34 @@
   display: none; /* Chrome, Safari, and Opera */
 }
 
-/* Hide Radix ScrollArea scrollbars */
+/* Show scrollbars for left section */
+.left-section-scroll .rt-ScrollAreaScrollbar {
+  display: block !important;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.left-section-scroll:hover .rt-ScrollAreaScrollbar {
+  opacity: 1;
+}
+
+/* Hide Radix ScrollArea scrollbars for other areas */
 .rt-ScrollAreaScrollbar {
   display: none !important;
+}
+
+/* Edit button hover behavior for case cards */
+.case-card .edit-button {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.case-card:hover .edit-button {
+  opacity: 1;
+}
+
+.case-card .group:hover .edit-button {
+  opacity: 1;
 }
 
 /* Add these new styles for rendered markdown */
@@ -33,6 +58,134 @@
 }
 .markdown-content p:last-child {
     margin-bottom: 0;
+}
+
+/* Modern chat UI styles */
+.prose {
+    color: inherit !important;
+    max-width: none !important;
+}
+
+.prose p {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.prose p:last-child {
+    margin-bottom: 0;
+}
+
+.prose ul, .prose ol {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.prose li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.prose code {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+.prose pre {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+}
+
+.prose pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.prose blockquote {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1rem;
+    margin: 0.5rem 0;
+    font-style: italic;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.prose h1:first-child, .prose h2:first-child, .prose h3:first-child, 
+.prose h4:first-child, .prose h5:first-child, .prose h6:first-child {
+    margin-top: 0;
+}
+
+/* Chat input area enhancements */
+.chat-input-container {
+    background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 100%);
+    backdrop-filter: blur(10px);
+}
+
+/* Enhanced button styles */
+.chat-send-button {
+    background: #a17a1a;
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-send-button:hover {
+    box-shadow: 0 6px 16px rgba(133, 106, 0, 0.4);
+    transform: translateY(-1px) scale(1.05);
+}
+
+.chat-send-button:active {
+    transform: translateY(0) scale(1.02);
+}
+
+.chat-copy-button {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.9);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-copy-button:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+}
+
+/* Smooth animations */
+.animate-slideInUp {
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Button hover animations */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.animate-pulse-hover:hover {
+    animation: pulse 1s infinite;
 }
 .markdown-content ul, .markdown-content ol {
     margin-left: 1.5rem;
@@ -199,6 +352,7 @@
 .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -206,6 +360,7 @@
 .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -616,7 +771,6 @@ button:focus-visible {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 16px;
-  margin: 16px 0;
 }
 
 .metadata-item {
@@ -870,14 +1024,14 @@ button:focus-visible {
 }
 
 /* Inline Editing Styles */
-.case-title-section .edit-button {
+/* .case-title-section .edit-button {
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
 .case-title-section:hover .edit-button {
   opacity: 1;
-}
+} */
 
 .edit-button:hover {
   background-color: #f1f3f4 !important;
@@ -926,7 +1080,7 @@ button:focus-visible {
 .back-to-top-button {
   position: fixed;
   bottom: 1rem;
-  right: 2.10rem;
+  right: 3rem;
   z-index: 1000;
   padding: 0.4rem;
   background: #856A00;

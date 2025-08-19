@@ -92,8 +92,8 @@ app.get('/api/upload/supported-types', async (req, res) => {
         }
       },
       limits: {
-        maxFileSize: '200MB',
-        maxFileSizeBytes: 200 * 1024 * 1024
+        maxFileSize: '512MB',
+        maxFileSizeBytes: 512 * 1024 * 1024
       }
     });
   } catch (error) {

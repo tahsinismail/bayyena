@@ -4,6 +4,8 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { HamburgerMenuIcon, Cross1Icon, ChevronUpIcon } from '@radix-ui/react-icons';
 import logo from '../assets/logo.png';
 import { navigate } from 'wouter/use-browser-location';
+import { useTranslation } from 'react-i18next';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { t } = useTranslation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,10 +64,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="max-w-full pr-4 md:px-4">
           <div className="flex justify-between items-center h-20">
             {/* Logo and Brand */}
-            <a href="/">
-              <img src={logo} alt="BAYYENA Logo" className="w-14 h-14 md:w-18 md:h-18 object-contain" />
-            </a>
-
+            <div className="flex items-center space-x-2 text-[#a17a1a]">
+              <a href="/">
+                <img src={logo} alt="BAYYENA Logo" className="w-14 h-14 md:w-18 md:h-18 object-contain" />
+              </a>
+              <p className="hidden md:block text-lg font-semibold">{t('slogan')}</p>
+            </div>
             {/* Right Side - User Info and Language Switcher */}
             <div className="flex items-center space-x-4">
               {/* Language Switcher */}
@@ -80,7 +85,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={handleLogout}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
                 >
-                  Logout
+                  {t('logout')}
                 </button>
               </div>
 
@@ -124,7 +129,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       onClick={handleLogout}
                       className="px-4 py-2 border border-gray-200 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
                     >
-                      Logout
+                      {t('logout')}
                     </button>
                   </div>
                 </div>
@@ -135,7 +140,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 min-h-[80vh]">
         {children}
       </main>
 

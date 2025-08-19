@@ -21,6 +21,7 @@ export const createCase = (data: { title?: string; description?: string; type: s
 export const updateCaseStatus = (caseId: string, status: string) => apiClient.patch<Case>(`/cases/${caseId}/status`, { status });
 export const updateCase = (caseId: string, data: { title?: string; description?: string; type?: string }) => apiClient.patch<Case>(`/cases/${caseId}`, data);
 export const autoGenerateCaseData = (caseId: string) => apiClient.post<{ case: Case; generated: { title: string; description: string; type: string } }>(`/cases/${caseId}/auto-generate`);
+export const generateCaseTitle = (caseId: string, chatMessages?: string[]) => apiClient.post<{ title: string; case: Case }>(`/cases/${caseId}/generate-title`, { chatMessages });
 export const deleteCase = (caseId: string) => apiClient.delete(`/cases/${caseId}`);
 
 // --- Document Routes ---

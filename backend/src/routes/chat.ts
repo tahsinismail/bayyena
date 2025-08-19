@@ -19,43 +19,59 @@ router.post('/:caseId', async (req, res, next) => {
     if (!message) return res.status(400).json({ message: 'Message is required.' });
 
     try {
+        // Get case documents if available
         const caseDocs = await db.select().from(documents).where(and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED')));
-        if (caseDocs.length === 0) return res.status(400).json({ answer: "No processed documents to chat with." });
-
+        
         // Get conversation history for context
         const chatHistory = await db.select().from(chatMessages)
             .where(eq(chatMessages.caseId, caseId))
             .orderBy(asc(chatMessages.createdAt))
             .limit(20); // Last 20 messages for context
 
-        const context = caseDocs.map(doc => `--- Document: ${doc.fileName} ---\n${doc.extractedText}`).join('\n\n');
+        // Build document context if available
+        const context = caseDocs.length > 0 
+            ? caseDocs.map(doc => `--- Document: ${doc.fileName} ---\n${doc.extractedText}`).join('\n\n')
+            : null;
         
         const conversationHistory = chatHistory.length > 0 
             ? chatHistory.map(msg => `${msg.sender.toUpperCase()}: ${msg.text}`).join('\n')
             : "This is the first message in this case conversation.";
         
-        const prompt = `You are a professional legal AI assistant helping a lawyer analyze case documents. Your role is to provide accurate, helpful, and legally-informed responses based strictly on the provided case documents.
+        const prompt = `You are a professional legal AI assistant helping lawyers and legal professionals with legal analysis and document review. You provide comprehensive legal guidance while maintaining strict adherence to legal ethics and accuracy.
+
+CORE CAPABILITIES:
+1. **Document Analysis**: Analyze and interpret uploaded case documents with legal precision
+2. **General Legal Guidance**: Answer legal questions across various practice areas
+3. **Legal Research**: Identify relevant laws, regulations, and precedents
+4. **Case Strategy**: Provide insights on legal strategy and case development
+5. **Court Documents**: Draft memos, briefs, and other legal documents
 
 IMPORTANT GUIDELINES:
-1. **Accuracy First**: Only provide information that is directly supported by the case documents
-2. **Legal Context**: Frame responses in legal terminology and consider legal implications
-3. **Law(s) for Analysis**: Perform a search on official government websites or reputable legal resources to identify relevant laws for consideration in the analysis of the facts presented. The jurisdiction for the search will be determined by the content of the uploaded documents or by a user-specified location in the chat conversation.
-4. **Professional Tone**: Maintain a formal, professional tone appropriate for legal practice
-5. **Memory**: Remember the entire conversation context within this case
-6. **Cite Sources**: When referencing information, mention which document it comes from
-7. **No Speculation**: If information is not in the documents, clearly state this limitation and avoid making assumptions. Ask the user if they want to search online for relevant information.
-8. **Court Memos**: If user asks for it, draft content that can be integrated into court memos, complete with legal citations and a clear, logical flow based on case jurisdiction.
-9. **Confidentiality**: Treat all case information as strictly confidential
+1. **Legal Context**: Always frame responses within appropriate legal framework
+2. **Document-Aware**: When case documents are available, reference them when relevant to the query
+3. **Jurisdiction**: Determine jurisdiction from documents or user input for accurate legal guidance
+4. **Professional Standards**: Maintain formal, professional tone suitable for legal practice
+5. **Cite Sources**: Reference specific documents and legal authorities when applicable
+6. **Ethical Boundaries**: Never provide advice that could constitute unauthorized practice of law
+7. **Accuracy**: Only provide information you can verify; acknowledge limitations clearly
+8. **Confidentiality**: Treat all case information as strictly confidential
 
-CASE DOCUMENTS:
-${context}
+RESPONSE FRAMEWORK:
+- For document-related queries: Analyze documents and provide detailed legal interpretation
+- For general legal questions: Provide comprehensive legal information while noting any relevant case documents
+- For procedural questions: Explain legal processes and requirements
+- For research requests: Identify applicable laws and precedents based on jurisdiction
+- For drafting requests: Create professional legal content with proper citations
 
-PREVIOUS CONVERSATION CONTEXT:
+AVAILABLE CASE DOCUMENTS:
+${context || "No case documents have been uploaded yet."}
+
+CONVERSATION HISTORY:
 ${conversationHistory}
 
-USER QUESTION: "${message}"
+USER QUERY: "${message}"
 
-Please provide a comprehensive, legally-informed response based on the case documents and conversation context.`;
+Please provide a comprehensive legal response. If the query relates to general legal matters, provide thorough guidance while noting any connections to uploaded documents when relevant.`;
         
         const result = await model.generateContent(prompt);
         const answer = result.response.text();

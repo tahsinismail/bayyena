@@ -56,10 +56,10 @@ router.get('/supported-types', async (req, res) => {
           description: 'AI-powered multimodal analysis including audio transcription and advanced OCR'
         }
       },
-      limits: {
-        maxFileSize: '200MB',
-        maxFileSizeBytes: 200 * 1024 * 1024
-      }
+        limits: {
+          maxFileSize: '512MB',
+          maxFileSizeBytes: 512 * 1024 * 1024
+        }
     });
   } catch (error) {
     console.error('[Routes] Error getting supported types:', error);
@@ -123,7 +123,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 200 * 1024 * 1024, // 200MB limit to accommodate larger audio/video files
+    fileSize: 512 * 1024 * 1024, // 512MB limit to accommodate larger audio/video files
   }
 });
 
@@ -171,8 +171,8 @@ router.get('/supported-types', async (req, res) => {
         }
       },
       limits: {
-        maxFileSize: '200MB',
-        maxFileSizeBytes: 200 * 1024 * 1024
+        maxFileSize: '512MB',
+        maxFileSizeBytes: 512 * 1024 * 1024
       }
     });
   } catch (error) {
@@ -192,9 +192,9 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
 
   try {
     // Validate file size
-    if (file.size > 200 * 1024 * 1024) { // 200MB
-      fs.unlinkSync(file.path);
-      return res.status(400).json({ message: 'File size exceeds 200MB limit.' });
+    if (file.size > 512 * 1024 * 1024) { // 512MB
+  fs.unlinkSync(file.path);
+  return res.status(400).json({ message: 'File size exceeds 512MB limit.' });
     }
 
     console.log(`[Upload] Processing ${file.mimetype} file: ${file.originalname} (${file.size} bytes)`);

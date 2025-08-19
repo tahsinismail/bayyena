@@ -194,11 +194,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
         };
       }
       
-      // Check file size (200MB limit)
-      if (file.size > 200 * 1024 * 1024) {
+      // Check file size (512MB limit)
+      if (file.size > 512 * 1024 * 1024) {
         return {
           code: 'file-too-large',
-          message: 'File is larger than 200MB'
+          message: 'File is larger than 512MB'
         };
       }
       
@@ -210,7 +210,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
         console.log(`Rejected file: ${file.name}, type: ${file.type}, size: ${file.size}`, errors); // Debug logging
         errors.forEach((error) => {
           if (error.code === 'file-too-large') {
-            showError('File Too Large', `${file.name} is too large. Maximum size is 200MB.`);
+            showError('File Too Large', `${file.name} is too large. Maximum size is 512MB.`);
           } else if (error.code === 'file-invalid-type') {
             showError('Invalid File Type', `${file.name} (${file.type}) is not a supported file type.`);
           } else {
@@ -333,7 +333,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
             {isDragActive ? 'Drop the files here...' : 'Drag & drop files here, or click to select'}
           </Text>
           <Text size="2" color="gray" className="mt-2 block">
-            Supports PDF, Word, Excel, text files, images, and videos up to 100MB
+            Supports PDF, Word, Excel, text files, images, and videos up to 512MB
           </Text>
           {serverCapabilities && !serverCapabilities.videoProcessing && (
             <Text size="1" color="red" className="mt-1 block font-medium">
