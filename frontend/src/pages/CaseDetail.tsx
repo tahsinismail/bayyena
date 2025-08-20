@@ -5,8 +5,8 @@ import { UploadIcon, FileTextIcon, TrashIcon, CheckCircledIcon, CrossCircledIcon
 import { useDropzone } from 'react-dropzone';
 import type { Case, Document } from '../types';
 import { getCaseById, getDocumentsForCase, uploadDocument, deleteDocument, updateCase, getDocumentDisplayName, generateCaseTitle } from '../api';
-import CaseChat from '../components/CaseChat';
 import CaseTimeline from '../components/CaseTimeline';
+import FloatingChatButton from '../components/FloatingChatButton';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
@@ -86,13 +86,6 @@ export default function CaseDetail() {
       // Don't show error to user, just keep existing title
     } finally {
       setIsGeneratingTitle(false);
-    }
-  };
-
-  // Handle title generation request from chat (only for Untitled cases)
-  const handleTitleGenerationFromChat = (chatMessages: string[]) => {
-    if (caseData?.title === 'Untitled') {
-      generateTitle(chatMessages);
     }
   };
 
@@ -664,7 +657,7 @@ export default function CaseDetail() {
           <Tabs.List color='gold' >
             <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
             <Tabs.Trigger value="timeline">Timeline</Tabs.Trigger>
-            <Tabs.Trigger value="chat">Legal Assistant</Tabs.Trigger>
+            {/* <Tabs.Trigger value="chat">Legal Assistant</Tabs.Trigger> */}
           </Tabs.List>
           <Box pt="3">
             <Tabs.Content value="summary">
@@ -701,11 +694,6 @@ export default function CaseDetail() {
             <Tabs.Content value="timeline">
               {caseId && <CaseTimeline key={timelineKey} caseId={caseId} />}
             </Tabs.Content>
-            <Tabs.Content value="chat">
-              <div className="flex-1">
-                {caseId && <CaseChat caseId={caseId} onTitleGenerationRequest={handleTitleGenerationFromChat} />}
-              </div>
-            </Tabs.Content>
           </Box>
         </Tabs.Root>
         {/* --- END OF CHANGE --- */}
@@ -714,6 +702,9 @@ export default function CaseDetail() {
 
       </div>
     </div>
+    
+    {/* Floating Chat Button */}
+    <FloatingChatButton caseId={caseId} />
     </div>
   );
 }

@@ -310,7 +310,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ caseId, onUploadSuccess
   };
 
   return (
-    <Card className="p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <Card className="p-6 max-w-2xl w-full max-h-screen overflow-y-auto">
       <div className="space-y-4">
         <div>
           <Text size="5" weight="bold" className="mb-2 block">
