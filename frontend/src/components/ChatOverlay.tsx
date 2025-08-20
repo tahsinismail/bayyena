@@ -16,7 +16,7 @@ import {
   ArrowLeftIcon
 } from '@radix-ui/react-icons';
 import type { Case, Message, Document } from '../types';
-import { getCases, getChatHistory, postChatMessage, uploadDocument, getDocumentsForCase, generateCaseTitle, getCaseById } from '../api';
+import { getCases, getChatHistory, postChatMessage, uploadDocument, getDocumentsForCase, generateCaseTitle, getCaseById, clearChatHistory } from '../api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { format } from 'date-fns';
@@ -47,6 +47,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
 
   // Get messages for the active case only (sorted chronologically for proper display)
   const currentCaseMessages = messages
@@ -234,6 +235,47 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     } finally {
       setIsGeneratingTitle(false);
     }
+  };
+
+  // Clear chat history
+  const handleClearChat = async () => {
+    if (!activeCaseId || currentCaseMessages.length === 0) return;
+    
+    const confirmClear = window.confirm('Are you sure you want to clear all messages in this conversation? This action cannot be undone.');
+    if (!confirmClear) return;
+
+    setIsClearingChat(true);
+    try {
+      await clearChatHistory(activeCaseId);
+      
+      // Remove messages from local state
+      setMessages(prevMessages => 
+        prevMessages.filter(m => m.caseId !== parseInt(activeCaseId))
+      );
+
+      console.log('Chat history cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear chat history:', error);
+      alert('Failed to clear chat history. Please try again.');
+    } finally {
+      setIsClearingChat(false);
+    }
+  };
+
+  // Utility function to detect RTL text (Arabic)
+  const isRTLText = (text: string): boolean => {
+    // Arabic Unicode range: U+0600-U+06FF, U+0750-U+077F, U+08A0-U+08FF, U+FB50-U+FDFF, U+FE70-U+FEFF
+    const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/u;
+    
+    // Remove HTML tags, markdown, and special characters for better detection
+    const cleanText = text.replace(/<[^>]*>/g, '').replace(/[*_`~#\-+.\d\s]/g, '');
+    
+    // Check if Arabic characters make up a significant portion of the text (>30%)
+    const arabicMatches = cleanText.match(new RegExp(arabicRegex, 'gu'));
+    const arabicCount = arabicMatches ? arabicMatches.length : 0;
+    const totalLetters = cleanText.replace(/[^\p{L}]/gu, '').length;
+    
+    return totalLetters > 0 && (arabicCount / totalLetters) > 0.3;
   };
 
   const handleSendMessage = async () => {
@@ -461,6 +503,22 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
             </div>
             
             <div className="flex items-center gap-2">
+              {activeCaseId && currentCaseMessages.length > 0 && (
+                <IconButton
+                  variant="ghost"
+                  size="2"
+                  onClick={handleClearChat}
+                  disabled={isClearingChat}
+                  className="hover:bg-red-50 hover:text-red-600 transition-colors"
+                  title="Clear conversation"
+                >
+                  {isClearingChat ? (
+                    <div className="w-4 h-4 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-sm">🗑️</span>
+                  )}
+                </IconButton>
+              )}
               <IconButton
                 variant="ghost"
                 size="2"
@@ -654,7 +712,14 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                                       ? 'gemini-user-bubble'
                                       : 'gemini-bot-bubble'
                                   }`}>
-                                    <div className="prose prose-sm">
+                                    <div 
+                                      className="prose prose-sm"
+                                      dir={isRTLText(message.text) ? 'rtl' : 'ltr'}
+                                      style={{
+                                        textAlign: isRTLText(message.text) ? 'right' : 'left',
+                                        direction: isRTLText(message.text) ? 'rtl' : 'ltr'
+                                      }}
+                                    >
                                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                         {message.text}
                                       </ReactMarkdown>
@@ -760,6 +825,11 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                               disabled={isSending}
                               className="gemini-textarea w-full min-h-[24px] max-h-32"
                               rows={1}
+                              dir={isRTLText(inputValue) ? 'rtl' : 'ltr'}
+                              style={{
+                                textAlign: isRTLText(inputValue) ? 'right' : 'left',
+                                direction: isRTLText(inputValue) ? 'rtl' : 'ltr'
+                              }}
                             />
                           </div>
                           

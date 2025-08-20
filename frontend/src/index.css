@@ -1740,6 +1740,28 @@ button:focus-visible {
   border-left-color: rgba(255, 255, 255, 0.5);
 }
 
+/* RTL text support styles */
+.gemini-message-bubble .prose[dir="rtl"] {
+  text-align: right;
+  direction: rtl;
+}
+
+.gemini-message-bubble .prose[dir="rtl"] ul,
+.gemini-message-bubble .prose[dir="rtl"] ol {
+  margin: 0.5rem 1.5rem 0.5rem 0;
+}
+
+.gemini-message-bubble .prose[dir="rtl"] blockquote {
+  border-left: none;
+  border-right: 3px solid rgba(0, 0, 0, 0.2);
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+.gemini-user-bubble .prose[dir="rtl"] blockquote {
+  border-right-color: rgba(255, 255, 255, 0.5);
+}
+
 /* Custom scrollbar for overall interface */
 * {
   scrollbar-width: thin;
