@@ -120,27 +120,14 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   // Prevent background scrolling when overlay is open
   useEffect(() => {
     if (isOpen) {
-      // Store original values
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalTop = document.body.style.top;
-      const scrollY = window.scrollY;
-      
-      // Prevent scrolling
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      
-      return () => {
-        // Restore original values
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.top = originalTop;
-        document.body.style.width = '';
-        window.scrollTo(0, scrollY);
-      };
+    } else {
+      document.body.style.overflow = '';
     }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
 
   // Handle responsive design
@@ -161,18 +148,36 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     const handleViewportChange = () => {
       if (window.visualViewport) {
         const chatContainer = document.querySelector('.gemini-chat-container') as HTMLElement;
-        if (chatContainer) {
-          // Simply use the visual viewport height directly
-          chatContainer.style.height = `${window.visualViewport.height}px`;
+        const inputArea = document.querySelector('.gemini-input-area') as HTMLElement;
+        
+        if (chatContainer && inputArea) {
+          const isKeyboardVisible = window.visualViewport.height < window.innerHeight * 0.8;
+          
+          if (isKeyboardVisible) {
+            // Keyboard is visible - adjust container and input positioning
+            chatContainer.style.height = `${window.visualViewport.height}px`;
+            inputArea.style.position = 'fixed';
+            inputArea.style.bottom = '0px';
+            inputArea.style.left = '0px';
+            inputArea.style.right = '0px';
+            inputArea.style.zIndex = '1000';
+          } else {
+            // Keyboard is hidden - reset to normal
+            chatContainer.style.height = '100vh';
+            inputArea.style.position = 'sticky';
+            inputArea.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+            inputArea.style.left = 'auto';
+            inputArea.style.right = 'auto';
+            inputArea.style.zIndex = '10';
+          }
         }
       }
     };
 
-    // Listen for visual viewport changes (keyboard appearance)
+    // Listen for visual viewport changes
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportChange);
-      // Set initial height
-      handleViewportChange();
+      handleViewportChange(); // Set initial state
       
       return () => {
         window.visualViewport?.removeEventListener('resize', handleViewportChange);
@@ -804,11 +809,14 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                       className="gemini-input-area p-2 flex-shrink-0 bg-white border-t border-gray-100"
                       style={{
                         position: 'sticky',
-                        bottom: '0px',
+                        bottom: isMobileView ? 'env(safe-area-inset-bottom, 0px)' : '0px',
                         zIndex: 10,
-                        marginBottom: isMobileView ? 'env(safe-area-inset-bottom, 0px)' : '0px',
-                        backgroundColor: 'white'
+                        backgroundColor: 'white',
+                        paddingBottom: isMobileView ? 'calc(8px + env(safe-area-inset-bottom, 0px))' : '8px'
                       }}
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
                     >
                       <div className="max-w-4xl mx-auto relative">
                         
