@@ -117,6 +117,29 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     }
   }, [isOpen]);
 
+  // Prevent background scrolling when overlay is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, [isOpen]);
+
   // Handle responsive design
   useEffect(() => {
     const checkMobileView = () => {
@@ -400,7 +423,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   if (!isOpen) return null;
 
   return (
-    <div className="gemini-overlay fixed inset-0 z-50 flex items-center justify-center">
+    <div className="gemini-overlay fixed inset-0 z-50 overflow-hidden">
       {/* Full screen backdrop with blur */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm"
@@ -408,12 +431,11 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
       />
       
       {/* Main chat container - Gemini style */}
-      <div className="w-full h-full max-h-screen flex flex-col relative overflow-hidden">
+      <div className="w-full h-full flex flex-col relative overflow-hidden">
         <div className="gemini-chat-container h-full flex flex-col bg-white overflow-hidden"
              style={{ 
                height: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh',
-               minHeight: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh',
-               paddingBottom: isMobileView ? 'env(safe-area-inset-bottom, 0px)' : '0px'
+               minHeight: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh'
              }}>
           
           {/* Header - Gemini style */}
@@ -785,10 +807,10 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                       className="gemini-input-area p-2 flex-shrink-0 bg-white border-t border-gray-100"
                       style={{
                         position: 'sticky',
-                        bottom: '0px',
+                        bottom: isMobileView ? `env(safe-area-inset-bottom, 0px)` : '0px',
                         zIndex: 10,
                         paddingBottom: isMobileView ? 'calc(8px + env(safe-area-inset-bottom, 0px))' : '8px',
-                        transform: isMobileView ? 'translateY(calc(-1 * env(safe-area-inset-bottom, 0px)))' : 'none'
+                        marginBottom: isMobileView ? '0' : '0'
                       }}
                     >
                       <div className="max-w-4xl mx-auto relative">
