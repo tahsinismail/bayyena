@@ -121,22 +121,16 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
+      document.body.style.touchAction = 'none';
     } else {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
+      document.body.style.touchAction = '';
     }
 
     // Cleanup on unmount
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
+      document.body.style.touchAction = '';
     };
   }, [isOpen]);
 
@@ -164,11 +158,15 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
         const chatContainer = document.querySelector('.gemini-chat-container') as HTMLElement;
         if (chatContainer) {
           if (isKeyboardVisible) {
+            // Use visual viewport height and account for safe areas
             chatContainer.style.height = `${window.visualViewport.height}px`;
             chatContainer.style.minHeight = `${window.visualViewport.height}px`;
+            chatContainer.style.paddingTop = 'env(safe-area-inset-top, 0px)';
           } else {
-            chatContainer.style.height = 'calc(100vh - env(safe-area-inset-top, 0px))';
-            chatContainer.style.minHeight = 'calc(100vh - env(safe-area-inset-top, 0px))';
+            // Reset to full height with safe area
+            chatContainer.style.height = '100vh';
+            chatContainer.style.minHeight = '100vh';
+            chatContainer.style.paddingTop = 'env(safe-area-inset-top, 0px)';
           }
         }
       }
@@ -434,8 +432,10 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
       <div className="w-full h-full flex flex-col relative overflow-hidden">
         <div className="gemini-chat-container h-full flex flex-col bg-white overflow-hidden"
              style={{ 
-               height: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh',
-               minHeight: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh'
+               height: '100vh',
+               minHeight: '100vh',
+               paddingTop: isMobileView ? 'env(safe-area-inset-top, 0px)' : '0',
+               paddingBottom: isMobileView ? 'env(safe-area-inset-bottom, 0px)' : '0'
              }}>
           
           {/* Header - Gemini style */}
@@ -807,10 +807,12 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                       className="gemini-input-area p-2 flex-shrink-0 bg-white border-t border-gray-100"
                       style={{
                         position: 'sticky',
-                        bottom: isMobileView ? `env(safe-area-inset-bottom, 0px)` : '0px',
+                        bottom: '0px',
                         zIndex: 10,
                         paddingBottom: isMobileView ? 'calc(8px + env(safe-area-inset-bottom, 0px))' : '8px',
-                        marginBottom: isMobileView ? '0' : '0'
+                        transform: isMobileView ? 'translateY(calc(-1 * env(safe-area-inset-bottom, 0px)))' : 'none',
+                        backgroundColor: 'white',
+                        borderTop: '1px solid #f3f4f6'
                       }}
                     >
                       <div className="max-w-4xl mx-auto relative">
