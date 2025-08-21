@@ -120,7 +120,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   // Handle responsive design
   useEffect(() => {
     const checkMobileView = () => {
-      setIsMobileView(window.innerWidth < 768); // md breakpoint
+      setIsMobileView(window.innerWidth < 640); // md breakpoint
     };
 
     checkMobileView();
@@ -133,8 +133,22 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     if (!isMobileView) return;
 
     const handleViewportChange = () => {
-      // Force a re-render when viewport height changes (keyboard shows/hides)
-      setIsMobileView(window.innerWidth < 768);
+      // Detect keyboard visibility by comparing window height to visual viewport height
+      if (window.visualViewport) {
+        const isKeyboardVisible = window.visualViewport.height < window.innerHeight * 0.8;
+        
+        // Update container height based on keyboard visibility
+        const chatContainer = document.querySelector('.gemini-chat-container') as HTMLElement;
+        if (chatContainer) {
+          if (isKeyboardVisible) {
+            chatContainer.style.height = `${window.visualViewport.height}px`;
+            chatContainer.style.minHeight = `${window.visualViewport.height}px`;
+          } else {
+            chatContainer.style.height = 'calc(100vh - env(safe-area-inset-top, 0px))';
+            chatContainer.style.minHeight = 'calc(100vh - env(safe-area-inset-top, 0px))';
+          }
+        }
+      }
     };
 
     // Listen for visual viewport changes (keyboard appearance)
@@ -369,10 +383,17 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   // Handle input focus for mobile keyboard
   const handleInputFocus = () => {
     if (isMobileView && textareaRef.current) {
-      // Small delay to ensure keyboard is shown
+      // Wait for keyboard to appear, then scroll input into view
       setTimeout(() => {
-        textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 300);
+        const inputContainer = textareaRef.current?.closest('.gemini-input-area');
+        if (inputContainer) {
+          inputContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          });
+        }
+      }, 400); // Increased delay to ensure keyboard is fully shown
     }
   };
 
@@ -390,8 +411,9 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
       <div className="w-full h-full max-h-screen flex flex-col relative overflow-hidden">
         <div className="gemini-chat-container h-full flex flex-col bg-white overflow-hidden"
              style={{ 
-               height: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))' : '100vh',
-               minHeight: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))' : '100vh'
+               height: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh',
+               minHeight: isMobileView ? 'calc(100vh - env(safe-area-inset-top, 0px))' : '100vh',
+               paddingBottom: isMobileView ? 'env(safe-area-inset-bottom, 0px)' : '0px'
              }}>
           
           {/* Header - Gemini style */}
@@ -611,9 +633,12 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                     {/* Messages Area */}
                     <div 
                       className="gemini-messages flex-1 overflow-y-auto"
-                      style={{ scrollBehavior: 'smooth' }}
+                      style={{ 
+                        scrollBehavior: 'smooth',
+                        paddingBottom: isMobileView ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : '60px'
+                      }}
                     >
-                      <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 p-2 pb-4">
+                      <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 p-2">
                         {messagesLoading ? (
                           <div className="gemini-empty-state flex justify-center py-8">
                             <div className="gemini-loading-spinner w-6 h-6"></div>
@@ -759,9 +784,11 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                     <div 
                       className="gemini-input-area p-2 flex-shrink-0 bg-white border-t border-gray-100"
                       style={{
-                        position: isMobileView ? 'sticky' : 'relative',
-                        bottom: 0,
-                        zIndex: 10
+                        position: 'sticky',
+                        bottom: '0px',
+                        zIndex: 10,
+                        paddingBottom: isMobileView ? 'calc(8px + env(safe-area-inset-bottom, 0px))' : '8px',
+                        transform: isMobileView ? 'translateY(calc(-1 * env(safe-area-inset-bottom, 0px)))' : 'none'
                       }}
                     >
                       <div className="max-w-4xl mx-auto relative">
