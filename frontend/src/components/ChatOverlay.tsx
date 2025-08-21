@@ -13,7 +13,8 @@ import {
 //   MagnifyingGlassIcon,
   PaperPlaneIcon,
   ChatBubbleIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  CopyIcon
 } from '@radix-ui/react-icons';
 import type { Case, Message, Document } from '../types';
 import { getCases, getChatHistory, postChatMessage, uploadDocument, getDocumentsForCase, generateCaseTitle, getCaseById, clearChatHistory } from '../api';
@@ -45,9 +46,52 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   const [contextPosition, setContextPosition] = useState({ top: 0, left: 0 });
   const messageRefs = useRef<{ [key: number]: HTMLElement }>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const thinkingRef = useRef<HTMLDivElement>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isClearingChat, setIsClearingChat] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
+
+  // Copy message text to clipboard
+  const copyToClipboard = async (text: string, messageId: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+    }
+  };
+
+  // Scroll to user message after AI response is generated
+  const scrollToUserMessage = (userMessageId: number) => {
+    setTimeout(() => {
+      const messageElement = messageRefs.current[userMessageId];
+      if (messageElement) {
+        messageElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+        // Brief highlight to show which user message the AI responded to
+        messageElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+        setTimeout(() => {
+          messageElement.style.backgroundColor = '';
+        }, 1500);
+      }
+    }, 100); // Small delay to ensure AI message is rendered
+  };
+
+  // Scroll to thinking message when AI starts processing
+  const scrollToThinkingMessage = () => {
+    setTimeout(() => {
+      if (thinkingRef.current) {
+        thinkingRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'end' 
+        });
+      }
+    }, 50); // Small delay to ensure thinking message is rendered
+  };
 
   // Get messages for the active case only (sorted chronologically for proper display)
   const currentCaseMessages = messages
@@ -134,7 +178,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     }
   }, [showFileContext]);
 
-  // Scroll to specific message
+  // Scroll to specific message (keep this for manual navigation from sidebar)
   const scrollToMessage = (messageId: number) => {
     setSelectedMessageId(messageId);
     const messageElement = messageRefs.current[messageId];
@@ -148,45 +192,6 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
       setTimeout(() => {
         messageElement.style.backgroundColor = '';
       }, 2000);
-    }
-  };
-
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    // Find the main chat scroll container (right pane with conversation)
-    const mainChatScrollContainer = document.querySelector('.gemini-chat-main .gemini-messages [data-radix-scroll-area-viewport]');
-    if (mainChatScrollContainer) {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        mainChatScrollContainer.scrollTop = mainChatScrollContainer.scrollHeight;
-      });
-    } else {
-      // Fallback: try again after a short delay if element not found
-      setTimeout(() => {
-        const fallbackContainer = document.querySelector('.gemini-chat-main .gemini-messages [data-radix-scroll-area-viewport]');
-        if (fallbackContainer) {
-          fallbackContainer.scrollTop = fallbackContainer.scrollHeight;
-        }
-      }, 100);
-    }
-  };
-
-  const scrollSidebarToTop = () => {
-    // Find the sidebar scroll container (left pane with messages list)
-    const sidebarScrollContainer = document.querySelector('.gemini-sidebar .gemini-messages [data-radix-scroll-area-viewport]');
-    if (sidebarScrollContainer) {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        sidebarScrollContainer.scrollTop = 0;
-      });
-    } else {
-      // Fallback: try again after a short delay if element not found
-      setTimeout(() => {
-        const fallbackContainer = document.querySelector('.gemini-sidebar .gemini-messages [data-radix-scroll-area-viewport]');
-        if (fallbackContainer) {
-          fallbackContainer.scrollTop = 0;
-        }
-      }, 100);
     }
   };
 
@@ -296,39 +301,41 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     setIsSending(true);
     setIsThinking(true);
 
-    // Add user message immediately with proper timestamp
+    // Create user message with current timestamp
+    const now = new Date();
+    const userMessageId = Date.now();
     const userMessage: Message = {
-      id: Date.now(),
+      id: userMessageId,
       caseId: parseInt(activeCaseId),
       sender: 'user',
       text: messageText,
-      createdAt: new Date().toISOString()
+      createdAt: now.toISOString()
     };
     setMessages(prev => [...prev, userMessage]);
 
-    // Wait for state update and DOM rendering, then scroll both panes
-    setTimeout(() => {
-      scrollSidebarToTop();  // Scroll sidebar to top to show latest message
-      scrollToBottom();      // Scroll main chat to bottom for thinking indicator
-    }, 200);
+    // Scroll to thinking message when AI starts processing
+    scrollToThinkingMessage();
 
     try {
       const response = await postChatMessage(activeCaseId, contextualMessage);
       
-      // Add AI response with proper timestamp (slightly after user message)
+      // Small delay to ensure user message is rendered before adding AI message
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Add AI response with timestamp that ensures it comes after user message
       const aiMessage: Message = {
-        id: Date.now() + 1,
+        id: userMessageId + 1, // Ensure AI message ID is after user message ID
         caseId: parseInt(activeCaseId),
         sender: 'bot',
         text: response.data.answer,
-        createdAt: new Date(Date.now() + 1000).toISOString() // 1 second after user message
+        createdAt: new Date(now.getTime() + 1000).toISOString() // 1 second after user message
       };
+      
       setMessages(prev => [...prev, aiMessage]);
       
-      // Scroll to bottom after AI response appears, with longer delay for content rendering
-      setTimeout(() => {
-        scrollToBottom();
-      }, 300);
+      // Scroll to the user message after AI response is generated
+      scrollToUserMessage(userMessageId);
+      
     } catch (error) {
       console.error('Failed to send message:', error);
       // Remove user message on error
@@ -692,7 +699,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                                     messageRefs.current[message.id] = el;
                                   }
                                 }}
-                                className={`flex gap-4 ${message.sender === 'user' ? 'flex-row-reverse' : ''} ${
+                                className={`group flex gap-4 ${message.sender === 'user' ? 'flex-row-reverse' : ''} ${
                                   selectedMessageId === message.id ? 'ring-2 ring-[#856A00]/30 rounded-lg' : ''
                                 }`}
                               >
@@ -726,8 +733,27 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                                     </div>
                                   </div>
                                   
-                                  <div className={`mt-1 text-xs text-gray-500 ${message.sender === 'user' ? 'text-right' : ''}`}>
-                                    {message.createdAt ? format(new Date(message.createdAt), 'MMM d, h:mm a') : ''}
+                                  <div className={`flex items-center justify-between mt-1 ${message.sender === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`text-xs text-gray-500 ${message.sender === 'user' ? 'text-right' : ''}`}>
+                                      {message.createdAt ? format(new Date(message.createdAt), 'MMM d, h:mm a') : ''}
+                                    </div>
+                                    
+                                    {/* Copy button for AI messages */}
+                                    {message.sender === 'bot' && message.id && (
+                                      <IconButton
+                                        variant="ghost"
+                                        size="1"
+                                        onClick={() => copyToClipboard(message.text, message.id!)}
+                                        className="opacity-0 group-hover:opacity-100 hover:bg-gray-100 transition-all ml-2"
+                                        title={copiedMessageId === message.id ? 'Copied!' : 'Copy message'}
+                                      >
+                                        {copiedMessageId === message.id ? (
+                                          <span className="text-green-600 text-xs">✓</span>
+                                        ) : (
+                                          <CopyIcon className="w-3 h-3" />
+                                        )}
+                                      </IconButton>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -735,7 +761,10 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                             
                             {/* Thinking Message */}
                             {isThinking && (
-                              <div className="flex gap-4">
+                              <div 
+                                ref={thinkingRef}
+                                className="flex gap-4"
+                              >
                                 {/* AI Avatar */}
                                 <div className="gemini-message-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 gemini-bot-avatar text-white">
                                   🤖
