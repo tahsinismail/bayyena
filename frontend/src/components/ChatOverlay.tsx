@@ -3,25 +3,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   IconButton, 
-  Button, 
   TextArea, 
   ScrollArea,
-  Separator
+  Button,
 } from '@radix-ui/themes';
 import { 
   Cross2Icon, 
 //   MagnifyingGlassIcon,
   PaperPlaneIcon,
   ChatBubbleIcon,
-  ArrowLeftIcon,
-  CopyIcon
+  CopyIcon,
+  HamburgerMenuIcon
 } from '@radix-ui/react-icons';
-import type { Case, Message, Document } from '../types';
-import { getCases, getChatHistory, postChatMessage, uploadDocument, getDocumentsForCase, generateCaseTitle, getCaseById, clearChatHistory } from '../api';
+import type { Case, Message } from '../types';
+import { getCases, getChatHistory, postChatMessage, generateCaseTitle, getCaseById, clearChatHistory } from '../api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { format } from 'date-fns';
-import { useDropzone } from 'react-dropzone';
 
 interface ChatOverlayProps {
   isOpen: boolean;
@@ -38,12 +36,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<number | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{id: string, name: string, url?: string}>>([]);
-  const [caseDocuments, setCaseDocuments] = useState<Document[]>([]);
-  const [showFileContext, setShowFileContext] = useState(false);
-  const [contextPosition, setContextPosition] = useState({ top: 0, left: 0 });
   const messageRefs = useRef<{ [key: number]: HTMLElement }>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const thinkingRef = useRef<HTMLDivElement>(null);
@@ -51,6 +44,8 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isClearingChat, setIsClearingChat] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Copy message text to clipboard
   const copyToClipboard = async (text: string, messageId: number) => {
@@ -122,27 +117,32 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     }
   }, [isOpen]);
 
+  // Handle responsive design
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 640); // md breakpoint
+    };
+
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
+
   // Load messages when case changes
   useEffect(() => {
     const loadMessages = async () => {
       if (!activeCaseId) {
         setMessages([]);
-        setCaseDocuments([]);
         return;
       }
 
       setMessagesLoading(true);
       try {
-        const [messagesResponse, documentsResponse] = await Promise.all([
-          getChatHistory(activeCaseId),
-          getDocumentsForCase(activeCaseId)
-        ]);
+        const messagesResponse = await getChatHistory(activeCaseId);
         setMessages(messagesResponse.data || []);
-        setCaseDocuments(documentsResponse.data || []);
       } catch (error) {
-        console.error('Failed to load messages or documents:', error);
+        console.error('Failed to load messages:', error);
         setMessages([]);
-        setCaseDocuments([]);
       } finally {
         setMessagesLoading(false);
       }
@@ -165,18 +165,6 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
       textareaRef.current.style.height = 'auto';
     }
   }, [inputValue]);
-
-  // Close context menu on outside click
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowFileContext(false);
-    };
-
-    if (showFileContext) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [showFileContext]);
 
   // Scroll to specific message (keep this for manual navigation from sidebar)
   const scrollToMessage = (messageId: number) => {
@@ -204,7 +192,15 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   const handleCaseSelect = (caseId: number) => {
     setActiveCaseId(caseId.toString());
     setSelectedMessageId(null);
-    setUploadedFiles([]); // Clear uploaded files when switching cases
+    // Close mobile sidebar when case is selected
+    if (isMobileView) {
+      setShowMobileSidebar(false);
+    }
+  };
+
+  // Toggle mobile sidebar
+  const toggleMobileSidebar = () => {
+    setShowMobileSidebar(!showMobileSidebar);
   };
 
   // Generate title from chat
@@ -288,15 +284,6 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
 
     const messageText = inputValue.trim();
     
-    // Extract file references from message
-    const fileReferences = messageText.match(/@([^\s]+)/g);
-    let contextualMessage = messageText;
-    
-    if (fileReferences && fileReferences.length > 0) {
-      const referencedFiles = fileReferences.map(ref => ref.substring(1)); // Remove @ symbol
-      contextualMessage = `${messageText}\n\n[Context: User is referencing the following uploaded files: ${referencedFiles.join(', ')}. Please refer to the content and context of these files when providing your response.]`;
-    }
-    
     setInputValue('');
     setIsSending(true);
     setIsThinking(true);
@@ -317,7 +304,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
     scrollToThinkingMessage();
 
     try {
-      const response = await postChatMessage(activeCaseId, contextualMessage);
+      const response = await postChatMessage(activeCaseId, messageText);
       
       // Small delay to ensure user message is rendered before adding AI message
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -356,112 +343,10 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
   // Handle @ context for file references - show all case documents
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
-    const cursorPosition = e.target.selectionStart;
     
     setInputValue(value);
     adjustTextareaHeight();
-    
-    // Check for @ symbol to show file context menu
-    const textBeforeCursor = value.substring(0, cursorPosition);
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1 && lastAtIndex === cursorPosition - 1) {
-      // Show file context menu
-      const rect = e.target.getBoundingClientRect();
-      setContextPosition({
-        top: rect.top - 200,
-        left: rect.left + 20
-      });
-      setShowFileContext(true);
-    } else {
-      setShowFileContext(false);
-    }
   };
-
-  // Insert file reference at cursor position
-  const insertFileReference = (fileName: string) => {
-    if (!textareaRef.current) return;
-    
-    const textarea = textareaRef.current;
-    const cursorPosition = textarea.selectionStart;
-    const textBeforeCursor = inputValue.substring(0, cursorPosition);
-    const textAfterCursor = inputValue.substring(cursorPosition);
-    
-    // Remove the @ symbol and replace with file reference
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    const newTextBefore = textBeforeCursor.substring(0, lastAtIndex);
-    const newValue = `${newTextBefore}@${fileName} ${textAfterCursor}`;
-    
-    setInputValue(newValue);
-    setShowFileContext(false);
-    
-    // Focus back to textarea
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const newCursorPosition = newTextBefore.length + fileName.length + 2;
-        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-      }
-    }, 0);
-  };
-
-  // File upload handlers
-  const onDrop = async (acceptedFiles: File[]) => {
-    if (!activeCaseId || acceptedFiles.length === 0) return;
-
-    setDragActive(false);
-    
-    for (const file of acceptedFiles) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        await uploadDocument(activeCaseId, formData, () => {});
-        
-        // Track uploaded file for @ context
-        setUploadedFiles(prev => [...prev, {
-          id: Date.now().toString(),
-          name: file.name
-        }]);
-        
-        // Add upload notification message
-        const uploadMessage: Message = {
-          id: Date.now(),
-          caseId: parseInt(activeCaseId),
-          sender: 'bot',
-          text: `📎 Document uploaded: ${file.name}. You can reference this file using @${file.name} in your messages.`,
-          createdAt: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, uploadMessage]);
-
-        // Refresh case documents to include newly uploaded files
-        try {
-          const documentsResponse = await getDocumentsForCase(activeCaseId);
-          setCaseDocuments(documentsResponse.data || []);
-        } catch (error) {
-          console.error('Failed to refresh documents:', error);
-        }
-      } catch (error) {
-        console.error('Upload failed:', error);
-      }
-    }
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    onDragEnter: () => setDragActive(true),
-    onDragLeave: () => setDragActive(false),
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/msword': ['.doc'],
-      'text/plain': ['.txt'],
-      'image/*': ['.png', '.jpg', '.jpeg'],
-      'video/*': ['.mp4', '.avi', '.mov'],
-      'audio/*': ['.mp3', '.wav']
-    },
-    maxSize: 512 * 1024 * 1024 // 512MB
-  });
 
   if (!isOpen) return null;
 
@@ -478,15 +363,27 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
         <div className="gemini-chat-container h-full flex flex-col">
           
           {/* Header - Gemini style */}
-          <div className="gemini-header flex items-center justify-between px-6 py-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3">
-              <div className="gemini-welcome-logo w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold">
+          <div className="gemini-header flex flex-wrap gap-2 items-center justify-between px-3 md:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              {/* Mobile menu button */}
+              {isMobileView && activeCaseId && (
+                <IconButton
+                  variant="ghost"
+                  size="2"
+                  onClick={toggleMobileSidebar}
+                  className="hover:bg-gray-100 transition-colors md:hidden"
+                >
+                  <HamburgerMenuIcon />
+                </IconButton>
+              )}
+              
+              <div className="gemini-welcome-logo w-8 h-8 rounded-full flex items-center justify-center font-semibold shadow-sm">
                 ⚖️
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Legal AI Assistant</h2>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 truncate">Legal AI Assistant</h2>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 text-wrap">
                     {activeCase ? `${activeCase.title} (#${activeCaseId})` : activeCaseId ? `Matter #${activeCaseId}` : 'Select a matter to start chatting'}
                   </p>
                   {activeCase && currentCaseMessages.length > 0 && (
@@ -495,7 +392,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                       size="1"
                       onClick={handleTitleGenerationFromChat}
                       disabled={isGeneratingTitle}
-                      className="hover:bg-gray-100 transition-colors p-1"
+                      className="hover:bg-gray-100 transition-colors p-1 hidden sm:flex"
                       title="Generate title from chat"
                     >
                       {isGeneratingTitle ? (
@@ -509,79 +406,97 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              {activeCaseId && currentCaseMessages.length > 0 && (
-                <IconButton
-                  variant="ghost"
-                  size="2"
-                  onClick={handleClearChat}
-                  disabled={isClearingChat}
-                  className="hover:bg-red-50 hover:text-red-600 transition-colors"
-                  title="Clear conversation"
-                >
-                  {isClearingChat ? (
-                    <div className="w-4 h-4 border border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-sm">🗑️</span>
-                  )}
-                </IconButton>
-              )}
-              <IconButton
+            <div className="w-full md:w-0 flex items-center gap-4 justify-end">
+              
+
+            {activeCaseId && currentCaseMessages.length > 0 && (
+              <Button
+                variant="soft"
+                color='gray'
+                size="2"
+                onClick={handleClearChat}
+                disabled={isClearingChat}
+                className="bg-red-50 text-red-600 transition-colors"
+              >
+                {isClearingChat ? (
+                  <div className="w-4 h-4 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>🗑️ Clear Chat</>
+                )}
+              </Button>
+            )}
+
+              <Button
                 variant="ghost"
                 size="2"
                 onClick={onClose}
                 className="hover:bg-gray-100 transition-colors"
-              >
-                <Cross2Icon />
-              </IconButton>
+                >
+                <Cross2Icon /> Close
+              </Button>
             </div>
+            
           </div>
 
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden relative">
+              
+              {/* Mobile Sidebar Overlay */}
+              {isMobileView && showMobileSidebar && (
+                <div 
+                  className="absolute inset-0 bg-white z-40 md:hidden"
+                  onClick={() => setShowMobileSidebar(false)}
+                />
+              )}
               
               {/* Left Sidebar - Matter Selection */}
               <div 
-                className={`gemini-sidebar ${sidebarCollapsed ? 'w-16' : 'w-80'} flex flex-col transition-all duration-300`}
+                className={`gemini-sidebar ${
+                  isMobileView 
+                    ? `fixed left-0 top-0 bottom-0 z-50 transform transition-transform duration-300 ${
+                        showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
+                      } w-80 md:relative md:transform-none md:translate-x-0`
+                    : sidebarCollapsed ? 'w-16' : 'w-80'
+                } flex flex-col transition-all duration-300 bg-white`}
                 onClick={(e) => e.stopPropagation()}
               >
                 
-                {!sidebarCollapsed && (
+                {(!sidebarCollapsed || isMobileView) && (
                   <>
                     {/* Search and New Chat */}
                     <div className="p-4 space-y-3">
-                      {/* <div className="gemini-sidebar-search relative">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder={activeCaseId ? "Search messages..." : "Search matters..."}
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-transparent border-none focus:outline-none text-sm"
-                        />
-                      </div> */}
+                      {/* Close button for mobile */}
+                      {isMobileView && (
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {activeCaseId ? 'Messages' : 'Legal Matters'}
+                          </h3>
+                          <IconButton
+                            variant="ghost"
+                            size="2"
+                            onClick={() => setShowMobileSidebar(false)}
+                            className="hover:bg-gray-100 transition-colors"
+                          >
+                            <Cross2Icon />
+                          </IconButton>
+                        </div>
+                      )}
                       
-                      <Button
-                        variant="solid"
-                        size="2"
-                        className="gemini-new-chat-btn max-w-max"
-                        onClick={() => setActiveCaseId(null)}
-                      >
-                        <ArrowLeftIcon /> Back to Matter
-                      </Button>
+                      
                     </div>
 
-                    <Separator className="mx-4" />
+                    
 
                     {/* Dynamic Content: Cases or Messages */}
                     <ScrollArea className="gemini-messages flex-1 px-2">
-                      <div className="space-y-1 py-2">
+                      <div className="space-y-4 py-2">
+
                         {activeCaseId ? (
                           /* Show user messages for active case */
                           userMessagesForSidebar.length > 0 ? (
                             userMessagesForSidebar.map((message) => (
                               <div
                                 key={message.id}
-                                onClick={() => message.id && scrollToMessage(message.id)}
+                                onClick={() => { message.id && scrollToMessage(message.id); isMobileView && setShowMobileSidebar(!isMobileView) }}
                                 className={`gemini-message-item p-3 cursor-pointer rounded-lg transition-all ${
                                   selectedMessageId === message.id ? 'active' : ''
                                 }`}
@@ -643,51 +558,66 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                   </>
                 )}
 
-                {/* Collapse Toggle */}
-                <div className="p-2 border-t border-gray-200">
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="gemini-collapse-btn w-full p-2 text-sm font-medium transition-colors"
-                  >
-                    {sidebarCollapsed ? '→' : '←'}
-                  </button>
-                </div>
+                {/* Collapse Toggle - Hidden on mobile */}
+                {!isMobileView && (
+                  <div className="p-2 border-t border-gray-200">
+                    <button
+                      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                      className="gemini-collapse-btn w-full p-2 text-sm font-medium transition-colors"
+                    >
+                      {sidebarCollapsed ? '→' : '←'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Main Chat Area */}
-              <div className="gemini-chat-main flex-1 flex flex-col" onClick={(e) => e.stopPropagation()}>
-                
-                {/* Drag overlay */}
-                {(isDragActive || dragActive) && (
-                  <div className="gemini-drag-overlay absolute inset-0 flex items-center justify-center z-10" {...getRootProps()}>
-                    <input {...getInputProps()} />
-                    <div className="gemini-drag-content text-center p-8">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        📎
-                      </div>
-                      <p className="text-lg font-medium text-blue-900 mb-2">Drop files to upload</p>
-                      <p className="text-sm text-blue-700">PDF, DOCX, images, videos, and more</p>
-                    </div>
-                  </div>
-                )}
+              <div className="gemini-chat-main flex-1 flex flex-col min-w-0" onClick={(e) => e.stopPropagation()}>
 
-                {activeCaseId ? (
+                
                   <>
                     {/* Messages Area */}
-                    <ScrollArea className="gemini-messages flex-1 px-6 py-4">
-                      <div className="max-w-4xl mx-auto space-y-6">
+                    <ScrollArea className="gemini-messages flex-1">
+                      <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 p-2">
                         {messagesLoading ? (
                           <div className="gemini-empty-state flex justify-center py-8">
                             <div className="gemini-loading-spinner w-6 h-6"></div>
                           </div>
                         ) : messages.length === 0 ? (
-                          <div className="gemini-empty-state text-center py-12">
-                            <div className="gemini-empty-icon w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                              💬
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Start a conversation</h3>
-                            <p className="text-gray-600">Ask me anything about this legal matter.</p>
-                          </div>
+                            <div className="gemini-welcome flex-1 flex items-center justify-center">
+                                <div className="text-center max-w-md">
+                                  <div className="gemini-welcome-logo w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl shadow-sm">
+                                    ⚖️
+                                  </div>
+                                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">Legal AI Assistant</h2>
+                                  <p className="text-gray-600 mb-8">
+                                    How can I assist you today?
+                                  </p>
+                                  
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="gemini-feature-card p-4">
+                                      <div className="text-2xl mb-2">📄</div>
+                                      <div className="font-medium">Document Analysis</div>
+                                      <div className="text-gray-600">Review and analyze legal documents</div>
+                                    </div>
+                                    <div className="gemini-feature-card p-4">
+                                      <div className="text-2xl mb-2">🔍</div>
+                                      <div className="font-medium">Legal Research</div>
+                                      <div className="text-gray-600">Get research assistance and guidance</div>
+                                    </div>
+                                    <div className="gemini-feature-card p-4">
+                                      <div className="text-2xl mb-2">📝</div>
+                                      <div className="font-medium">Document Drafting</div>
+                                      <div className="text-gray-600">Draft legal documents and contracts</div>
+                                    </div>
+                                    <div className="gemini-feature-card p-4">
+                                      <div className="text-2xl mb-2">🎯</div>
+                                      <div className="font-medium">Case Strategy</div>
+                                      <div className="text-gray-600">Develop case strategies and plans</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                         ) : (
                           <>
                             {/* Display messages in chronological order (oldest to newest) for chat */}
@@ -699,22 +629,22 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                                     messageRefs.current[message.id] = el;
                                   }
                                 }}
-                                className={`group flex gap-4 ${message.sender === 'user' ? 'flex-row-reverse' : ''} ${
-                                  selectedMessageId === message.id ? 'ring-2 ring-[#856A00]/30 rounded-lg' : ''
+                                className={`group flex gap-2 md:gap-4 ${message.sender === 'user' ? 'flex-row-reverse' : ''} ${
+                                  selectedMessageId === message.id ? 'ring-2 ring-[#856A00]/30 rounded-lg p-1' : ''
                                 }`}
                               >
                                 {/* Avatar */}
-                                <div className={`gemini-message-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                <div className={`gemini-message-avatar w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs md:text-sm ${
                                   message.sender === 'user' 
                                     ? 'gemini-user-avatar text-white' 
                                     : 'gemini-bot-avatar text-white'
                                 }`}>
-                                  {message.sender === 'user' ? '👤' : '🤖'}
+                                  {message.sender === 'user' ? '👤' : '⚖️'}
                                 </div>
 
                                 {/* Message Content */}
                                 <div className={`flex-1 max-w-3xl ${message.sender === 'user' ? 'text-right' : ''}`}>
-                                  <div className={`gemini-message-bubble inline-block p-4 ${
+                                  <div className={`gemini-message-bubble inline-block p-3 md:p-4 ${
                                     message.sender === 'user'
                                       ? 'gemini-user-bubble'
                                       : 'gemini-bot-bubble'
@@ -748,7 +678,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                                         title={copiedMessageId === message.id ? 'Copied!' : 'Copy message'}
                                       >
                                         {copiedMessageId === message.id ? (
-                                          <span className="text-green-600 text-xs">✓</span>
+                                          <span className="text-[#856A00] text-xs">✓</span>
                                         ) : (
                                           <CopyIcon className="w-3 h-3" />
                                         )}
@@ -766,20 +696,20 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                                 className="flex gap-4"
                               >
                                 {/* AI Avatar */}
-                                <div className="gemini-message-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 gemini-bot-avatar text-white">
+                                <div className="gemini-message-avatar w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 gemini-bot-avatar text-white text-xs md:text-sm">
                                   🤖
                                 </div>
                                 
                                 {/* Thinking Content */}
                                 <div className="flex-1 max-w-3xl">
-                                  <div className="gemini-message-bubble gemini-bot-bubble inline-block p-4">
+                                  <div className="gemini-message-bubble gemini-bot-bubble inline-block p-3 md:p-4">
                                     <div className="flex items-center gap-2 text-gray-600">
                                       <div className="flex space-x-1">
                                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                                       </div>
-                                      <span className="text-sm">Bayyena is thinking...</span>
+                                      <span className="text-xs md:text-sm">Bayyena is thinking...</span>
                                     </div>
                                   </div>
                                 </div>
@@ -791,73 +721,28 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                     </ScrollArea>
 
                     {/* Input Area */}
-                    <div className="gemini-input-area p-4">
+                    <div className="gemini-input-area p-2">
                       <div className="max-w-4xl mx-auto relative">
                         
-                        {/* File Context Menu */}
-                        {showFileContext && (caseDocuments.length > 0 || uploadedFiles.length > 0) && (
-                          <div 
-                            className="absolute bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-2 min-w-48 max-h-60 overflow-y-auto"
-                            style={{ 
-                              bottom: '100%',
-                              left: contextPosition.left,
-                              marginBottom: '8px'
-                            }}
-                          >
-                            <div className="text-xs text-gray-500 px-2 py-1 border-b border-gray-100">
-                              Reference uploaded files:
-                            </div>
-                            
-                            {/* Show all case documents */}
-                            {caseDocuments.map((doc) => (
-                              <div
-                                key={`doc-${doc.id}`}
-                                onClick={() => insertFileReference(doc.fileName)}
-                                className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer text-sm"
-                              >
-                                <span>📎</span>
-                                <span className="truncate" title={doc.fileName}>{doc.fileName}</span>
-                              </div>
-                            ))}
-                            
-                            {/* Show recently uploaded files that might not be in case documents yet */}
-                            {uploadedFiles
-                              .filter(file => !caseDocuments.some(doc => doc.fileName === file.name))
-                              .map((file) => (
-                                <div
-                                  key={`upload-${file.id}`}
-                                  onClick={() => insertFileReference(file.name)}
-                                  className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer text-sm"
-                                >
-                                  <span>📎</span>
-                                  <span className="truncate" title={file.name}>{file.name}</span>
-                                </div>
-                              ))}
-                              
-                            {(caseDocuments.length === 0 && uploadedFiles.length === 0) && (
-                              <div className="text-xs text-gray-400 px-2 py-3 text-center">
-                                No files uploaded yet
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        <div className="gemini-input-container flex items-end gap-3 p-3">
+                        <div className="gemini-input-container flex items-end gap-2 md:gap-3 p-2">
                           <div className="flex-1">
                             <TextArea
+                              variant='surface'
                               ref={textareaRef}
                               value={inputValue}
                               onChange={handleInputChange}
                               onKeyDown={handleKeyPress}
                               onInput={adjustTextareaHeight}
-                              placeholder="Ask me anything about this legal matter... (Use @ to reference uploaded files)"
+                              placeholder="Ask me anything about this legal matter..."
                               disabled={isSending}
-                              className="gemini-textarea w-full min-h-[24px] max-h-32"
                               rows={1}
                               dir={isRTLText(inputValue) ? 'rtl' : 'ltr'}
                               style={{
                                 textAlign: isRTLText(inputValue) ? 'right' : 'left',
-                                direction: isRTLText(inputValue) ? 'rtl' : 'ltr'
+                                direction: isRTLText(inputValue) ? 'rtl' : 'ltr',
+                                border: 'none',
+                                outline: 'none',
+                                boxShadow: 'none'
                               }}
                             />
                           </div>
@@ -903,43 +788,7 @@ export default function ChatOverlay({ isOpen, onClose, initialCaseId }: ChatOver
                       </div>
                     </div>
                   </>
-                ) : (
-                  /* Welcome State */
-                  <div className="gemini-welcome flex-1 flex items-center justify-center">
-                    <div className="text-center max-w-md">
-                      <div className="gemini-welcome-logo w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
-                        ⚖️
-                      </div>
-                      <h2 className="text-2xl font-semibold text-gray-900 mb-4">Legal AI Assistant</h2>
-                      <p className="text-gray-600 mb-8">
-                        Select a matter from the sidebar to start a conversation, or create a new one.
-                      </p>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="gemini-feature-card p-4">
-                          <div className="text-2xl mb-2">📄</div>
-                          <div className="font-medium">Document Analysis</div>
-                          <div className="text-gray-600">Review and analyze legal documents</div>
-                        </div>
-                        <div className="gemini-feature-card p-4">
-                          <div className="text-2xl mb-2">🔍</div>
-                          <div className="font-medium">Legal Research</div>
-                          <div className="text-gray-600">Get research assistance and guidance</div>
-                        </div>
-                        <div className="gemini-feature-card p-4">
-                          <div className="text-2xl mb-2">📝</div>
-                          <div className="font-medium">Document Drafting</div>
-                          <div className="text-gray-600">Draft legal documents and contracts</div>
-                        </div>
-                        <div className="gemini-feature-card p-4">
-                          <div className="text-2xl mb-2">🎯</div>
-                          <div className="font-medium">Case Strategy</div>
-                          <div className="text-gray-600">Develop case strategies and plans</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                
               </div>
             </div>
         </div>

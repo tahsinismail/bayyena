@@ -197,7 +197,7 @@
     margin-bottom: 0.25rem;
 }
 .markdown-content a {
-    color: #856A00; /* A standard blue link color */
+    color: #856A00; 
     text-decoration: underline;
 }
 .markdown-content code {
@@ -1416,7 +1416,7 @@ button:focus-visible {
 }
 
 .gemini-message-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ddd;
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -1485,11 +1485,11 @@ button:focus-visible {
 }
 
 .gemini-user-avatar {
-  background: linear-gradient(135deg, #856A00 0%, #a17a1a 100%);
+  background: #ddd;
 }
 
 .gemini-bot-avatar {
-  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+  background: #ddd;
 }
 
 .gemini-message-bubble {
@@ -1522,6 +1522,7 @@ button:focus-visible {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
   border-top: 1px solid #e8eaed;
   backdrop-filter: blur(12px);
+  border:none
 }
 
 .gemini-input-container {
@@ -1532,8 +1533,9 @@ button:focus-visible {
   box-shadow: 0 1px 6px rgba(32, 33, 36, 0.1);
 }
 
+
 .gemini-input-container:focus-within {
-  border-color: #1a73e8;
+  border-color: #a17a1a;
   box-shadow: 0 2px 12px rgba(26, 115, 232, 0.2);
 }
 
@@ -1597,8 +1599,7 @@ button:focus-visible {
 }
 
 .gemini-welcome-logo {
-  background: linear-gradient(135deg, #856A00 0%, #a17a1a 100%);
-  box-shadow: 0 8px 24px rgba(133, 106, 0, 0.3);
+  background: #ddd;
 }
 
 .gemini-feature-card {
@@ -1633,7 +1634,7 @@ button:focus-visible {
 }
 
 /* Responsive design for mobile */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .gemini-chat-container {
     border-radius: 0;
     height: 100vh;
@@ -1642,7 +1643,8 @@ button:focus-visible {
   
   .gemini-sidebar {
     width: 100% !important;
-    height: 200px;
+    min-height: 200px;
+    max-height: 100vh;
     border-right: none;
     border-bottom: 1px solid #e8eaed;
   }
@@ -2578,7 +2580,7 @@ button:focus-visible {
 
 .chat-input:focus {
   outline: none;
-  border-color: #856A00;
+  border: none;
   background: white;
   box-shadow: 0 0 0 3px rgba(133, 106, 0, 0.1);
 }
@@ -2737,7 +2739,7 @@ button:focus-visible {
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
   .fab-chat-button {
-    bottom: 1rem;
+    bottom: 4rem;
     right: 1rem;
     width: 3.5rem;
     height: 3.5rem;
