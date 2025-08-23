@@ -231,12 +231,15 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
     // Insert document record into database
     const processingMessage = isProcessable ? null : 'File type not supported for text extraction by current processing pipeline';
     
+    // Remove the 'uploads/' prefix from file.path since our static middleware serves from /uploads
+    const webPath = file.path.replace(/^uploads\//, '/uploads/');
+    
     const [newDocument] = await db.insert(documents).values({
       caseId: caseId,
       fileName: file.originalname,
       fileType: file.mimetype,
       fileSize: file.size,
-      storagePath: file.path,
+      storagePath: webPath,
       processingStatus: isProcessable ? 'PENDING' : 'PROCESSED',
       extractedText: processingMessage
     }).returning();
@@ -405,9 +408,7 @@ router.delete('/:caseId/documents/:docId', (req, res, next) => {
                     console.error(`Failed to delete file from storage: ${filePath}`, err);
                 }
             });
-        }
-
-        // Step 3: Delete the document record from the database
+        }        // Step 3: Delete the document record from the database
         await db.delete(documents).where(eq(documents.id, docId));
 
         res.status(200).json({ message: 'Document deleted successfully.' });
