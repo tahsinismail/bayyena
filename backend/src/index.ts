@@ -5,6 +5,7 @@ import session from 'express-session';
 import passport from 'passport';
 import connectPgSimple from 'connect-pg-simple';
 import { Pool } from 'pg';
+import path from 'path';
 
 import authRoutes from './routes/auth';
 import caseRoutes from './routes/cases';
@@ -30,7 +31,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(
   session({
     store: new PgStore({ pool: pool, tableName: 'user_sessions' }),

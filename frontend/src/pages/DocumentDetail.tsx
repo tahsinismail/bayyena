@@ -148,9 +148,17 @@ export default function DocumentDetail() {
             </Flex>
             <Flex gap="3">
               <Button asChild variant="soft">
-                <a href={`/${document.storagePath}`} target="_blank" rel="noopener noreferrer" download={document.fileName}>
-                  <DownloadIcon /> Download Original
-                </a>
+                {(() => {
+                  // Ensure we don't accidentally produce protocol-relative URLs when storagePath
+                  // already includes a leading slash. Also encode the URI to handle spaces.
+                  const raw = document.storagePath || '';
+                  const href = raw.startsWith('/') ? raw : `/${raw}`;
+                  return (
+                    <a href={encodeURI(href)} target="_blank" rel="noopener noreferrer" download={document.fileName}>
+                      <DownloadIcon /> Download Original
+                    </a>
+                  );
+                })()}
               </Button>
               {/* --- CHANGE: Added Delete Button with Confirmation Dialog --- */}
               {/* REASON: Provides the UI for the new delete functionality. */}
