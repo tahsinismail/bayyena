@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import CaseList from './pages/CaseList';
 import CaseDetail from './pages/CaseDetail'; // Import the new detail page
+import Chat from './pages/Chat'; // Import the new chat page
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import DocumentDetail from './pages/DocumentDetail';
@@ -25,6 +26,8 @@ function App() {
                   <Route path="/" component={CaseList} />
                   {/* Add the new route for case details */}
                   <Route path="/cases/:id" component={CaseDetail} />
+                  {/* Add the new route for chat */}
+                  <Route path="/chat/:caseId?" component={Chat} />
                   <Route path="/documents/:id" component={DocumentDetail} /> {/* <-- ADD THIS ROUTE */}
                   <Route>404, Not Found!</Route>
                 </Switch>

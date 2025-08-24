@@ -216,7 +216,7 @@ export default function CaseList() {
   }
 
   return (
-    <div className="p-4 md:p-8 min-w-screen">
+    <div className="p-2 md:p-8 min-w-screen">
       {/* Header Section */}
       <Card className="mb-6">
         <Box p="6">

@@ -1,9 +1,8 @@
 // frontend/src/components/FloatingChatButton.tsx
 
-import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { ChatBubbleIcon } from '@radix-ui/react-icons';
 import { Badge } from '@radix-ui/themes';
-import ChatOverlay from './ChatOverlay';
 
 interface FloatingChatButtonProps {
   caseId?: string;
@@ -16,14 +15,15 @@ export default function FloatingChatButton({
   hasUnreadMessages = false, 
   messageCount = 0 
 }: FloatingChatButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const handleClick = () => {
-    setIsOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
+    // Navigate to chat page with or without caseId
+    if (caseId) {
+      setLocation(`/chat/${caseId}`);
+    } else {
+      setLocation('/chat');
+    }
   };
 
   return (
@@ -53,15 +53,6 @@ export default function FloatingChatButton({
           <div className="fab-pulse-ring"></div>
         )}
       </button>
-
-      {/* Chat Overlay */}
-      {isOpen && (
-        <ChatOverlay
-          isOpen={isOpen}
-          onClose={handleClose}
-          initialCaseId={caseId}
-        />
-      )}
     </>
   );
 }

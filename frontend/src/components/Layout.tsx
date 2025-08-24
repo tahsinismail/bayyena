@@ -5,6 +5,7 @@ import { HamburgerMenuIcon, Cross1Icon, ChevronUpIcon } from '@radix-ui/react-ic
 import logo from '../assets/logo.png';
 import { navigate } from 'wouter/use-browser-location';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'wouter';
 
 
 interface LayoutProps {
@@ -13,10 +14,14 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, setUser } = useAuth();
+  const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { t } = useTranslation();
+
+  // Check if we're on the chat page
+  const isChatPage = location.startsWith('/chat');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,6 +58,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return <div className="min-h-screen bg-gray-50">{children}</div>;
   }
 
+  // If on chat page, render without header and footer
+  if (isChatPage) {
+    return (
+      <div className="h-screen bg-gray-50 overflow-hidden">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -61,7 +75,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
           : 'bg-white border-b border-gray-100'
       }`}>
-        <div className="max-w-full pr-4 md:px-4">
+        <div className="min-w-full px-4">
           <div className="flex justify-between items-center h-20">
             {/* Logo and Brand */}
             <div className="flex items-center space-x-2 text-[#a17a1a]">
