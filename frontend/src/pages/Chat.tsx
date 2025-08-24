@@ -523,7 +523,7 @@ useEffect(() => {
     };
 
     const keyHandler = (e: KeyboardEvent) => {
-      const scrollKeys = [' ', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+      const scrollKeys = ['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
       if (scrollKeys.includes(e.key) && !isInsideMessages(e.target)) {
         e.preventDefault();
         e.stopPropagation();

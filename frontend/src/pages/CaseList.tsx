@@ -13,7 +13,7 @@ export default function CaseList() {
   const [error, setError] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [, navigate] = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Editing states for inline editing
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
@@ -227,7 +227,7 @@ export default function CaseList() {
             gap="4"
           >
             <Flex direction="column" gap="2">
-              <Heading size="6" className="text-gray-900">{t('myCases')}</Heading>
+              <Heading size="6" className={`text-gray-900 ${i18n.language === 'ar' ? 'text-right' : 'text-left'}`}>{t('myCases')}</Heading>
               <Text size="2" color="gray" className="text-gray-600">
                 {cases.length > 0 ? `${cases.length} case${cases.length !== 1 ? 's' : ''} found` : 'No matter yet'}
               </Text>
