@@ -1,10 +1,10 @@
-// create-admin-user.js
-const { Client } = require('pg');
-const bcrypt = require('bcrypt');
+// create-admin-user-fixed.js
+const { Client } = require('/usr/local/lib/node_modules/pg');
+const bcrypt = require('/usr/local/lib/node_modules/bcrypt');
 
 const createAdminUser = async () => {
   const client = new Client({
-    host: 'db',  // Docker container hostname
+    host: 'localhost',  // localhost works within the same container network
     port: 5432,
     user: 'postgres',
     password: 'dbAdmin',
@@ -17,12 +17,12 @@ const createAdminUser = async () => {
 
     // Check if admin user already exists
     const existingAdmin = await client.query(
-      "SELECT id FROM users WHERE email = $1",
+      "SELECT id, role, is_active FROM users WHERE email = $1",
       ['admin@bayyena.com']
     );
 
     if (existingAdmin.rows.length > 0) {
-      console.log('Admin user already exists, updating password...');
+      console.log('Admin user already exists, updating password and ensuring proper role...');
 
       // Hash the new password
       const saltRounds = 10;
@@ -35,6 +35,9 @@ const createAdminUser = async () => {
       );
 
       console.log('Admin user updated successfully!');
+      console.log(`Existing admin user ID: ${existingAdmin.rows[0].id}`);
+      console.log(`Role: ${existingAdmin.rows[0].role}`);
+      console.log(`Active status: ${existingAdmin.rows[0].is_active}`);
     } else {
       console.log('Creating new admin user...');
 

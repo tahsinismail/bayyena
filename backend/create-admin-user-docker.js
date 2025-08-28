@@ -1,10 +1,10 @@
-// create-admin-user.js
+// create-admin-user-docker.js
 const { Client } = require('pg');
 const bcrypt = require('bcrypt');
 
 const createAdminUser = async () => {
   const client = new Client({
-    host: 'db',  // Docker container hostname
+    host: 'db',  // Docker network hostname
     port: 5432,
     user: 'postgres',
     password: 'dbAdmin',

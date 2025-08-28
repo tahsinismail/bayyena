@@ -3,7 +3,7 @@ const { Client } = require('pg');
 
 const waitForDatabase = async () => {
   const client = new Client({
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || 'db',
     port: 5432,
     user: 'postgres',
     password: 'dbAdmin',
