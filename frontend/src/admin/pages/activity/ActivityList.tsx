@@ -6,11 +6,9 @@ import {
   Box,
   Text,
   Badge,
-  Table,
   Spinner,
-  Card,
-  ScrollArea
 } from "@radix-ui/themes";
+import { ResponsiveTable } from "../../components/ResponsiveTable";
 
 interface UserActivity {
   id: number;
@@ -27,6 +25,8 @@ interface ColumnDefinition {
   dataIndex: keyof UserActivity;
   key: string;
   render?: (value: any) => React.ReactNode;
+  width?: string;
+  hiddenOnMobile?: boolean;
 }
 
 export const ActivityList = () => {
@@ -54,13 +54,17 @@ export const ActivityList = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      render: (id: number) => <Text size="2">{id}</Text>
+      render: (id: number) => <Text size="2">{id}</Text>,
+      width: "80px",
+      hiddenOnMobile: true
     },
     {
       title: "User ID",
       dataIndex: "userId",
       key: "userId",
-      render: (userId: number) => <Text size="2">{userId}</Text>
+      render: (userId: number) => <Text size="2">{userId}</Text>,
+      width: "100px",
+      hiddenOnMobile: true
     },
     {
       title: "Action",
@@ -85,18 +89,20 @@ export const ActivityList = () => {
       dataIndex: "details",
       key: "details",
       render: (details: any) => (
-        <ScrollArea style={{ maxWidth: '300px', maxHeight: '100px' }}>
+        <Box style={{ maxWidth: '300px', maxHeight: '100px', overflow: 'auto' }}>
           <Text size="1" style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
             {JSON.stringify(details, null, 2)}
           </Text>
-        </ScrollArea>
+        </Box>
       ),
+      hiddenOnMobile: true
     },
     {
       title: "IP Address",
       dataIndex: "ipAddress",
       key: "ipAddress",
-      render: (ip: string) => <Text size="2">{ip}</Text>
+      render: (ip: string) => <Text size="2">{ip}</Text>,
+      hiddenOnMobile: true
     },
     {
       title: "User Agent",
@@ -107,6 +113,7 @@ export const ActivityList = () => {
           {userAgent}
         </Text>
       ),
+      hiddenOnMobile: true
     },
     {
       title: "Created At",
@@ -133,30 +140,12 @@ export const ActivityList = () => {
         User Activity
       </Text>
 
-      <Card>
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              {columns.map((col) => (
-                <Table.ColumnHeaderCell key={col.key}>
-                  {col.title}
-                </Table.ColumnHeaderCell>
-              ))}
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {activities.map((activity) => (
-              <Table.Row key={activity.id}>
-                {columns.map((col) => (
-                  <Table.Cell key={col.key}>
-                    {col.render ? col.render(activity[col.dataIndex]) : String(activity[col.dataIndex] || '')}
-                  </Table.Cell>
-                ))}
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-      </Card>
+      <ResponsiveTable
+        data={activities}
+        columns={columns}
+        loading={loading}
+        emptyText="No activities found"
+      />
     </Box>
   );
 };

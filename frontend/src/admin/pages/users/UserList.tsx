@@ -9,15 +9,14 @@ import {
   Button,
   Badge,
   Switch,
-  Table,
   Spinner,
-  Card,
 } from "@radix-ui/themes";
 import {
   EyeOpenIcon,
   Pencil1Icon,
   Cross1Icon
 } from "@radix-ui/react-icons";
+import { ResponsiveTable } from "../../components/ResponsiveTable";
 
 interface User {
   id: number;
@@ -33,6 +32,8 @@ interface ColumnDefinition {
   dataIndex: keyof User;
   key: string;
   render?: (value: any, record?: User) => React.ReactNode;
+  width?: string;
+  hiddenOnMobile?: boolean;
 }
 
 export const UserList = () => {
@@ -79,7 +80,9 @@ export const UserList = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      render: (id: number) => <Text size="2">{id}</Text>
+      render: (id: number) => <Text size="2">{id}</Text>,
+      width: "80px",
+      hiddenOnMobile: true
     },
     {
       title: "Full Name",
@@ -152,6 +155,7 @@ export const UserList = () => {
       render: (date: string) => (
         <Text size="2">{new Date(date).toLocaleDateString()}</Text>
       ),
+      hiddenOnMobile: true
     },
     {
       title: "Actions",
@@ -167,6 +171,7 @@ export const UserList = () => {
           View
         </Button>
       ),
+      width: "100px"
     },
   ];
 
@@ -185,30 +190,12 @@ export const UserList = () => {
         User Management
       </Text>
 
-      <Card>
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              {columns.map((col) => (
-                <Table.ColumnHeaderCell key={col.key}>
-                  {col.title}
-                </Table.ColumnHeaderCell>
-              ))}
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {users.map((user) => (
-              <Table.Row key={user.id}>
-                {columns.map((col) => (
-                  <Table.Cell key={col.key}>
-                    {col.render ? col.render(user[col.dataIndex], user) : String(user[col.dataIndex] || '')}
-                  </Table.Cell>
-                ))}
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-      </Card>
+      <ResponsiveTable
+        data={users}
+        columns={columns}
+        loading={loading}
+        emptyText="No users found"
+      />
     </Box>
   );
 };

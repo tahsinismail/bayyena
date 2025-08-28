@@ -18,8 +18,19 @@ import { ArrowLeftIcon } from "@radix-ui/react-icons";
 export const UserShow = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const params = useParams();
   const [, navigate] = useLocation();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchUser();
@@ -85,27 +96,39 @@ export const UserShow = () => {
           <Flex gap="4" direction="column">
             <Text size="4" weight="bold">Basic Information</Text>
             <Flex direction="column" gap="4">
-              
-                <Flex gap='4' style={{ alignItems: 'center' }}>
-                  <Text size="2" color="gray">ID</Text>
+
+                <Flex gap='4' style={{
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'flex-start' : 'center'
+                }}>
+                  <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>ID</Text>
                   <Text size="2">{user.id}</Text>
                 </Flex>
-                <Flex gap='4' style={{ alignItems: 'center' }}>
-                  <Text size="2" color="gray">Full Name</Text>
+                <Flex gap='4' style={{
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'flex-start' : 'center'
+                }}>
+                  <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>Full Name</Text>
                   <Text size="2" weight="medium">{user.fullName}</Text>
                 </Flex>
-              
 
-              
-                <Flex gap="4" style={{ alignItems: 'center' }}>
-                  <Text size="2" color="gray">Email</Text>
+
+
+                <Flex gap="4" style={{
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'flex-start' : 'center'
+                }}>
+                  <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>Email</Text>
                   <Text size="2">{user.email}</Text>
                 </Flex>
-                <Flex gap="4" style={{ alignItems: 'center' }}>
-                  <Text size="2" color="gray">Phone Number</Text>
+                <Flex gap="4" style={{
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'flex-start' : 'center'
+                }}>
+                  <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>Phone Number</Text>
                   <Text size="2">{user.phoneNumber || "N/A"}</Text>
                 </Flex>
-              
+
             </Flex>
           </Flex>
 
@@ -113,8 +136,11 @@ export const UserShow = () => {
 
           <Flex gap="4" direction="column">
             <Text size="4" weight="bold" mb="4">Account Settings</Text>
-            <Flex gap="4">
-                <Text size="2" color="gray">Role</Text>
+            <Flex gap="4" style={{
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center'
+            }}>
+                <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>Role</Text>
                 <Badge
                 color={user.role === 'admin' ? 'red' : 'blue'}
                 variant="soft"
@@ -124,8 +150,11 @@ export const UserShow = () => {
                 </Badge>
             </Flex>
 
-            <Flex gap="4">
-                <Text size="2" color="gray">Status</Text>
+            <Flex gap="4" style={{
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center'
+            }}>
+                <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>Status</Text>
                 <Flex align="center" gap="2">
                 <Switch
                     checked={user.isActive === 1}
@@ -136,10 +165,13 @@ export const UserShow = () => {
                 </Text>
                 </Flex>
             </Flex>
-                    
 
-              <Flex gap="4">
-                <Text size="2" color="gray">Created At</Text>
+
+              <Flex gap="4" style={{
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'flex-start' : 'center'
+              }}>
+                <Text size="2" color="gray" style={{ minWidth: isMobile ? 'auto' : '120px' }}>Created At</Text>
                 <Text size="2">{new Date(user.createdAt).toLocaleString()}</Text>
               </Flex>
           </Flex>

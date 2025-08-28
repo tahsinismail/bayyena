@@ -6,11 +6,9 @@ import {
   Box,
   Text,
   Badge,
-  Table,
   Spinner,
-  Card,
-  ScrollArea
 } from "@radix-ui/themes";
+import { ResponsiveTable } from "../../components/ResponsiveTable";
 
 interface AdminActivity {
   id: number;
@@ -26,6 +24,8 @@ interface ColumnDefinition {
   dataIndex: keyof AdminActivity;
   key: string;
   render?: (value: any) => React.ReactNode;
+  width?: string;
+  hiddenOnMobile?: boolean;
 }
 
 export const AdminActivityList = () => {
@@ -53,7 +53,9 @@ export const AdminActivityList = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      render: (value: number) => <Text size="2">{value}</Text>
+      render: (value: number) => <Text size="2">{value}</Text>,
+      width: "80px",
+      hiddenOnMobile: true
     },
     {
       title: "Admin",
@@ -91,12 +93,13 @@ export const AdminActivityList = () => {
       dataIndex: "details",
       key: "details",
       render: (value: any) => (
-        <ScrollArea style={{ maxWidth: '300px', maxHeight: '100px' }}>
+        <Box style={{ maxWidth: '300px', maxHeight: '100px', overflow: 'auto' }}>
           <Text size="1" style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
             {JSON.stringify(value, null, 2)}
           </Text>
-        </ScrollArea>
+        </Box>
       ),
+      hiddenOnMobile: true
     },
     {
       title: "Created At",
@@ -123,30 +126,12 @@ export const AdminActivityList = () => {
         Admin Activity Log
       </Text>
 
-      <Card>
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              {columns.map((col) => (
-                <Table.ColumnHeaderCell key={col.key}>
-                  {col.title}
-                </Table.ColumnHeaderCell>
-              ))}
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {activities.map((activity) => (
-              <Table.Row key={activity.id}>
-                {columns.map((col) => (
-                  <Table.Cell key={col.key}>
-                    {col.render ? col.render(activity[col.dataIndex]) : String(activity[col.dataIndex] || '')}
-                  </Table.Cell>
-                ))}
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-      </Card>
+      <ResponsiveTable
+        data={activities}
+        columns={columns}
+        loading={loading}
+        emptyText="No admin activities found"
+      />
     </Box>
   );
 };
