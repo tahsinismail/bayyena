@@ -95,6 +95,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
                   <p className="text-xs text-gray-500">Welcome back!</p>
                 </div>
+                {/* Admin Button - Only show for admin users */}
+                {user.role === 'admin' && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
+                >
+                    {t('adminPanel')}
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
@@ -134,14 +143,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                 {/* Mobile User Info */}
                 <div className="p-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col space-y-3">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
                       <p className="text-xs text-gray-500">Welcome back!</p>
                     </div>
+                    {/* Admin Button - Only show for admin users in mobile */}
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          closeMobileMenu();
+                          navigate('/admin');
+                        }}
+                        className="w-full px-4 py-2 text-sm font-medium text-white bg-[#a17a1a] hover:bg-[#8b6515] rounded-md transition-colors duration-200"
+                      >
+                        Admin Panel
+                      </button>
+                    )}
                     <button
                       onClick={handleLogout}
-                      className="px-4 py-2 border border-gray-200 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
+                      className="w-full px-4 py-2 border border-gray-200 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
                     >
                       {t('logout')}
                     </button>

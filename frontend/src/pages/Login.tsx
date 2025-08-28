@@ -37,7 +37,13 @@ export default function Login() {
         password 
       });
       setUser(data.user);
-      navigate('/');
+      
+      // Redirect admin users to admin panel, regular users to main app
+      if (data.user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       

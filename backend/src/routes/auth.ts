@@ -3,7 +3,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import * as passport from 'passport';
 import * as bcrypt from 'bcrypt';
 import { db } from '../db';
-import { users } from '../db/schema';
+import { users, userActivityLogs } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 const router = Router();
@@ -36,6 +36,12 @@ router.post('/register', async (req, res, next) => {
   try {
     const existingUser = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
     if (existingUser.length > 0) {
+      // Check if the existing user account is disabled
+      if (existingUser[0].isActive !== 1) {
+        return res.status(401).json({ 
+          message: 'We’ve temporarily restricted your account. Please get in touch with us for support.' 
+        });
+      }
       return res.status(409).json({ 
         message: 'An account with this email address already exists. Please use a different email or try logging in instead.' 
       });
@@ -85,6 +91,12 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ message: 'No account found with this email address. Please check your email or create a new account.' });
     }
     
+    // Check if user account is active
+    if (user.isActive !== 1) {
+      console.log('User account is disabled for email:', email);
+      return res.status(401).json({ message: 'We’ve temporarily restricted your account. Please get in touch with us for support.' });
+    }
+    
     // Check password
     const isMatch = await bcrypt.compare(password, user.hashedPassword);
     if (!isMatch) {
@@ -93,10 +105,24 @@ router.post('/login', async (req, res, next) => {
     }
     
     // Log user in
-    req.login(user, (loginErr) => {
+    req.login(user, async (loginErr) => {
       if (loginErr) {
         console.error('Login error:', loginErr);
         return res.status(500).json({ message: 'Failed to establish session. Please try again.' });
+      }
+      
+      // Log successful login
+      try {
+        await db.insert(userActivityLogs).values({
+          userId: user.id,
+          action: 'login',
+          details: { email: user.email },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+        });
+      } catch (logError) {
+        console.error('Failed to log login activity:', logError);
+        // Don't fail the login if logging fails
       }
       
       const { hashedPassword, ...userWithoutPassword } = user;

@@ -2,6 +2,7 @@
   "appName": "Bayyena",
   "slogan": "Bayyena | AI-powered legal assistant",
   "welcome": "Welcome, {{name}}",
+  "adminPanel": "Admin Panel",
   "logout": "Logout",
   "login": "Login",
   "email": "Email",

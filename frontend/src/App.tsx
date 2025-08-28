@@ -6,10 +6,12 @@ import CaseList from './pages/CaseList';
 import CaseDetail from './pages/CaseDetail'; // Import the new detail page
 import Chat from './pages/Chat'; // Import the new chat page
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import Layout from './components/Layout';
 import DocumentDetail from './pages/DocumentDetail';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { AdminApp } from './admin/AdminApp';
 
 function App() {
   return (
@@ -18,6 +20,23 @@ function App() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
+          
+          {/* Admin routes - handled by AdminApp */}
+          <Route path="/admin" component={() => (
+            <AdminProtectedRoute>
+              <AdminApp />
+            </AdminProtectedRoute>
+          )} />
+          <Route path="/admin/:page" component={() => (
+            <AdminProtectedRoute>
+              <AdminApp />
+            </AdminProtectedRoute>
+          )} />
+          <Route path="/admin/:page/:id" component={() => (
+            <AdminProtectedRoute>
+              <AdminApp />
+            </AdminProtectedRoute>
+          )} />
           
           <Route>
             <ProtectedRoute>

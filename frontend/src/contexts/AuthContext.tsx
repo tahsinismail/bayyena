@@ -6,6 +6,7 @@ interface User {
   email: string;
   fullName: string; // Add this
   phoneNumber?: string; // Add this (optional)
+  role: string; // Add role field
 }
 
 interface AuthContextType {
