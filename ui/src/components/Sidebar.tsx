@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useApp, Document } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { 
   MdHome, 
@@ -43,6 +44,7 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
     loadChatTopics,
     user,
   } = useApp();
+  const { language, t, dir } = useLanguage();
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isCreatingChatTopic, setIsCreatingChatTopic] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
@@ -177,20 +179,22 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
               <>
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start gap-3"
+                  className={`w-full justify-start gap-3 ${language === 'ar' ? 'text-arabic' : ''}`}
                   onClick={() => {
                     onViewChange({ type: 'dashboard' });
                     onClose();
                   }}
                 >
                   <MdHome className="h-4 w-4" />
-                  Dashboard
+                  {t('nav.dashboard')}
                 </Button>
                 
                 {/* Workspaces Section */}
                 <div className="pt-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Workspaces</span>
+                    <span className={`text-sm font-medium text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                      {t('nav.workspaces')}
+                    </span>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -224,11 +228,11 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                   {/* Back Button */}
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start gap-3"
+                    className={`w-full justify-start gap-3 ${language === 'ar' ? 'text-arabic' : ''}`}
                     onClick={handleBackToWorkspaces}
                   >
                     <MdArrowBack className="h-4 w-4" />
-                    Back to Workspaces
+                    {t('nav.back')}
                   </Button>
                   
                   {/* Workspace Title */}
@@ -236,15 +240,15 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                     <h2 className="text-lg font-semibold text-foreground truncate">
                       {selectedWorkspace.name}
                     </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Priority: {selectedWorkspace.priority || 'Normal'}
+                    <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                      {t('nav.priority')}: {selectedWorkspace.priority || 'Normal'}
                     </p>
                   </div>
 
                   {/* Chat Topics Section */}
                   <div className="pt-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-muted-foreground">Chat Topics</span>
+                      <span className={`text-sm font-medium text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('nav.chatTopics')}</span>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -273,7 +277,7 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                         </Button>
                       ))}
                       {selectedWorkspace.chats.filter(chat => chat.topicId).length === 0 && (
-                        <p className="text-xs text-muted-foreground px-2">No chat topics yet</p>
+                        <p className={`text-xs text-muted-foreground px-2 ${language === 'ar' ? 'text-arabic' : ''}`}>{t('nav.noChatTopics')}</p>
                       )}
                     </div>
                   </div>
@@ -281,8 +285,8 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                   {/* Documents Section */}
                   {selectedWorkspace.documents.length > 0 && (
                     <div className="pt-4">
-                      <div className="text-sm font-medium text-muted-foreground mb-2">
-                        Documents ({selectedWorkspace.documents.length})
+                      <div className={`text-sm font-medium text-muted-foreground mb-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                        {t('nav.documentsCount')} ({selectedWorkspace.documents.length})
                       </div>
                       <div className="space-y-1">
                         {selectedWorkspace.documents.slice(0, 8).map((doc) => (
@@ -298,8 +302,8 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                           </Button>
                         ))}
                         {selectedWorkspace.documents.length > 8 && (
-                          <div className="text-xs text-muted-foreground px-2">
-                            +{selectedWorkspace.documents.length - 8} more
+                          <div className={`text-xs text-muted-foreground px-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                            +{selectedWorkspace.documents.length - 8} {t('nav.moreDocuments')}
                           </div>
                         )}
                       </div>
@@ -315,14 +319,14 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
         <div className="p-4 border-t border-border space-y-2">
           <Button 
             variant="ghost" 
-            className="w-full justify-start gap-3"
+            className={`w-full justify-start gap-3 ${language === 'ar' ? 'text-arabic' : ''}`}
             onClick={() => {
               onViewChange({ type: 'settings' });
               onClose();
             }}
           >
             <MdSettings className="h-4 w-4" />
-            Settings
+            {t('nav.settings')}
           </Button>
         </div>
       </div>

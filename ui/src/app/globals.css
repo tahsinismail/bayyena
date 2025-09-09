@@ -8,6 +8,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-arabic: var(--font-amiri);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -119,4 +120,160 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Arabic and RTL Support - Proper Bidirectional Text Handling */
+[dir="rtl"] {
+  font-family: var(--font-amiri), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Arabic text should use Arabic font regardless of interface direction */
+.text-arabic {
+  font-family: var(--font-amiri), serif;
+  font-feature-settings: "liga" 1, "calt" 1;
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: embed;
+}
+
+/* English text should always be LTR regardless of interface direction */
+.text-english {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: embed;
+}
+
+/* Interface layout adjustments for RTL - only for UI elements, not text content */
+[dir="rtl"] .ui-flex:not(.flex-col):not(.flex-row-reverse) {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .ui-justify-start {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .ui-justify-end {
+  justify-content: flex-start;
+}
+
+/* UI Layout adjustments for RTL interface (navigation, sidebars, etc.) */
+[dir="rtl"] .ui-gap-1 > * + * {
+  margin-left: 0;
+  margin-right: 0.25rem;
+}
+
+[dir="rtl"] .ui-gap-2 > * + * {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+[dir="rtl"] .ui-gap-3 > * + * {
+  margin-left: 0;
+  margin-right: 0.75rem;
+}
+
+[dir="rtl"] .ui-gap-4 > * + * {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+/* UI padding and margin adjustments for RTL interface elements */
+[dir="rtl"] .ui-pl-1 { padding-left: 0; padding-right: 0.25rem; }
+[dir="rtl"] .ui-pl-2 { padding-left: 0; padding-right: 0.5rem; }
+[dir="rtl"] .ui-pl-3 { padding-left: 0; padding-right: 0.75rem; }
+[dir="rtl"] .ui-pl-4 { padding-left: 0; padding-right: 1rem; }
+[dir="rtl"] .ui-pl-6 { padding-left: 0; padding-right: 1.5rem; }
+
+[dir="rtl"] .ui-pr-1 { padding-right: 0; padding-left: 0.25rem; }
+[dir="rtl"] .ui-pr-2 { padding-right: 0; padding-left: 0.5rem; }
+[dir="rtl"] .ui-pr-3 { padding-right: 0; padding-left: 0.75rem; }
+[dir="rtl"] .ui-pr-4 { padding-right: 0; padding-left: 1rem; }
+[dir="rtl"] .ui-pr-6 { padding-right: 0; padding-left: 1.5rem; }
+
+[dir="rtl"] .ui-ml-1 { margin-left: 0; margin-right: 0.25rem; }
+[dir="rtl"] .ui-ml-2 { margin-left: 0; margin-right: 0.5rem; }
+[dir="rtl"] .ui-ml-3 { margin-left: 0; margin-right: 0.75rem; }
+[dir="rtl"] .ui-ml-4 { margin-left: 0; margin-right: 1rem; }
+
+[dir="rtl"] .ui-mr-1 { margin-right: 0; margin-left: 0.25rem; }
+[dir="rtl"] .ui-mr-2 { margin-right: 0; margin-left: 0.5rem; }
+[dir="rtl"] .ui-mr-3 { margin-right: 0; margin-left: 0.75rem; }
+[dir="rtl"] .ui-mr-4 { margin-right: 0; margin-left: 1rem; }
+
+/* UI Icon positioning for RTL interface */
+[dir="rtl"] .ui-flex.items-center.gap-2:not(.flex-col):not(.flex-row-reverse),
+[dir="rtl"] .ui-flex.items-center.gap-3:not(.flex-col):not(.flex-row-reverse) {
+  flex-direction: row-reverse;
+}
+
+/* Sidebar positioning for RTL interface */
+[dir="rtl"] .ui-border-r {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+[dir="rtl"] .ui-border-l {
+  border-left: none;
+  border-right: 1px solid var(--border);
+}
+
+/* Transform adjustments for RTL interface */
+[dir="rtl"] .ui-translate-x-0 {
+  transform: translateX(0);
+}
+
+[dir="rtl"] .ui-translate-x-full {
+  transform: translateX(100%);
+}
+
+/* Proper bidirectional text handling */
+/* Mixed content with proper language direction */
+.mixed-content {
+  unicode-bidi: plaintext;
+}
+
+/* Force English text to remain LTR regardless of interface direction */
+.text-english,
+[lang="en"],
+.english-content {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed;
+}
+
+/* Force Arabic text to be RTL regardless of interface direction */
+.text-arabic,
+[lang="ar"],
+.arabic-content {
+  direction: rtl !important;
+  text-align: right !important;
+  unicode-bidi: embed;
+  font-family: var(--font-amiri), serif;
+}
+
+/* Content that should always remain LTR */
+code,
+pre,
+.code-block,
+.ltr-content,
+.numeric-content,
+.url,
+.email,
+.filename,
+.path,
+a[href^="http"],
+a[href^="mailto"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed;
+  display: inline-block;
+}
+
+/* Numbers should always be LTR */
+.number,
+time,
+.date,
+.timestamp {
+  unicode-bidi: embed;
+  direction: ltr;
 }

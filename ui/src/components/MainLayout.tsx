@@ -45,7 +45,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         );
       
       case 'chat':
-        return <ChatInterface chatId={currentView.chatId} onViewChange={setCurrentView} />;
+        return <ChatInterface onViewChange={setCurrentView} />;
       
       case 'settings':
         console.log('MainLayout: Rendering Settings component');

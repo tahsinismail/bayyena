@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useApp, Document as UIDocument } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   MdAttachFile, 
   MdSend, 
@@ -36,6 +37,7 @@ export function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const { currentChat, currentWorkspace, sendMessage, addDocumentToWorkspace, updateDocumentInWorkspace } = useApp();
+  const { language, t, dir } = useLanguage();
 
   // Filter documents based on search
   const filteredDocuments = currentWorkspace?.documents.filter(doc =>
@@ -520,8 +522,8 @@ export function ChatInput() {
             ref={textareaRef}
             value={message}
             onChange={handleTextChange}
-            placeholder="Ask anything or @mention a document"
-            className="min-h-[60px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 pr-20"
+            placeholder={t('chat.input.placeholder')}
+            className="min-h-[60px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 pr-20 mixed-content"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

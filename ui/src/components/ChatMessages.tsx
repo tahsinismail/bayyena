@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp, Message } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
@@ -12,6 +13,19 @@ import { useState } from "react";
 
 export function ChatMessages() {
   const { currentChat, currentWorkspace } = useApp();
+  const { language, t, dir } = useLanguage();
+
+  // Helper functions for content direction detection
+  const getUITextClasses = () => {
+    return language === 'ar' ? 'text-arabic' : 'text-english';
+  };
+
+  const getUserContentClasses = (content: string) => {
+    // Detect if content contains Arabic characters
+    const arabicRegex = /[\u0600-\u06FF]/;
+    const isArabicContent = arabicRegex.test(content);
+    return isArabicContent ? 'text-arabic' : 'text-english';
+  };
 
   // Show welcome screen if no workspace is selected
   if (!currentWorkspace) {
@@ -20,10 +34,12 @@ export function ChatMessages() {
 
   if (!currentChat) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+      <div className="flex-1 flex items-center justify-center text-muted-foreground" dir={dir}>
         <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Welcome to {currentWorkspace.name}</h3>
-          <p>Start a conversation by typing a message below</p>
+          <h3 className={`text-lg font-medium mb-2 ${getUITextClasses()}`}>
+            {t('chat.messages.welcomeTo')} {currentWorkspace.name}
+          </h3>
+          <p className={getUITextClasses()}>{t('chat.messages.startConversation')}</p>
         </div>
       </div>
     );
@@ -31,17 +47,19 @@ export function ChatMessages() {
 
   if (currentChat.messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+      <div className="flex-1 flex items-center justify-center text-muted-foreground" dir={dir}>
         <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
-          <p>Ask questions about your case or upload documents to get started</p>
+          <h3 className={`text-lg font-medium mb-2 ${getUITextClasses()}`}>
+            {t('chat.messages.startConversationTitle')}
+          </h3>
+          <p className={getUITextClasses()}>{t('chat.messages.startConversationSubtitle')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4" dir={dir}>
       {currentChat.messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
@@ -50,8 +68,21 @@ export function ChatMessages() {
 }
 
 function MessageBubble({ message }: { message: Message }) {
+  const { language, t } = useLanguage();
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
+
+  // Helper functions for content direction detection
+  const getUITextClasses = () => {
+    return language === 'ar' ? 'text-arabic' : 'text-english';
+  };
+
+  const getUserContentClasses = (content: string) => {
+    // Detect if content contains Arabic characters
+    const arabicRegex = /[\u0600-\u06FF]/;
+    const isArabicContent = arabicRegex.test(content);
+    return isArabicContent ? 'text-arabic' : 'text-english';
+  };
 
   const handleCopy = async () => {
     try {
@@ -65,7 +96,7 @@ function MessageBubble({ message }: { message: Message }) {
 
   const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -85,11 +116,11 @@ function MessageBubble({ message }: { message: Message }) {
       
       <div className={`max-w-[70%] ${isUser ? 'order-first' : ''}`}>
         <Card className={`p-3 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
-          <div className="text-sm">
+          <div className={`text-sm ${getUserContentClasses(message.content)}`}>
             {isUser ? (
-              message.content
+              <span className={getUserContentClasses(message.content)}>{message.content}</span>
             ) : (
-              <div className="markdown-content">
+              <div className={`markdown-content ${getUserContentClasses(message.content)}`}>
                 <ReactMarkdown 
                   rehypePlugins={[rehypeHighlight]}
                   components={{
@@ -97,13 +128,13 @@ function MessageBubble({ message }: { message: Message }) {
                     code: (props: any) => {
                       const { inline, className, children, ...rest } = props;
                       return !inline ? (
-                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md overflow-x-auto my-2">
+                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md overflow-x-auto my-2" dir="ltr">
                           <code className={className} {...rest}>
                             {children}
                           </code>
                         </pre>
                       ) : (
-                        <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...rest}>
+                        <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" dir="ltr" {...rest}>
                           {children}
                         </code>
                       );
@@ -170,7 +201,7 @@ function MessageBubble({ message }: { message: Message }) {
                 size="sm"
                 onClick={handleCopy}
                 className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity"
-                title="Copy message"
+                title={t('chat.messages.copyMessage')}
               >
                 {copied ? (
                   <MdCheck className="h-3 w-3 text-green-600" />

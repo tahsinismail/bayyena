@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   FolderIcon, 
   FileTextIcon, 
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { apiService } from "@/services/api";
 import { useApp } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface DashboardProps {
   onViewChange?: (view: { type: 'workspace'; workspaceId: string }) => void;
@@ -38,31 +40,13 @@ interface DashboardStats {
   };
 }
 
-interface RecentCase {
-  id: number;
-  title: string;
+interface CaseData {
+  id: string;
+  name: string;
   priority: 'High' | 'Normal' | 'Low';
   status: 'Open' | 'Closed' | 'Archived';
   createdAt: string;
 }
-
-// Simple badge component since we don't have it
-const Badge = ({ children, variant = 'default' }: { children: React.ReactNode, variant?: string }) => {
-  const getVariantClasses = () => {
-    switch (variant) {
-      case 'destructive': return 'bg-red-100 text-red-800 border-red-200';
-      case 'secondary': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'outline': return 'bg-white text-gray-800 border-gray-300';
-      default: return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
-
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getVariantClasses()}`}>
-      {children}
-    </span>
-  );
-};
 
 // Simple progress component
 const Progress = ({ value }: { value: number }) => (
@@ -74,12 +58,26 @@ const Progress = ({ value }: { value: number }) => (
   </div>
 );
 
-export function Dashboard({ onViewChange }: DashboardProps = {}) {
+export function Dashboard({ onViewChange }: DashboardProps) {
+  const { user } = useApp();
+  const { language, t, dir } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentCases, setRecentCases] = useState<RecentCase[]>([]);
+  const [recentCases, setRecentCases] = useState<CaseData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { selectWorkspace, loadChatTopics } = useApp();
+
+  // Helper functions for content direction detection
+  const getUITextClasses = () => {
+    return language === 'ar' ? 'text-arabic' : 'text-english';
+  };
+
+  const getUserContentClasses = (content: string) => {
+    // Detect if content contains Arabic characters
+    const arabicRegex = /[\u0600-\u06FF]/;
+    const isArabicContent = arabicRegex.test(content);
+    return isArabicContent ? 'text-arabic' : 'text-english';
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -169,63 +167,65 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-gray-600">
-            Overview of your cases, documents, and recent activity
+          <h1 className={`text-3xl font-bold tracking-tight text-foreground ${getUITextClasses()}`}>
+            {t('dashboard.title')}
+          </h1>
+          <p className={`text-gray-600 ${getUITextClasses()}`}>
+            {t('dashboard.overview')}
           </p>
         </div>
 
         {/* Key Metrics Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-              <FolderIcon className="h-4 w-4 text-gray-500" />
+              <CardTitle className="text-sm font-medium">{t('dashboard.metrics.activeCases')}</CardTitle>
+              <FolderIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalCases}</div>
-              <p className="text-xs text-gray-500">
-                Active workspaces
+              <p className="text-xs text-muted-foreground">
+                <TrendingUpIcon className="h-3 w-3 inline text-green-500" /> +8% {t('dashboard.metrics.fromLastMonth')}
               </p>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Documents</CardTitle>
-              <FileTextIcon className="h-4 w-4 text-gray-500" />
+              <CardTitle className="text-sm font-medium">{t('dashboard.metrics.totalDocuments')}</CardTitle>
+              <FileTextIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalDocuments}</div>
-              <p className="text-xs text-gray-500">
-                {stats.processedDocuments} processed ({documentProcessingRate}%)
-              </p>
-              <Progress value={documentProcessingRate} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Cases</CardTitle>
-              <TrendingUpIcon className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.recentActivity.recentCases}</div>
-              <p className="text-xs text-gray-500">
-                Last 7 days
+              <p className="text-xs text-muted-foreground">
+                <TrendingUpIcon className="h-3 w-3 inline text-green-500" /> +12% {t('dashboard.metrics.fromLastMonth')}
               </p>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Messages</CardTitle>
-              <MessageSquareIcon className="h-4 w-4 text-gray-500" />
+              <CardTitle className="text-sm font-medium">{t('dashboard.metrics.processedDocuments')}</CardTitle>
+              <CheckCircleIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.recentActivity.recentMessages}</div>
-              <p className="text-xs text-gray-500">
-                AI interactions
+              <div className="text-2xl font-bold">{stats.processedDocuments}</div>
+              <p className="text-xs text-muted-foreground">
+                <TrendingUpIcon className="h-3 w-3 inline text-green-500" /> +5% {t('dashboard.metrics.fromLastMonth')}
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('dashboard.metrics.recentActivity')}</CardTitle>
+              <ClockIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.recentActivity.recentCases + stats.recentActivity.recentMessages}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('dashboard.metrics.casesAndMessages')}
               </p>
             </CardContent>
           </Card>
@@ -235,29 +235,29 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Cases by Priority</CardTitle>
-              <CardDescription>Distribution of your cases by priority level</CardDescription>
+              <CardTitle className={getUITextClasses()}>{t('dashboard.priority.title')}</CardTitle>
+              <CardDescription className={getUITextClasses()}>{t('dashboard.priority.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
+                  <span className={`text-sm font-medium flex items-center ${getUITextClasses()}`}>
                     <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                    High Priority
+                    {t('dashboard.priority.high')}
                   </span>
                   <span className="text-sm font-bold">{stats.casesByPriority.high}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
+                  <span className={`text-sm font-medium flex items-center ${getUITextClasses()}`}>
                     <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                    Normal Priority
+                    {t('dashboard.priority.normal')}
                   </span>
                   <span className="text-sm font-bold">{stats.casesByPriority.normal}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
+                  <span className={`text-sm font-medium flex items-center ${getUITextClasses()}`}>
                     <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                    Low Priority
+                    {t('dashboard.priority.low')}
                   </span>
                   <span className="text-sm font-bold">{stats.casesByPriority.low}</span>
                 </div>
@@ -267,22 +267,22 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Cases by Status</CardTitle>
-              <CardDescription>Current status distribution of your cases</CardDescription>
+              <CardTitle className={getUITextClasses()}>{t('dashboard.status.title')}</CardTitle>
+              <CardDescription className={getUITextClasses()}>{t('dashboard.status.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
+                  <span className={`text-sm font-medium flex items-center ${getUITextClasses()}`}>
                     <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                    Open
+                    {t('dashboard.status.open')}
                   </span>
                   <span className="text-sm font-bold">{stats.casesByStatus.open}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
+                  <span className={`text-sm font-medium flex items-center ${getUITextClasses()}`}>
                     <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                    Closed
+                    {t('dashboard.status.closed')}
                   </span>
                   <span className="text-sm font-bold">{stats.casesByStatus.closed}</span>
                 </div>
@@ -292,17 +292,17 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
         </div>
 
         {/* Recent Cases */}
-        <Card>
+        {/* <Card>
           <CardHeader>
-            <CardTitle>Recent Cases</CardTitle>
-            <CardDescription>Your most recently created cases</CardDescription>
+            <CardTitle className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.recentCases.title')}</CardTitle>
+            <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.recentCases.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {recentCases.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <FolderIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No recent cases found</p>
-                <p className="text-sm">Create your first case to get started</p>
+                <p className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.recentCases.noCases')}</p>
+                <p className={`text-sm ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.recentCases.createFirst')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -320,9 +320,9 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
                     }}
                   >
                     <div className="flex-1">
-                      <h4 className="font-medium text-foreground">{case_.title}</h4>
-                      <p className="text-sm text-gray-500">
-                        Created {new Date(case_.createdAt).toLocaleDateString()}
+                      <h4 className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{case_.name}</h4>
+                      <p className={`text-sm text-gray-500 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                        {t('dashboard.recentCases.created')} {new Date(case_.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -338,20 +338,20 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Quick Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
-            <CardDescription>Key performance indicators for your workspace</CardDescription>
+            <CardTitle className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.quickStats.title')}</CardTitle>
+            <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.quickStats.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
                 <CheckCircleIcon className="h-8 w-8 text-green-500" />
                 <div>
-                  <p className="font-medium text-foreground">Completed Cases</p>
+                  <p className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.quickStats.completedCases')}</p>
                   <p className="text-2xl font-bold text-muted-foreground">{stats.casesByStatus.closed}</p>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
               <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
                 <ClockIcon className="h-8 w-8 text-blue-500" />
                 <div>
-                  <p className="font-medium text-foreground">Open Cases</p>
+                  <p className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.quickStats.openCases')}</p>
                   <p className="text-2xl font-bold text-muted-foreground">{stats.casesByStatus.open}</p>
                 </div>
               </div>
@@ -367,7 +367,7 @@ export function Dashboard({ onViewChange }: DashboardProps = {}) {
               <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
                 <AlertTriangleIcon className="h-8 w-8 text-red-500" />
                 <div>
-                  <p className="font-medium text-foreground">High Priority</p>
+                  <p className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.quickStats.highPriority')}</p>
                   <p className="text-2xl font-bold text-muted-foreground">{stats.casesByPriority.high}</p>
                 </div>
               </div>

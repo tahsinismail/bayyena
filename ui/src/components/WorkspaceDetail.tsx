@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,7 @@ import {
 } from "react-icons/md";
 import type { CurrentView } from "@/components/MainLayout";
 import { DocumentPreview } from "@/components/DocumentPreview";
-import { Document, Chat } from "@/contexts/AppContext";
+import { Document } from "@/contexts/AppContext";
 
 interface WorkspaceDetailProps {
   workspaceId: string;
@@ -50,6 +51,20 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
     deleteDocument,
     selectChat
   } = useApp();
+  const { language, t, dir } = useLanguage();
+  
+  // Helper function to get proper text direction classes for UI text (translations)
+  const getUITextClasses = () => {
+    return language === 'ar' ? 'text-arabic' : 'text-english';
+  };
+  
+  // Helper function for user content (workspace names, descriptions, etc.)
+  const getUserContentClasses = (content: string) => {
+    // Detect if content is primarily Arabic
+    const arabicRegex = /[\u0600-\u06FF]/;
+    const isArabicContent = arabicRegex.test(content);
+    return isArabicContent ? 'text-arabic' : 'text-english';
+  };
   
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -108,17 +123,6 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update workspace:', error);
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deleteWorkspace(workspace.id);
-      setShowDeleteDialog(false);
-      // Navigate back to dashboard
-      onViewChange({ type: 'dashboard' });
-    } catch (error) {
-      console.error('Failed to delete workspace:', error);
     }
   };
 
@@ -210,24 +214,26 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
   };
 
   return (
-    <div className="p-6 bg-background min-h-screen">
+    <div className="p-6 bg-background min-h-screen" dir={dir}>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Workspace Details</h1>
+          <h1 className={`text-3xl font-bold tracking-tight text-foreground ${getUITextClasses()}`}>
+            {t('workspace.details.title')}
+          </h1>
         </div>
 
         {/* Workspace Info Card */}
         <Card>
           <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <CardTitle className={`text-xl font-semibold flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
               <MdFolder className="h-5 w-5" />
-              Workspace Information
+              {t('workspace.details.information')}
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleEdit}>
                 <MdEdit className="h-4 w-4 mr-2" />
-                Edit
+                {t('workspace.details.edit')}
               </Button>
               <Button variant="destructive" size="sm" onClick={() => {
                 setDeleteTarget({
@@ -238,32 +244,40 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
                 setShowDeleteDialog(true);
               }}>
                 <MdDelete className="h-4 w-4 mr-2" />
-                Delete
+                {t('workspace.details.delete')}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="text-2xl font-bold text-foreground">{workspace.name}</h3>
+              <h3 className={`text-2xl font-bold text-foreground ${getUserContentClasses(workspace.name)}`}>
+                {workspace.name}
+              </h3>
               {workspace.description && (
-                <p className="text-muted-foreground mt-2">{workspace.description}</p>
+                <p className={`text-muted-foreground mt-2 ${getUserContentClasses(workspace.description)}`}>
+                  {workspace.description}
+                </p>
               )}
             </div>
             
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <MdLowPriority className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Priority:</span>
+                <span className={`text-sm font-medium ${getUITextClasses()}`}>
+                  {t('workspace.details.priority')}:
+                </span>
                 <Badge variant={getPriorityColor(workspace.priority || 'Normal')}>
-                  {workspace.priority || 'Normal'}
+                  {t(`workspace.details.priorityLevels.${(workspace.priority || 'Normal').toLowerCase()}`)}
                 </Badge>
               </div>
               
               <div className="flex items-center gap-2">
                 <MdCheckCircle className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Status:</span>
+                <span className={`text-sm font-medium ${getUITextClasses()}`}>
+                  {t('workspace.details.status')}:
+                </span>
                 <Badge variant={getStatusColor(workspace.status || 'Active')}>
-                  {workspace.status || 'Active'}
+                  {t(`workspace.details.statusTypes.${(workspace.status || 'Active').toLowerCase()}`)}
                 </Badge>
               </div>
             </div>
@@ -275,9 +289,9 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
           {/* Documents Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
                 <MdDescription className="h-5 w-5" />
-                Documents
+                {t('workspace.details.documents.title')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -294,11 +308,13 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
                       >
                         <MdDescription className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <div className="min-w-0 max-w-full flex-1 flex-wrap">
-                          <p className="font-medium truncate">{doc.name}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <p className={`font-medium truncate ${language === 'ar' ? 'text-arabic' : ''}`}>
+                            {doc.name}
+                          </p>
+                          <div className={`flex items-center gap-2 text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                             <span>{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
                             <span>•</span>
-                            <span>Uploaded {formatDateTime(doc.uploadedAt)}</span>
+                            <span>{t('workspace.details.documents.uploaded')} {formatDateTime(doc.uploadedAt)}</span>
                           </div>
                         </div>
                       </div>
@@ -307,7 +323,7 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
                           variant={doc.processingStatus === 'PROCESSED' ? 'default' : 'secondary'}
                           className="flex-shrink-0"
                         >
-                          {doc.processingStatus}
+                          {t(`workspace.details.documents.status.${(doc.processingStatus || 'pending').toLowerCase()}`)}
                         </Badge>
                         <Button
                           size="sm"
@@ -327,7 +343,7 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <MdDescription className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No documents uploaded yet</p>
+                  <p className={language === 'ar' ? 'text-arabic' : ''}>{t('workspace.details.documents.empty')}</p>
                 </div>
               )}
             </CardContent>
@@ -336,9 +352,9 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
           {/* Chat Topics Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
                 <MdChat className="h-5 w-5" />
-                Chat Topics
+                {t('workspace.details.chatTopics.title')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -355,15 +371,17 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
                       >
                         <MdTopic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <div className="min-w-0 max-w-full flex-1 flex-wrap">
-                          <p className="font-medium truncate">{chat.title}</p>
-                          <div className="text-sm text-muted-foreground">
-                            <span>Last conversation: {formatDateTime(chat.createdAt)}</span>
+                          <p className={`font-medium truncate ${language === 'ar' ? 'text-arabic' : ''}`}>
+                            {chat.title}
+                          </p>
+                          <div className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                            <span>{t('workspace.details.chatTopics.lastConversation')}: {formatDateTime(chat.createdAt)}</span>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="flex-shrink-0">
-                          Active
+                          {t('workspace.details.chatTopics.active')}
                         </Badge>
                         <Button
                           size="sm"
@@ -383,7 +401,7 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <MdChat className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No chat topics created yet</p>
+                  <p className={language === 'ar' ? 'text-arabic' : ''}>{t('workspace.details.chatTopics.empty')}</p>
                 </div>
               )}
             </CardContent>
@@ -394,56 +412,64 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
         <Dialog open={isEditing} onOpenChange={setIsEditing}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Edit Workspace</DialogTitle>
-              <DialogDescription>
-                Update workspace information
+              <DialogTitle className={language === 'ar' ? 'text-arabic' : ''}>{t('workspace.details.edit')}</DialogTitle>
+              <DialogDescription className={language === 'ar' ? 'text-arabic' : ''}>
+                {t('workspace.details.editDescription')}
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Title</label>
+                <label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('workspace.details.form.title')}
+                </label>
                 <Input
                   value={editForm.title}
                   onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Workspace title"
+                  placeholder={t('workspace.details.form.titlePlaceholder')}
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium">Description</label>
+                <label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('workspace.details.form.description')}
+                </label>
                 <Textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Workspace description"
+                  placeholder={t('workspace.details.form.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium">Priority</label>
+                <label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('workspace.details.form.priority')}
+                </label>
                 <Select value={editForm.priority} onValueChange={(value: 'High' | 'Normal' | 'Low') => setEditForm(prev => ({ ...prev, priority: value }))}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select priority" />
+                    <SelectValue placeholder={t('workspace.details.form.selectPriority')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Normal">Normal</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="High">{t('workspace.details.priorityLevels.high')}</SelectItem>
+                    <SelectItem value="Normal">{t('workspace.details.priorityLevels.normal')}</SelectItem>
+                    <SelectItem value="Low">{t('workspace.details.priorityLevels.low')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <label className="text-sm font-medium">Status</label>
+                <label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('workspace.details.form.status')}
+                </label>
                 <Select value={editForm.status} onValueChange={(value: 'Open' | 'Closed' | 'Archived') => setEditForm(prev => ({ ...prev, status: value }))}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t('workspace.details.form.selectStatus')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Open">Open</SelectItem>
-                    <SelectItem value="Closed">Closed</SelectItem>
-                    <SelectItem value="Archived">Archived</SelectItem>
+                    <SelectItem value="Open">{t('workspace.details.statusTypes.open')}</SelectItem>
+                    <SelectItem value="Closed">{t('workspace.details.statusTypes.closed')}</SelectItem>
+                    <SelectItem value="Archived">{t('workspace.details.statusTypes.archived')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -451,10 +477,10 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
+                {t('workspace.details.form.cancel')}
               </Button>
               <Button onClick={handleSaveEdit}>
-                Save Changes
+                {t('workspace.details.form.saveChanges')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -464,33 +490,31 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                Confirm Delete {deleteTarget?.type === 'workspace' ? 'Workspace' : 
-                              deleteTarget?.type === 'chatTopic' ? 'Chat Topic' : 'Document'}
-              </DialogTitle>
-              <DialogDescription>
+              <DialogTitle className={language === 'ar' ? 'text-arabic' : ''}>{t('workspace.details.deleteConfirmation.confirmTitle')} {deleteTarget?.type === 'workspace' ? t('workspace.details.deleteConfirmation.workspace') : 
+                              deleteTarget?.type === 'chatTopic' ? t('workspace.details.deleteConfirmation.chatTopic') : t('workspace.details.deleteConfirmation.document')}</DialogTitle>
+              <DialogDescription className={language === 'ar' ? 'text-arabic' : ''}>
                 {deleteTarget?.type === 'workspace' ? (
                   <>
-                    Are you sure you want to delete the workspace &ldquo;{deleteTarget.title}&rdquo;?
+                    {t('workspace.details.deleteConfirmation.workspaceConfirm')} &ldquo;{deleteTarget.title}&rdquo;?
                     <br />
                     <span className="text-red-600 font-medium">
-                      This will permanently delete all associated chat topics, documents, and conversations.
+                      {t('workspace.details.deleteConfirmation.workspaceWarning')}
                     </span>
                   </>
                 ) : deleteTarget?.type === 'chatTopic' ? (
                   <>
-                    Are you sure you want to delete the chat topic &ldquo;{deleteTarget.title}&rdquo;?
+                    {t('workspace.details.deleteConfirmation.chatTopicConfirm')} &ldquo;{deleteTarget.title}&rdquo;?
                     <br />
                     <span className="text-red-600 font-medium">
-                      This will permanently delete all messages in this conversation.
+                      {t('workspace.details.deleteConfirmation.chatTopicWarning')}
                     </span>
                   </>
                 ) : (
                   <>
-                    Are you sure you want to delete the document &ldquo;{deleteTarget?.title}&rdquo;?
+                    {t('workspace.details.deleteConfirmation.documentConfirm')} &ldquo;{deleteTarget?.title}&rdquo;?
                     <br />
                     <span className="text-red-600 font-medium">
-                      This action cannot be undone.
+                      {t('workspace.details.deleteConfirmation.documentWarning')}
                     </span>
                   </>
                 )}
@@ -505,11 +529,11 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
                   setDeleteTarget(null);
                 }}
               >
-                Cancel
+                {t('workspace.details.form.cancel')}
               </Button>
               <Button variant="destructive" onClick={confirmDelete}>
-                Delete {deleteTarget?.type === 'workspace' ? 'Workspace' : 
-                       deleteTarget?.type === 'chatTopic' ? 'Topic' : 'Document'}
+                {t('workspace.details.deleteConfirmation.action')} {deleteTarget?.type === 'workspace' ? t('workspace.details.deleteConfirmation.workspace') : 
+                       deleteTarget?.type === 'chatTopic' ? t('workspace.details.deleteConfirmation.topic') : t('workspace.details.deleteConfirmation.document')}
               </Button>
             </DialogFooter>
           </DialogContent>

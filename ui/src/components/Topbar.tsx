@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   MdMenu,
   MdLanguage,
@@ -17,11 +17,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
-  const [language, setLanguage] = useState<'en' | 'ar'>('en');
-
-  const toggleLanguage = () => {
-    setLanguage(prev => prev === 'en' ? 'ar' : 'en');
-  };
+  const { language, toggleLanguage, t, dir } = useLanguage();
 
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
@@ -45,7 +41,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               height={32} 
               className="hidden lg:flex w-8 h-8 object-contain"
             />
-            <span className="text-sm lg:text-xl font-bold text-foreground">Bayyena</span>
+            <span className={`text-sm lg:text-xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+              {language === 'ar' ? 'بيينة' : 'Bayyena'}
+            </span>
           </div>
         </div>
       </div>
@@ -57,7 +55,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           size="sm"
           className="h-8 w-8 rounded-full"
           onClick={toggleLanguage}
-          title={`Switch to ${language === 'en' ? 'Arabic' : 'English'}`}
+          title={t(language === 'en' ? 'topbar.switchToArabic' : 'topbar.switchToEnglish')}
         >
           <MdLanguage className="h-4 w-4" />
         </Button>
@@ -67,7 +65,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           size="sm"
           className="h-8 w-8"
           onClick={toggleTheme}
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          title={t(theme === 'light' ? 'topbar.switchToDark' : 'topbar.switchToLight')}
         >
           {theme === 'light' ? (
             <MdDarkMode className="h-4 w-4" />

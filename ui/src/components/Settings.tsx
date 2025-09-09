@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from "@/contexts/AppContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   MdLightMode, 
   MdDarkMode,
@@ -23,6 +24,7 @@ import {
 export function Settings() {
   const { user, logout, loading, contextVersion } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t, dir } = useLanguage();
   const [retryCount, setRetryCount] = useState(0);
   
   console.log('Settings: Rendering with user:', user, 'loading:', loading, 'contextVersion:', contextVersion);
@@ -84,13 +86,17 @@ export function Settings() {
         <div className="max-w-4xl mx-auto p-6 space-y-8 bg-background min-h-screen">
           <div className="flex items-center gap-3 mb-8">
             <MdPerson className="h-6 w-6" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+            <h1 className={`text-2xl font-bold tracking-tight text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+              {t('settings.title')}
+            </h1>
           </div>
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-2 text-muted-foreground">Loading settings...</span>
+                <span className={`ml-2 text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('settings.loading')}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -106,69 +112,83 @@ export function Settings() {
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="flex items-center gap-3 mb-8">
         <MdPerson className="h-6 w-6" />
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className={`text-2xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+          {t('settings.title')}
+        </h1>
       </div>
 
       {/* User Profile Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
             <MdPerson className="h-5 w-5" />
-            Profile Information
+            {t('settings.profile')}
           </CardTitle>
-          <CardDescription>
-            Manage your account details and preferences
+          <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
+            {t('settings.profileDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Full Name</Label>
-              <p className="text-sm text-muted-foreground mt-1">
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.fullName')}
+              </Label>
+              <p className={`text-sm text-muted-foreground mt-1 ${language === 'ar' ? 'text-arabic' : ''}`}>
                 {actualUser?.fullName || (
                   <span className="text-orange-500 flex items-center gap-1">
-                    <span>Loading...</span>
+                    <span className={language === 'ar' ? 'text-arabic' : ''}>{t('common.loading')}</span>
                     <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-500"></div>
                   </span>
                 )}
               </p>
             </div>
             <div>
-              <Label className="text-sm font-medium">Email</Label>
-              <p className="text-sm text-muted-foreground mt-1">
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.email')}
+              </Label>
+              <p className={`text-sm text-muted-foreground mt-1 ${language === 'ar' ? 'text-arabic' : ''}`}>
                 {actualUser?.email || (
                   <span className="text-orange-500 flex items-center gap-1">
-                    <span>Loading...</span>
+                    <span className={language === 'ar' ? 'text-arabic' : ''}>{t('common.loading')}</span>
                     <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-500"></div>
                   </span>
                 )}
               </p>
             </div>
             <div>
-              <Label className="text-sm font-medium">Role</Label>
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.role')}
+              </Label>
               <div className="mt-1">
                 {actualUser?.role ? (
                   <Badge variant={actualUser.role === 'admin' ? 'default' : 'secondary'}>
-                    {actualUser.role === 'admin' ? 'Administrator' : 'User'}
+                    <span className={language === 'ar' ? 'text-arabic' : ''}>
+                      {actualUser.role === 'admin' ? t('settings.administrator') : t('settings.user')}
+                    </span>
                   </Badge>
                 ) : (
                   <span className="text-orange-500 flex items-center gap-1">
-                    <span>Loading...</span>
+                    <span className={language === 'ar' ? 'text-arabic' : ''}>{t('common.loading')}</span>
                     <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-500"></div>
                   </span>
                 )}
               </div>
             </div>
             <div>
-              <Label className="text-sm font-medium">Status</Label>
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.status')}
+              </Label>
               <div className="mt-1">
                 {actualUser?.isActive !== undefined ? (
                   <Badge variant={actualUser.isActive ? 'default' : 'secondary'}>
-                    {actualUser.isActive ? 'Active' : 'Inactive'}
+                    <span className={language === 'ar' ? 'text-arabic' : ''}>
+                      {actualUser.isActive ? t('settings.active') : t('settings.inactive')}
+                    </span>
                   </Badge>
                 ) : (
                   <span className="text-orange-500 flex items-center gap-1">
-                    <span>Loading...</span>
+                    <span className={language === 'ar' ? 'text-arabic' : ''}>{t('common.loading')}</span>
                     <div className="animate-spin rounded-full h-3 w-3 border-b border-orange-500"></div>
                   </span>
                 )}
@@ -182,12 +202,12 @@ export function Settings() {
       {actualUser?.role === 'admin' && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
               <MdSecurity className="h-5 w-5" />
-              Administration
+              {t('settings.administration')}
             </CardTitle>
-            <CardDescription>
-              Administrative functions and system management
+            <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
+              {t('settings.adminDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -197,14 +217,20 @@ export function Settings() {
                   <MdAdminPanelSettings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Admin Panel</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Access system administration features
+                  <h3 className={`font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                    {t('settings.adminPanel')}
+                  </h3>
+                  <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                    {t('settings.adminPanelDescription')}
                   </p>
                 </div>
               </div>
-              <Button onClick={handleAdminPanelAccess} variant="outline">
-                Open Admin Panel
+              <Button 
+                onClick={handleAdminPanelAccess} 
+                variant="outline"
+                className={language === 'ar' ? 'text-arabic' : ''}
+              >
+                {t('settings.openAdminPanel')}
               </Button>
             </div>
           </CardContent>
@@ -273,11 +299,11 @@ export function Settings() {
       {/* Account Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
             <MdSecurity className="h-5 w-5" />
             Account Security
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
             Manage your account security and session
           </CardDescription>
         </CardHeader>
@@ -288,18 +314,20 @@ export function Settings() {
                 <MdLogout className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="font-medium">Sign Out</h3>
-                <p className="text-sm text-muted-foreground">
-                  End your current session and return to login
+                <h3 className={`font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('settings.signOut')}
+                </h3>
+                <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                  {t('settings.signOutDescription')}
                 </p>
               </div>
             </div>
             <Button 
               onClick={handleSignOut} 
               variant="destructive"
-              className="bg-red-600 hover:bg-red-700"
+              className={`bg-red-600 hover:bg-red-700 ${language === 'ar' ? 'text-arabic' : ''}`}
             >
-              Sign Out
+              {t('settings.signOut')}
             </Button>
           </div>
         </CardContent>
@@ -308,37 +336,39 @@ export function Settings() {
       {/* Appearance Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
             <MdPalette className="h-5 w-5" />
-            Appearance
+            {t('settings.appearance')}
           </CardTitle>
-          <CardDescription>
-            Customize the look and feel of your workspace
+          <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
+            {t('settings.appearanceDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Theme</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose between light and dark themes
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.theme')}
+              </Label>
+              <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.themeDescription')}
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={toggleTheme}
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
             >
               {theme === 'light' ? (
                 <>
                   <MdDarkMode className="h-4 w-4" />
-                  Switch to Dark
+                  {t('settings.switchToDark')}
                 </>
               ) : (
                 <>
                   <MdLightMode className="h-4 w-4" />
-                  Switch to Light
+                  {t('settings.switchToLight')}
                 </>
               )}
             </Button>
@@ -348,14 +378,23 @@ export function Settings() {
           
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Language</Label>
-              <p className="text-sm text-muted-foreground">
-                Select your preferred language
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.language')}
+              </Label>
+              <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.languageDescription')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <MdLanguage className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">English (US)</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+                className={`${language === 'ar' ? 'text-arabic' : ''}`}
+              >
+                {language === 'en' ? t('settings.english') : t('settings.arabic')}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -364,23 +403,31 @@ export function Settings() {
       {/* App Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
             <MdInfo className="h-5 w-5" />
-            About
+            {t('settings.about')}
           </CardTitle>
-          <CardDescription>
-            Application information and support
+          <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
+            {t('settings.aboutDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Application Version</Label>
-              <p className="text-sm text-muted-foreground mt-1">Bayyena v1.0.0</p>
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.appVersion')}
+              </Label>
+              <p className={`text-sm text-muted-foreground mt-1 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.version')}
+              </p>
             </div>
             <div>
-              <Label className="text-sm font-medium">Last Updated</Label>
-              <p className="text-sm text-muted-foreground mt-1">September 2025</p>
+              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.lastUpdated')}
+              </Label>
+              <p className={`text-sm text-muted-foreground mt-1 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('settings.updateDate')}
+              </p>
             </div>
           </div>
         </CardContent>

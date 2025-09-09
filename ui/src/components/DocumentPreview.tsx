@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Document } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MdClose, MdDescription, MdImage, MdVideoFile, MdAudioFile, MdDownload } from "react-icons/md";
@@ -13,6 +14,8 @@ interface DocumentPreviewProps {
 }
 
 export function DocumentPreview({ document, workspaceId, onClose }: DocumentPreviewProps) {
+  const { language, t, dir } = useLanguage();
+  
   const getFileIcon = (type: string | undefined) => {
     if (!type) return <MdDescription className="h-5 w-5" />;
     if (type.startsWith('image/')) return <MdImage className="h-5 w-5" />;
@@ -48,19 +51,24 @@ export function DocumentPreview({ document, workspaceId, onClose }: DocumentPrev
           <div className="flex items-center gap-3">
             {getFileIcon(document.type)}
             <div>
-              <h3 className="font-medium truncate">{document.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                Uploaded {new Date(document.uploadedAt).toLocaleDateString()}
+              <h3 className={`font-medium truncate ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {document.name}
+              </h3>
+              <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('documents.uploadedOn')} {new Date(document.uploadedAt).toLocaleDateString()}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {workspaceId && (
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <MdDownload className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDownload}
+              className={language === 'ar' ? 'text-arabic' : ''}
+            >
+              <MdDownload className="h-4 w-4 mr-2" />
+              {t('documents.download')}
+            </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <MdClose className="h-4 w-4" />
             </Button>
@@ -74,8 +82,8 @@ export function DocumentPreview({ document, workspaceId, onClose }: DocumentPrev
               <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
                 {getFileIcon(document.type)}
               </div>
-              <p className="text-muted-foreground">
-                Unable to load document preview. Workspace context not available.
+              <p className={`text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('documents.unableToLoad')}
               </p>
             </div>
           ) : canPreview(document.type) ? (
@@ -101,7 +109,9 @@ export function DocumentPreview({ document, workspaceId, onClose }: DocumentPrev
               
               {document.type && document.type.startsWith('text/') && (
                 <div className="bg-muted p-4 rounded-lg">
-                  <pre className="text-sm whitespace-pre-wrap">{document.content || 'Content not available'}</pre>
+                  <pre className={`text-sm whitespace-pre-wrap ${language === 'ar' ? 'text-arabic' : ''}`}>
+                    {document.content || t('documents.contentNotAvailable')}
+                  </pre>
                 </div>
               )}
             </div>
@@ -110,13 +120,16 @@ export function DocumentPreview({ document, workspaceId, onClose }: DocumentPrev
               <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
                 {getFileIcon(document.type)}
               </div>
-              <p className="text-muted-foreground">
-                Preview not available for this file type
+              <p className={`text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                {t('documents.previewNotAvailable')}
               </p>
-              {/* <Button className="mt-4" onClick={handleDownload}>
+              <Button 
+                className={`mt-4 ${language === 'ar' ? 'text-arabic' : ''}`} 
+                onClick={handleDownload}
+              >
                 <MdDownload className="h-4 w-4 mr-2" />
-                Download File
-              </Button> */}
+                {t('documents.downloadFile')}
+              </Button>
             </div>
           )}
         </div>
