@@ -15,16 +15,20 @@ router.use(isAuthenticated);
 // POST /api/chat/:caseId
 router.post('/:caseId', async (req, res, next) => {
     const caseId = parseInt(req.params.caseId);
-    const { message } = req.body;
+    const { message, topicId } = req.body;
     if (!message) return res.status(400).json({ message: 'Message is required.' });
 
     try {
         // Get case documents if available
         const caseDocs = await db.select().from(documents).where(and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED')));
         
-        // Get conversation history for context
+        // Get conversation history for context - filter by topicId if provided
+        const chatHistoryCondition = topicId 
+            ? and(eq(chatMessages.caseId, caseId), eq(chatMessages.topicId, topicId))
+            : eq(chatMessages.caseId, caseId);
+            
         const chatHistory = await db.select().from(chatMessages)
-            .where(eq(chatMessages.caseId, caseId))
+            .where(chatHistoryCondition)
             .orderBy(asc(chatMessages.createdAt))
             .limit(20); // Last 20 messages for context
 
@@ -476,12 +480,36 @@ USER QUERY: “${message}”`;
         const result = await model.generateContent(prompt);
         const answer = result.response.text();
 
-        await db.insert(chatMessages).values([
-            { caseId, sender: 'user', text: message },
-            { caseId, sender: 'bot', text: answer },
-        ]);
+        // Prepare message data with topicId if provided
+        const userMessageData = {
+            caseId,
+            sender: 'user' as const,
+            text: message,
+            ...(topicId && { topicId })
+        };
+            
+        const botMessageData = {
+            caseId,
+            sender: 'bot' as const,
+            text: answer,
+            ...(topicId && { topicId })
+        };
 
-        res.status(200).json({ answer });
+        const insertedMessages = await db.insert(chatMessages).values([
+            userMessageData,
+            botMessageData,
+        ]).returning();
+
+        // Return the user message that was just saved, with transformed sender
+        const userMessage = insertedMessages.find((msg:any) => msg.sender === 'user');
+        if (userMessage) {
+            res.status(200).json({
+                ...userMessage,
+                sender: 'USER' // Transform 'user' to 'USER' for frontend compatibility
+            });
+        } else {
+            res.status(500).json({ message: 'Failed to save user message' });
+        }
     } catch (err) {
         console.error("Gemini chat error:", err);
         next(err);
@@ -489,20 +517,33 @@ USER QUERY: “${message}”`;
 });
 
 // GET /api/chat/:caseId/history
-router.get('/:caseId/history', async (req, res, next) => {
+router.get('/:caseId/history', async (req:any, res:any, next:any) => {
     const caseId = parseInt(req.params.caseId);
+    const topicId = req.query.topicId ? parseInt(req.query.topicId) : null;
+    
     if (isNaN(caseId)) return res.status(400).json({ message: 'Invalid Case ID.' });
 
     try {
-        const history = await db.select().from(chatMessages).where(eq(chatMessages.caseId, caseId)).orderBy(asc(chatMessages.createdAt));
-        res.status(200).json(history);
+        // Filter by both caseId and topicId if topicId is provided
+        const whereCondition = topicId 
+            ? and(eq(chatMessages.caseId, caseId), eq(chatMessages.topicId, topicId))
+            : eq(chatMessages.caseId, caseId);
+            
+        const history = await db.select().from(chatMessages).where(whereCondition).orderBy(asc(chatMessages.createdAt));
+        
+        // Transform sender values for frontend compatibility
+        const transformedHistory = history.map((msg:any) => ({
+            ...msg,
+            sender: msg.sender === 'user' ? 'USER' : msg.sender === 'bot' ? 'AI' : msg.sender
+        }));
+        res.status(200).json(transformedHistory);
     } catch (err) {
         next(err);
     }
 });
 
 // DELETE /api/chat/:caseId/history
-router.delete('/:caseId/history', async (req, res, next) => {
+router.delete('/:caseId/history', async (req:any, res:any, next:any) => {
     const caseId = parseInt(req.params.caseId);
     if (isNaN(caseId)) return res.status(400).json({ message: 'Invalid Case ID.' });
 

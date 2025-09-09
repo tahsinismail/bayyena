@@ -29,6 +29,20 @@
       "when": 1756378648206,
       "tag": "0003_acoustic_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757276950986,
+      "tag": "0004_bitter_exiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1757288839838,
+      "tag": "0005_strange_invisible_woman",
+      "breakpoints": true
     }
   ]
 }

@@ -6,11 +6,13 @@ import passport from 'passport';
 import connectPgSimple from 'connect-pg-simple';
 import { Pool } from 'pg';
 import path from 'path';
+import fs from 'fs';
 
 import authRoutes from './routes/auth';
 import caseRoutes from './routes/cases';
 import documentRoutes from './routes/documents';
 import chatRoutes from './routes/chat';
+import chatTopicsRoutes from './routes/chatTopics';
 import documentDetailRoutes from './routes/documentDetail';
 import queueRoutes from './routes/queue';
 import timelineRoutes from './routes/timeline';
@@ -29,10 +31,16 @@ const port = parseInt(process.env.PORT || '3001', 10);
 const PgStore = connectPgSimple(session);
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(uploadsDir));
 app.use(
   session({
     store: new PgStore({ pool: pool, tableName: 'user_sessions' }),
@@ -111,6 +119,7 @@ app.use('/api/cases', timelineRoutes); // Timeline events are nested under cases
 app.use('/api/cases', documentRoutes); // Documents are nested under cases
 app.use('/api/documents', documentDetailRoutes); // Individual document operations
 app.use('/api/chat', chatRoutes);
+app.use('/api/chat-topics', chatTopicsRoutes); // Chat topics management
 app.use('/api/queue', queueRoutes); // Queue management and monitoring
 app.use('/api/admin', adminRoutes); // Admin panel routes
 

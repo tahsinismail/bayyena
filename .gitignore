@@ -1,6 +1,23 @@
 node_modules/
 dist/
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 docker-compose.yml
 production_config/
 *.md
+
+# Next.js build output
+.next/
+out/
+
+# UI specific
+ui/node_modules/
+ui/.next/
+ui/out/
+
+# Frontend (legacy)
+frontend/node_modules/
+frontend/dist/

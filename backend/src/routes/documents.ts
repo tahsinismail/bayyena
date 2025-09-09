@@ -281,9 +281,12 @@ router.post('/:caseId/documents', upload.single('document'), async (req, res, ne
       message: 'Document uploaded successfully.',
       document: {
         id: newDocument.id,
-        fileName: newDocument.fileName,
-        fileType: newDocument.fileType,
+        caseId: newDocument.caseId,
+        fileName: file.filename, // The stored filename with timestamp
+        originalName: newDocument.fileName, // The original user filename
+        mimeType: newDocument.fileType,
         fileSize: newDocument.fileSize,
+        extractedText: finalDocument[0]?.extractedText,
         processingStatus: finalDocument[0]?.processingStatus || newDocument.processingStatus,
         createdAt: newDocument.createdAt
       }
@@ -462,6 +465,101 @@ router.get('/:caseId/documents/:docId/display-name', async (req, res, next) => {
 
     const displayName = sanitize(translated) || baseName;
     return res.status(200).json({ displayName });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /:caseId/documents/:docId/preview - Preview a document
+router.get('/:caseId/documents/:docId/preview', async (req, res, next) => {
+  const caseId = parseInt(req.params.caseId);
+  const docId = parseInt(req.params.docId);
+
+  if (isNaN(caseId) || isNaN(docId)) {
+    return res.status(400).json({ message: 'Invalid case or document ID.' });
+  }
+
+  try {
+    const docResult = await db.select().from(documents).where(
+      and(eq(documents.id, docId), eq(documents.caseId, caseId))
+    );
+    
+    if (docResult.length === 0) {
+      return res.status(404).json({ message: 'Document not found in this case.' });
+    }
+
+    const document = docResult[0];
+    // Convert storage path back to filesystem path
+    const relativePath = document.storagePath.replace(/^\/uploads\//, 'uploads/');
+    const filePath = path.resolve(relativePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'File not found on storage.' });
+    }
+
+    // Set appropriate headers for different file types
+    const fileType = document.fileType;
+    
+    if (fileType.startsWith('image/')) {
+      res.setHeader('Content-Type', fileType);
+    } else if (fileType === 'application/pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+    } else if (fileType.startsWith('text/')) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    } else {
+      // For other file types, send as downloadable
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    }
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /:caseId/documents/:docId/download - Download a document
+router.get('/:caseId/documents/:docId/download', async (req, res, next) => {
+  const caseId = parseInt(req.params.caseId);
+  const docId = parseInt(req.params.docId);
+
+  if (isNaN(caseId) || isNaN(docId)) {
+    return res.status(400).json({ message: 'Invalid case or document ID.' });
+  }
+
+  try {
+    const docResult = await db.select().from(documents).where(
+      and(eq(documents.id, docId), eq(documents.caseId, caseId))
+    );
+    
+    if (docResult.length === 0) {
+      return res.status(404).json({ message: 'Document not found in this case.' });
+    }
+
+    const document = docResult[0];
+    // Convert storage path back to filesystem path
+    const relativePath = document.storagePath.replace(/^\/uploads\//, 'uploads/');
+    const filePath = path.resolve(relativePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'File not found on storage.' });
+    }
+
+    // Set headers for download
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    res.setHeader('Content-Length', document.fileSize.toString());
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
   } catch (err) {
     next(err);
   }

@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log*
+.next
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.DS_Store
+*.tgz
+*.tar.gz
+README.md
+.git
+.gitignore
+Dockerfile
+.dockerignore

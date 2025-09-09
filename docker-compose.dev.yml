@@ -1,0 +1,24 @@
+# Development overrides for docker-compose
+services:
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      target: build
+    command: npm run dev
+    volumes:
+      - ./ui:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_API_URL=http://localhost/api
+    ports:
+      - "3000:3000"
+
+  backend:
+    volumes:
+      - ./backend:/app
+      - /app/node_modules

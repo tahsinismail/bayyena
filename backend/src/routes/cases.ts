@@ -1,8 +1,8 @@
 // backend/src/routes/cases.ts
 import { Router } from 'express';
 import { db } from '../db';
-import { cases, users, documents } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { cases, users, documents, chatMessages } from '../db/schema';
+import { eq, and, count, gte } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
 import fs from 'fs';
 import path from 'path';
@@ -15,6 +15,97 @@ const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL! });
 
 // Use the middleware for all routes in this file
 router.use(isAuthenticated);
+
+// GET /api/cases/dashboard-stats - Get dashboard statistics for the logged-in user
+router.get('/dashboard-stats', async (req, res, next) => {
+  const user = req.user as typeof users.$inferSelect;
+  try {
+    // Get total cases count for this user
+    const totalCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(eq(cases.userId, user.id));
+    const totalCases = totalCasesResult[0]?.count || 0;
+
+    // Get cases by priority
+    const highPriorityCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(and(eq(cases.userId, user.id), eq(cases.priority, 'High')));
+    const highPriorityCases = highPriorityCasesResult[0]?.count || 0;
+
+    const normalPriorityCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(and(eq(cases.userId, user.id), eq(cases.priority, 'Normal')));
+    const normalPriorityCases = normalPriorityCasesResult[0]?.count || 0;
+
+    const lowPriorityCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(and(eq(cases.userId, user.id), eq(cases.priority, 'Low')));
+    const lowPriorityCases = lowPriorityCasesResult[0]?.count || 0;
+
+    // Get cases by status
+    const openCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(and(eq(cases.userId, user.id), eq(cases.status, 'Open')));
+    const openCases = openCasesResult[0]?.count || 0;
+
+    const closedCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(and(eq(cases.userId, user.id), eq(cases.status, 'Closed')));
+    const closedCases = closedCasesResult[0]?.count || 0;
+
+    // Get total documents across all user's cases
+    const totalDocumentsResult = await db.select({ count: count() })
+      .from(documents)
+      .innerJoin(cases, eq(documents.caseId, cases.id))
+      .where(eq(cases.userId, user.id));
+    const totalDocuments = totalDocumentsResult[0]?.count || 0;
+
+    // Get processed documents
+    const processedDocumentsResult = await db.select({ count: count() })
+      .from(documents)
+      .innerJoin(cases, eq(documents.caseId, cases.id))
+      .where(and(eq(cases.userId, user.id), eq(documents.processingStatus, 'PROCESSED')));
+    const processedDocuments = processedDocumentsResult[0]?.count || 0;
+
+    // Get recent cases (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const recentCasesResult = await db.select({ count: count() })
+      .from(cases)
+      .where(and(eq(cases.userId, user.id), gte(cases.createdAt, sevenDaysAgo)));
+    const recentCases = recentCasesResult[0]?.count || 0;
+
+    // Get recent chat messages (last 7 days) across all user's cases
+    const recentMessagesResult = await db.select({ count: count() })
+      .from(chatMessages)
+      .innerJoin(cases, eq(chatMessages.caseId, cases.id))
+      .where(and(eq(cases.userId, user.id), gte(chatMessages.createdAt, sevenDaysAgo)));
+    const recentMessages = recentMessagesResult[0]?.count || 0;
+
+    res.json({
+      totalCases,
+      casesByPriority: {
+        high: highPriorityCases,
+        normal: normalPriorityCases,
+        low: lowPriorityCases
+      },
+      casesByStatus: {
+        open: openCases,
+        closed: closedCases
+      },
+      totalDocuments,
+      processedDocuments,
+      recentActivity: {
+        recentCases,
+        recentMessages
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching user dashboard stats:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 // GET /api/cases - Get all cases for the logged-in user
 router.get('/', async (req, res, next) => {
@@ -30,12 +121,10 @@ router.get('/', async (req, res, next) => {
 // POST /api/cases - Create a new case
 router.post('/', async (req, res, next) => {
     const user = req.user as typeof users.$inferSelect;
-    const { title, description, type } = req.body;
+    const { title, description, priority } = req.body;
 
-    // Only type is required now, title defaults to "Untitled"
-    if (!type) {
-        return res.status(400).json({ message: 'Matter type is required.' });
-    }
+    // Priority defaults to "Normal" if not provided
+    const casePriority = priority || 'Normal';
 
     // Generate a unique case number (simple version)
     const caseNumber = `MATTER-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -44,7 +133,7 @@ router.post('/', async (req, res, next) => {
         const newCase = await db.insert(cases).values({
             title: title || 'Untitled',
             description: description || '',
-            type,
+            priority: casePriority,
             userId: user.id,
             caseNumber,
         }).returning();
@@ -134,8 +223,8 @@ router.patch('/:id/status', async (req, res, next) => {
         return res.status(400).json({ message: 'Invalid matter ID.' });
     }
 
-    if (!status || !['Open', 'Closed', 'Pending', 'Archived'].includes(status)) {
-        return res.status(400).json({ message: 'Valid status is required. Must be one of: Open, Closed, Pending, Archived' });
+    if (!status || !['Open', 'Closed', 'Archived'].includes(status)) {
+        return res.status(400).json({ message: 'Valid status is required. Must be one of: Open, Closed, Archived' });
     }
 
     try {
@@ -163,18 +252,18 @@ router.patch('/:id/status', async (req, res, next) => {
     }
 });
 
-// PATCH /api/cases/:id - Update case title, description, and type
+// PATCH /api/cases/:id - Update case title, description, priority, and status
 router.patch('/:id', async (req, res, next) => {
     const user = req.user as typeof users.$inferSelect;
     const caseId = parseInt(req.params.id);
-    const { title, description, type } = req.body;
+    const { title, description, priority, status } = req.body;
 
     if (isNaN(caseId)) {
         return res.status(400).json({ message: 'Invalid matter ID.' });
     }
 
-    if (!title && !description && !type) {
-        return res.status(400).json({ message: 'At least title, description, or type must be provided.' });
+    if (!title && !description && !priority && !status) {
+        return res.status(400).json({ message: 'At least title, description, priority, or status must be provided.' });
     }
 
     try {
@@ -191,7 +280,8 @@ router.patch('/:id', async (req, res, next) => {
         const updateData: any = { updatedAt: new Date() };
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
-        if (type !== undefined) updateData.type = type;
+        if (priority !== undefined) updateData.priority = priority;
+        if (status !== undefined) updateData.status = status;
 
         // Update the case
         const updatedCase = await db.update(cases)
@@ -205,28 +295,25 @@ router.patch('/:id', async (req, res, next) => {
     }
 });
 
-// Helper: Normalize AI case type to one of our allowed enums
-const ALLOWED_CASE_TYPES = ['Civil Dispute', 'Criminal Defense', 'Family Law', 'Intellectual Property', 'Corporate Law', 'Other'] as const;
-type AllowedCaseType = typeof ALLOWED_CASE_TYPES[number];
+// Helper: Normalize AI priority to one of our allowed enums
+const ALLOWED_PRIORITIES = ['High', 'Normal', 'Low'] as const;
+type AllowedPriority = typeof ALLOWED_PRIORITIES[number];
 
-function mapToAllowedCaseType(raw: string | undefined): AllowedCaseType {
-  if (!raw) return 'Other';
+function mapToAllowedPriority(raw: string | undefined): AllowedPriority {
+  if (!raw) return 'Normal';
   const value = raw.trim().toLowerCase();
   // Direct matches
-  for (const allowed of ALLOWED_CASE_TYPES) {
+  for (const allowed of ALLOWED_PRIORITIES) {
     if (allowed.toLowerCase() === value) return allowed;
   }
   // Heuristic mapping for common synonyms
-  if (/(contract|tort|civil|breach|negligence|damages|property dispute)/i.test(raw)) return 'Civil Dispute';
-  if (/(criminal|felony|misdemeanor|prosecution|defense|arrest|indictment)/i.test(raw)) return 'Criminal Defense';
-  if (/(family|divorce|custody|alimony|marriage|guardianship|adoption)/i.test(raw)) return 'Family Law';
-  if (/(trademark|patent|copyright|ip|intellectual property|licensing)/i.test(raw)) return 'Intellectual Property';
-  if (/(corporate|shareholder|merger|acquisition|company|director|officer)/i.test(raw)) return 'Corporate Law';
-  return 'Other';
+  if (/(urgent|critical|high|important|immediate|rush|emergency)/i.test(raw)) return 'High';
+  if (/(low|minor|routine|standard|regular|simple)/i.test(raw)) return 'Low';
+  return 'Normal';
 }
 
 // Helper: Fallback generation when AI fails
-function basicFallbackFromDocs(docs: Array<{ fileName: string; summary?: string; extractedText?: string }>): { title: string; description: string; type: AllowedCaseType } {
+function basicFallbackFromDocs(docs: Array<{ fileName: string; summary?: string; extractedText?: string }>): { title: string; description: string; priority: AllowedPriority } {
   const docCount = docs.length;
   const firstDoc = docs[0];
   const baseTitle = firstDoc?.fileName?.replace(/[_-]+/g, ' ').replace(/\.[a-zA-Z0-9]+$/, '') || 'Matter';
@@ -235,15 +322,12 @@ function basicFallbackFromDocs(docs: Array<{ fileName: string; summary?: string;
   const description = snippet
     ? `${snippet}${snippet.endsWith('.') ? '' : '...'}`
     : `This matter involves ${docCount} document${docCount > 1 ? 's' : ''} under review.`;
-  // Very light heuristic for type
+  // Very light heuristic for priority
   const textAll = docs.map(d => `${d.summary || ''} ${d.extractedText || ''}`).join(' ').toLowerCase();
-  let type: AllowedCaseType = 'Other';
-  if (/(contract|civil|negligence|dispute)/.test(textAll)) type = 'Civil Dispute';
-  else if (/(criminal|prosecution|defense|arrest)/.test(textAll)) type = 'Criminal Defense';
-  else if (/(divorce|custody|family)/.test(textAll)) type = 'Family Law';
-  else if (/(patent|trademark|copyright|intellectual property|licensing)/.test(textAll)) type = 'Intellectual Property';
-  else if (/(corporate|shareholder|merger|acquisition|board)/.test(textAll)) type = 'Corporate Law';
-  return { title, description, type };
+  let priority: AllowedPriority = 'Normal';
+  if (/(urgent|critical|emergency|immediate|asap|rush|high priority)/.test(textAll)) priority = 'High';
+  else if (/(routine|simple|basic|standard|low priority|minor)/.test(textAll)) priority = 'Low';
+  return { title, description, priority };
 }
 
 // POST /api/cases/:id/auto-generate - Auto-generate case title and description based on documents
@@ -307,35 +391,32 @@ Generate a concise, professional case title, a 1–2 sentence description, and t
 REQUIREMENTS:
 1. Title: Should be 3-8 words, professional, and clearly indicate the nature of the legal matter
 2. Description: Should be 1-2 sentences, professional, and provide a brief overview of the case
- 3. Type: Choose the most appropriate case type from the available options (must match exactly)
+3. Priority: Choose the most appropriate priority level (High, Normal, or Low) based on urgency and importance
 4. Use legal terminology appropriately
 5. Be specific about the type of legal issue (contract dispute, personal injury, family law, etc.)
 6. Avoid overly technical jargon that would confuse non-lawyers
 
-AVAILABLE CASE TYPES:
-- Civil Dispute
-- Criminal Defense
-- Family Law
-- Intellectual Property
-- Corporate Law
-- Other
+AVAILABLE PRIORITIES:
+- High: Urgent matters requiring immediate attention (deadlines, emergencies, court dates)
+- Normal: Standard legal matters with typical timelines
+- Low: Routine matters or long-term projects
 
 DOCUMENT SUMMARIES:
 ${documentSummaries}
 
-CURRENT CASE TYPE: ${currentCase.type}
+CURRENT CASE PRIORITY: ${currentCase.priority}
 
 Respond ONLY with minified JSON (no markdown, no code fences):
 {
   "title": "Generated professional case title",
   "description": "Generated professional case description",
-  "type": "Most appropriate case type from the available options"
+  "priority": "Most appropriate priority level (High, Normal, or Low)"
 }`;
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
-        let generatedData: { title?: string; description?: string; type?: string } = {};
+        let generatedData: { title?: string; description?: string; priority?: string } = {};
         try {
             generatedData = JSON.parse(responseText);
         } catch (parseError) {
@@ -343,10 +424,10 @@ Respond ONLY with minified JSON (no markdown, no code fences):
         }
 
         // Validate and normalize outputs; fallback if missing/invalid
-        const mappedType = mapToAllowedCaseType(generatedData.type) || currentCase.type as AllowedCaseType;
+        const mappedPriority = mapToAllowedPriority(generatedData.priority) || currentCase.priority as AllowedPriority;
         let finalTitle = (generatedData.title || '').trim();
         let finalDescription = (generatedData.description || '').trim();
-        let finalType: AllowedCaseType = mapToAllowedCaseType(mappedType);
+        let finalPriority: AllowedPriority = mapToAllowedPriority(mappedPriority);
 
         if (!finalTitle || !finalDescription) {
             const fallback = basicFallbackFromDocs(caseDocs.map(d => ({
@@ -356,20 +437,20 @@ Respond ONLY with minified JSON (no markdown, no code fences):
             })));
             finalTitle = finalTitle || fallback.title;
             finalDescription = finalDescription || fallback.description;
-            if (!finalType) finalType = fallback.type;
+            if (!finalPriority) finalPriority = fallback.priority;
         }
 
-        // Ensure type belongs to our enum; if not, pick Other
-        if (!ALLOWED_CASE_TYPES.includes(finalType)) {
-            finalType = 'Other';
+        // Ensure priority belongs to our enum; if not, pick Normal
+        if (!ALLOWED_PRIORITIES.includes(finalPriority)) {
+            finalPriority = 'Normal';
         }
 
-        // Update the case with generated title, description, and type (mapped)
+        // Update the case with generated title, description, and priority (mapped)
         const updatedCase = await db.update(cases)
             .set({
                 title: finalTitle,
                 description: finalDescription,
-                type: finalType,
+                priority: finalPriority,
                 updatedAt: new Date()
             })
             .where(eq(cases.id, caseId))
@@ -377,7 +458,7 @@ Respond ONLY with minified JSON (no markdown, no code fences):
 
         res.status(200).json({
             case: updatedCase[0],
-            generated: { title: finalTitle, description: finalDescription, type: finalType }
+            generated: { title: finalTitle, description: finalDescription, priority: finalPriority }
         });
     } catch (err) {
         console.error('Error auto-generating case data:', err);
