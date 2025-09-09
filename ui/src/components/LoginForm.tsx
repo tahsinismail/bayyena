@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Card } from '@/components/ui/card';
 
 interface LoginFormProps {
@@ -69,9 +70,8 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             <label htmlFor="password" className="text-sm font-medium">
               Password
             </label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"

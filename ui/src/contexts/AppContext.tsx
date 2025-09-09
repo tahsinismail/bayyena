@@ -59,7 +59,7 @@ interface AppContextType {
   
   // Auth methods
   login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string, phoneNumber?: string) => Promise<void>;
+  register: (fullName: string, email: string, password: string, phoneNumber?: string) => Promise<{ message?: string; accountPending?: boolean; userEmail?: string } | void>;
   logout: () => Promise<void>;
   
   // Workspace/Case methods
@@ -270,15 +270,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (fullName: string, email: string, password: string, phoneNumber?: string) => {
+  const register = async (fullName: string, email: string, password: string, phoneNumber?: string): Promise<{ message?: string; accountPending?: boolean; userEmail?: string } | void> => {
     try {
       setLoading(true);
       setError(null);
-      const userData = await apiService.register(fullName, email, password, phoneNumber);
-      setUser(userData);
-      await loadWorkspaces();
+      const result = await apiService.register(fullName, email, password, phoneNumber);
+      
+      // Check if the result has accountPending property (this means account is disabled)
+      if (result && (result as any).accountPending === true) {
+        // Account is pending, don't set user or load workspaces
+        return result as { message: string; accountPending: boolean; userEmail: string };
+      } else if (result && (result as any).user) {
+        // Account was created and auto-logged in (likely admin user)
+        setUser((result as any).user);
+        await loadWorkspaces();
+      } else {
+        // Fallback: assume it's a user object if no accountPending
+        setUser(result as AuthUser);
+        await loadWorkspaces();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);

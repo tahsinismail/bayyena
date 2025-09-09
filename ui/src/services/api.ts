@@ -92,7 +92,7 @@ class ApiService {
     return response.json();
   }
 
-  async register(fullName: string, email: string, password: string, phoneNumber?: string): Promise<AuthUser> {
+  async register(fullName: string, email: string, password: string, phoneNumber?: string): Promise<AuthUser | { message: string; accountPending: boolean; userEmail: string }> {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       credentials: 'include',
@@ -101,11 +101,17 @@ class ApiService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || 'Registration failed');
+      const errorText = await response.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.message || 'Registration failed');
+      } catch (parseError) {
+        throw new Error(errorText || 'Registration failed');
+      }
     }
 
-    return response.json();
+    const data = await response.json();
+    return data;
   }
 
   async logout(): Promise<void> {

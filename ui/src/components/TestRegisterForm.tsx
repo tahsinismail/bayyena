@@ -1,18 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
-import { useApp } from '@/contexts/AppContext';
 
-interface RegisterFormProps {
-  onSuccess?: () => void;
-  onSwitchToLogin?: () => void;
-}
-
-export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
+export function TestRegisterForm() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -21,102 +13,97 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
     phoneNumber: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [validationError, setValidationError] = useState('');
+  const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [accountPending, setAccountPending] = useState(false);
-
-  const { register, error } = useApp();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setValidationError('');
+    setError('');
     setSuccessMessage('');
-    setAccountPending(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setValidationError('');
+    setError('');
     setSuccessMessage('');
-    setAccountPending(false);
 
-    // Validation
+    // Basic validation
     if (!formData.fullName.trim()) {
-      setValidationError('Full name is required');
+      setError('Full name is required');
       setIsLoading(false);
       return;
     }
 
     if (!formData.email.includes('@')) {
-      setValidationError('Please enter a valid email address');
+      setError('Please enter a valid email address');
       setIsLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      setValidationError('Password must be at least 6 characters long');
+      setError('Password must be at least 6 characters long');
       setIsLoading(false);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setValidationError('Passwords do not match');
+      setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('RegisterForm: Starting registration...');
-      const result = await register(
-        formData.fullName,
-        formData.email,
-        formData.password,
-        formData.phoneNumber || undefined
-      );
+      console.log('TestRegisterForm: Making direct API call...');
       
-      console.log('RegisterForm: Registration result:', result);
-      
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber || undefined
+        }),
+      });
+
+      console.log('TestRegisterForm: Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Registration failed');
+      }
+
+      const result = await response.json();
+      console.log('TestRegisterForm: Response data:', result);
+
       // Check if account is pending approval
       if (result && result.accountPending === true) {
-        console.log('RegisterForm: Account is pending, setting success message');
-        const message = result.message || 'Thank you for creating your account! Your account is currently pending approval. Please contact our support team to activate your account and start using Bayyena.';
+        console.log('TestRegisterForm: Account is pending, showing success message');
         setAccountPending(true);
-        setSuccessMessage(message);
-        console.log('RegisterForm: State after setting - accountPending:', true, 'successMessage:', message);
-        console.log('RegisterForm: Success message set, component should re-render');
+        setSuccessMessage(result.message || 'Thank you for creating your account! Your account is currently pending approval. Please contact our support team to activate your account and start using Bayyena.');
       } else {
-        console.log('RegisterForm: Account was created and auto-logged in');
-        // Account was created and auto-logged in (likely admin user)
-        onSuccess?.();
+        console.log('TestRegisterForm: Account was created and auto-logged in');
+        setSuccessMessage('Account created and logged in successfully!');
       }
     } catch (err) {
-      console.error('RegisterForm: Registration error:', err);
-      // Error is handled by the AppContext and will be displayed via the error prop
+      console.error('TestRegisterForm: Registration error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Debug render state
-  console.log('RegisterForm: Render state - accountPending:', accountPending, 'successMessage:', successMessage, 'validationError:', validationError, 'appContextError:', error, 'isLoading:', isLoading);
-
   return (
     <div className="w-full max-w-md mx-auto space-y-6 p-6 bg-card border border-border rounded-lg">
       <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Image 
-            src="/logo.png" 
-            alt="Bayyena" 
-            width={40} 
-            height={40} 
-            className="w-10 h-10"
-          />
-          <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground">Test Registration</h1>
         <p className="text-sm text-muted-foreground">
-          Join Bayyena to manage your legal cases
+          Direct API test for pending account flow
         </p>
       </div>
 
@@ -131,7 +118,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             type="text"
             value={formData.fullName}
             onChange={handleInputChange}
-            placeholder="John Doe"
+            placeholder="Enter your full name"
             required
             disabled={isLoading}
           />
@@ -147,7 +134,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             type="email"
             value={formData.email}
             onChange={handleInputChange}
-            placeholder="john@example.com"
+            placeholder="Enter your email"
             required
             disabled={isLoading}
           />
@@ -155,7 +142,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
         <div className="space-y-2">
           <label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">
-            Phone Number
+            Phone Number (Optional)
           </label>
           <Input
             id="phoneNumber"
@@ -163,8 +150,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             type="tel"
             value={formData.phoneNumber}
             onChange={handleInputChange}
-            placeholder="+97455667788"
-            required
+            placeholder="Enter your phone number"
             disabled={isLoading}
           />
         </div>
@@ -173,9 +159,10 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           <label htmlFor="password" className="text-sm font-medium text-foreground">
             Password
           </label>
-          <PasswordInput
+          <Input
             id="password"
             name="password"
+            type="password"
             value={formData.password}
             onChange={handleInputChange}
             placeholder="Enter your password"
@@ -188,9 +175,10 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
             Confirm Password
           </label>
-          <PasswordInput
+          <Input
             id="confirmPassword"
             name="confirmPassword"
+            type="password"
             value={formData.confirmPassword}
             onChange={handleInputChange}
             placeholder="Confirm your password"
@@ -199,9 +187,9 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           />
         </div>
 
-        {!successMessage && (validationError || error) && (
-          <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-            {validationError || error}
+        {error && (
+          <div className="text-sm text-red-500 bg-red-50 border border-red-200 rounded p-3">
+            {error}
           </div>
         )}
 
@@ -233,7 +221,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           <div className="space-y-3">
             <Button
               type="button"
-              onClick={onSwitchToLogin}
+              onClick={() => alert('This would go to sign in')}
               className="w-full"
               variant="outline"
             >
@@ -242,19 +230,6 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           </div>
         )}
       </form>
-
-      {!accountPending && (
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={onSwitchToLogin}
-            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-            disabled={isLoading}
-          >
-            Already have an account? Sign in
-          </button>
-        </div>
-      )}
     </div>
   );
 }
