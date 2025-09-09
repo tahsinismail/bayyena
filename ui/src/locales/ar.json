@@ -23,6 +23,37 @@
     "switchToDark": "التبديل إلى الوضع المظلم",
     "switchToLight": "التبديل إلى الوضع المضيء"
   },
+  "auth": {
+    "signInTitle": "تسجيل الدخول",
+    "signUpTitle": "إنشاء حساب",
+    "signInToAccount": "تسجيل الدخول إلى حسابك",
+    "email": "البريد الإلكتروني",
+    "enterEmail": "أدخل بريدك الإلكتروني",
+    "password": "كلمة المرور",
+    "enterPassword": "أدخل كلمة المرور",
+    "signingIn": "جارٍ تسجيل الدخول...",
+    "signIn": "تسجيل الدخول",
+    "dontHaveAccount": "ليس لديك حساب؟ قم بالتسجيل",
+    "createAccount": "إنشاء حساب",
+    "joinBayyena": "انضم إلى بيِّنة لإدارة قضاياك القانونية",
+    "fullName": "الاسم الكامل",
+    "fullNamePlaceholder": "أحمد محمد",
+    "emailPlaceholder": "ahmed@example.com",
+    "phoneNumber": "رقم الهاتف",
+    "phoneNumberPlaceholder": "+97455667788",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "confirmPasswordPlaceholder": "أكد كلمة المرور",
+    "creatingAccount": "جارٍ إنشاء الحساب...",
+    "accountCreatedSuccessfully": "تم إنشاء الحساب بنجاح!",
+    "goToSignIn": "الذهاب إلى تسجيل الدخول",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟ سجل الدخول",
+    "validation": {
+      "fullNameRequired": "الاسم الكامل مطلوب",
+      "validEmailRequired": "يرجى إدخال عنوان بريد إلكتروني صالح",
+      "passwordMinLength": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين"
+    }
+  },
   "settings": {
     "title": "الإعدادات",
     "loading": "جارٍ تحميل الإعدادات...",

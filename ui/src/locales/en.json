@@ -23,6 +23,37 @@
     "switchToDark": "Switch to dark mode",
     "switchToLight": "Switch to light mode"
   },
+  "auth": {
+    "signInTitle": "Sign In",
+    "signUpTitle": "Sign Up",
+    "signInToAccount": "Sign in to your account",
+    "email": "Email",
+    "enterEmail": "Enter your email",
+    "password": "Password",
+    "enterPassword": "Enter your password",
+    "signingIn": "Signing in...",
+    "signIn": "Sign in",
+    "dontHaveAccount": "Don't have an account? Sign up",
+    "createAccount": "Create Account",
+    "joinBayyena": "Join Bayyena to manage your legal cases",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "John Doe",
+    "emailPlaceholder": "john@example.com",
+    "phoneNumber": "Phone Number",
+    "phoneNumberPlaceholder": "+97455667788",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "creatingAccount": "Creating Account...",
+    "accountCreatedSuccessfully": "Account Created Successfully!",
+    "goToSignIn": "Go to Sign In",
+    "alreadyHaveAccount": "Already have an account? Sign in",
+    "validation": {
+      "fullNameRequired": "Full name is required",
+      "validEmailRequired": "Please enter a valid email address",
+      "passwordMinLength": "Password must be at least 6 characters long",
+      "passwordsDoNotMatch": "Passwords do not match"
+    }
+  },
   "settings": {
     "title": "Settings",
     "loading": "Loading settings...",

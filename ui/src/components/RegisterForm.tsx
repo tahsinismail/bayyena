@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { useApp } from '@/contexts/AppContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSwitcher } from '@/components/ui/language-switcher';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -26,6 +28,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   const [accountPending, setAccountPending] = useState(false);
 
   const { register, error } = useApp();
+  const { language, t } = useLanguage();
+
+  // Helper functions for content direction detection
+  const getUITextClasses = () => {
+    return language === 'ar' ? 'text-arabic' : 'text-english';
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -44,25 +52,25 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
     // Validation
     if (!formData.fullName.trim()) {
-      setValidationError('Full name is required');
+      setValidationError(t('auth.validation.fullNameRequired'));
       setIsLoading(false);
       return;
     }
 
     if (!formData.email.includes('@')) {
-      setValidationError('Please enter a valid email address');
+      setValidationError(t('auth.validation.validEmailRequired'));
       setIsLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      setValidationError('Password must be at least 6 characters long');
+      setValidationError(t('auth.validation.passwordMinLength'));
       setIsLoading(false);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setValidationError('Passwords do not match');
+      setValidationError(t('auth.validation.passwordsDoNotMatch'));
       setIsLoading(false);
       return;
     }
@@ -104,7 +112,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6 p-6 bg-card border border-border rounded-lg">
-      <div className="text-center space-y-2">
+      {/* Language Switcher */}
+      <div className="flex justify-end">
+        <LanguageSwitcher variant="compact" />
+      </div>
+      
+      <div className="text-center space-y-2 flex flex-col gap-2 items-center justify-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Image 
             src="/logo.png" 
@@ -113,17 +126,17 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             height={40} 
             className="w-10 h-10"
           />
-          <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
+          <h1 className={`text-2xl font-bold text-foreground ${getUITextClasses()}`}>{t('auth.signUpTitle')}</h1>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Join Bayyena to manage your legal cases
+        <p className={`text-sm text-muted-foreground ${getUITextClasses()}`}>
+          {t('auth.joinBayyena')}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label htmlFor="fullName" className="text-sm font-medium text-foreground">
-            Full Name
+          <label htmlFor="fullName" className={`text-sm font-medium text-foreground ${getUITextClasses()}`}>
+            {t('auth.fullName')}
           </label>
           <Input
             id="fullName"
@@ -131,15 +144,15 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             type="text"
             value={formData.fullName}
             onChange={handleInputChange}
-            placeholder="John Doe"
+            placeholder={t('auth.fullNamePlaceholder')}
             required
             disabled={isLoading}
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-foreground">
-            Email
+          <label htmlFor="email" className={`text-sm font-medium text-foreground ${getUITextClasses()}`}>
+            {t('auth.email')}
           </label>
           <Input
             id="email"
@@ -147,15 +160,15 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             type="email"
             value={formData.email}
             onChange={handleInputChange}
-            placeholder="john@example.com"
+            placeholder={t('auth.emailPlaceholder')}
             required
             disabled={isLoading}
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">
-            Phone Number
+          <label htmlFor="phoneNumber" className={`text-sm font-medium text-foreground ${getUITextClasses()}`}>
+            {t('auth.phoneNumber')}
           </label>
           <Input
             id="phoneNumber"
@@ -163,37 +176,37 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             type="tel"
             value={formData.phoneNumber}
             onChange={handleInputChange}
-            placeholder="+97455667788"
+            placeholder={t('auth.phoneNumberPlaceholder')}
             required
             disabled={isLoading}
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium text-foreground">
-            Password
+          <label htmlFor="password" className={`text-sm font-medium text-foreground ${getUITextClasses()}`}>
+            {t('auth.password')}
           </label>
           <PasswordInput
             id="password"
             name="password"
             value={formData.password}
             onChange={handleInputChange}
-            placeholder="Enter your password"
+            placeholder={t('auth.enterPassword')}
             required
             disabled={isLoading}
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-            Confirm Password
+          <label htmlFor="confirmPassword" className={`text-sm font-medium text-foreground ${getUITextClasses()}`}>
+            {t('auth.confirmPassword')}
           </label>
           <PasswordInput
             id="confirmPassword"
             name="confirmPassword"
             value={formData.confirmPassword}
             onChange={handleInputChange}
-            placeholder="Confirm your password"
+            placeholder={t('auth.confirmPasswordPlaceholder')}
             required
             disabled={isLoading}
           />
@@ -212,8 +225,8 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                 ✓
               </div>
               <div>
-                <p className="font-medium">Account Created Successfully!</p>
-                <p className="mt-1">{successMessage}</p>
+                <p className={`font-medium ${getUITextClasses()}`}>{t('auth.accountCreatedSuccessfully')}</p>
+                <p className={`mt-1 ${getUITextClasses()}`}>{successMessage}</p>
               </div>
             </div>
           </div>
@@ -225,7 +238,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
+            {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </Button>
         )}
 
@@ -237,7 +250,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
               className="w-full"
               variant="outline"
             >
-              Go to Sign In
+              {t('auth.goToSignIn')}
             </Button>
           </div>
         )}
@@ -248,10 +261,10 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            className={`text-sm text-blue-600 hover:text-blue-800 hover:underline ${getUITextClasses()}`}
             disabled={isLoading}
           >
-            Already have an account? Sign in
+            {t('auth.alreadyHaveAccount')}
           </button>
         </div>
       )}
