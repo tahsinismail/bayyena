@@ -21,10 +21,9 @@ export function ChatMessages() {
   };
 
   const getUserContentClasses = (content: string) => {
-    // Detect if content contains Arabic characters
-    const arabicRegex = /[\u0600-\u06FF]/;
-    const isArabicContent = arabicRegex.test(content);
-    return isArabicContent ? 'text-arabic' : 'text-english';
+    // For bidirectional text support, we'll use CSS dir="auto" instead of manual detection
+    // This allows English and Arabic to follow their natural directions within the same sentence
+    return 'text-content'; // Use a neutral class for content
   };
 
   // Show welcome screen if no workspace is selected
@@ -78,10 +77,9 @@ function MessageBubble({ message }: { message: Message }) {
   };
 
   const getUserContentClasses = (content: string) => {
-    // Detect if content contains Arabic characters
-    const arabicRegex = /[\u0600-\u06FF]/;
-    const isArabicContent = arabicRegex.test(content);
-    return isArabicContent ? 'text-arabic' : 'text-english';
+    // For bidirectional text support, we'll use CSS dir="auto" instead of manual detection
+    // This allows English and Arabic to follow their natural directions within the same sentence
+    return 'text-content'; // Use a neutral class for content
   };
 
   const handleCopy = async () => {
@@ -96,7 +94,8 @@ function MessageBubble({ message }: { message: Message }) {
 
   const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    // Always use English format regardless of interface language
+    return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -115,12 +114,12 @@ function MessageBubble({ message }: { message: Message }) {
       )}
       
       <div className={`max-w-[70%] ${isUser ? 'order-first' : ''}`}>
-        <Card className={`p-3 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
-          <div className={`text-sm ${getUserContentClasses(message.content)}`}>
+        <Card className={`p-3 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-card'} ${!isUser ? 'px-4 py-3' : ''}`}>
+          <div className={`text-sm ${getUserContentClasses(message.content)}`} dir="auto">
             {isUser ? (
-              <span className={getUserContentClasses(message.content)}>{message.content}</span>
+              <span dir="auto">{message.content}</span>
             ) : (
-              <div className={`markdown-content ${getUserContentClasses(message.content)}`}>
+              <div className={`markdown-content ${getUserContentClasses(message.content)} px-1`} dir="auto">
                 <ReactMarkdown 
                   rehypePlugins={[rehypeHighlight]}
                   components={{
@@ -139,8 +138,8 @@ function MessageBubble({ message }: { message: Message }) {
                         </code>
                       );
                     },
-                    // Customize paragraphs to reduce spacing
-                    p: ({ children }: any) => <p className="mb-3 leading-relaxed">{children}</p>,
+                    // Customize paragraphs to reduce spacing and add proper direction
+                    p: ({ children }: any) => <p className="mb-3 leading-relaxed" dir="auto">{children}</p>,
                     // Customize lists
                     ul: ({ children }: any) => <ul className="mb-3 pl-5 space-y-1 list-disc">{children}</ul>,
                     ol: ({ children }: any) => <ol className="mb-3 pl-5 space-y-1 list-decimal">{children}</ol>,

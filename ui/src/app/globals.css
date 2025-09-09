@@ -143,6 +143,12 @@
   unicode-bidi: embed;
 }
 
+/* Neutral content class for bidirectional text support */
+.text-content {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
 /* Interface layout adjustments for RTL - only for UI elements, not text content */
 [dir="rtl"] .ui-flex:not(.flex-col):not(.flex-row-reverse) {
   flex-direction: row-reverse;
