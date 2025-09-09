@@ -4,6 +4,8 @@ import { db } from '../db';
 import { documents } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { isAuthenticated } from '../middleware/authMiddleware';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 
@@ -70,6 +72,45 @@ router.get('/supported-types', (req, res) => {
     };
     
     res.status(200).json(supportedTypes);
+});
+
+// DELETE /api/documents/:docId - Delete a single document by ID
+router.delete('/:docId', async (req, res, next) => {
+    const docId = parseInt(req.params.docId);
+    
+    if (isNaN(docId)) {
+        return res.status(400).json({ message: 'Invalid document ID.' });
+    }
+
+    try {
+        // Step 1: Find the document to ensure it exists
+        const docResult = await db.select().from(documents).where(eq(documents.id, docId));
+        const docToDelete = docResult[0];
+
+        if (!docToDelete) {
+            return res.status(404).json({ message: 'Document not found.' });
+        }
+
+        // Step 2: Delete the physical file from storage
+        const filePath = path.resolve(docToDelete.storagePath);
+        if (fs.existsSync(filePath)) {
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                    // Log the error but continue, as the DB record deletion is more critical
+                    console.error(`Failed to delete file from storage: ${filePath}`, err);
+                }
+            });
+        }
+        
+        // Step 3: Delete the document record from the database
+        await db.delete(documents).where(eq(documents.id, docId));
+
+        res.status(200).json({ message: 'Document deleted successfully.' });
+
+    } catch (err) {
+        console.error('Error deleting document:', err);
+        next(err);
+    }
 });
 
 export default router;
