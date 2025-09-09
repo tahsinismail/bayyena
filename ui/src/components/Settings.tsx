@@ -301,10 +301,10 @@ export function Settings() {
         <CardHeader>
           <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
             <MdSecurity className="h-5 w-5" />
-            Account Security
+            {t('settings.accountSecurity')}
           </CardTitle>
           <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
-            Manage your account security and session
+            {t('settings.accountSecurityDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

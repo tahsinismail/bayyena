@@ -74,6 +74,8 @@
     "openAdminPanel": "فتح لوحة الإدارة",
     "signOut": "تسجيل الخروج",
     "signOutDescription": "إنهاء جلستك الحالية والعودة إلى تسجيل الدخول",
+    "accountSecurity": "أمان الحساب",
+    "accountSecurityDescription": "إدارة أمان حسابك وجلستك",
     "appearance": "المظهر",
     "appearanceDescription": "تخصيص شكل ومظهر مساحة العمل الخاصة بك",
     "theme": "السمة",
@@ -257,9 +259,11 @@
       "chat": "دردشة"
     },
     "messages": {
-      "noMessages": "لا توجد رسائل بعد",
-      "startConversation": "ابدأ محادثتك هنا",
-      "welcomeToTopic": "مرحباً بك في موضوع الدردشة"
+      "welcomeTo": "مرحباً بك في",
+      "startConversation": "ابدأ محادثة بكتابة رسالة أدناه",
+      "startConversationTitle": "ابدأ محادثة",
+      "startConversationSubtitle": "اطرح أسئلة حول قضيتك أو ارفع المستندات للبدء",
+      "copyMessage": "نسخ الرسالة"
     },
     "input": {
       "placeholder": "اسأل أي شيء أو @اذكر وثيقة"

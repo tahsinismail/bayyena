@@ -74,6 +74,8 @@
     "openAdminPanel": "Open Admin Panel",
     "signOut": "Sign Out",
     "signOutDescription": "End your current session and return to login",
+    "accountSecurity": "Account Security",
+    "accountSecurityDescription": "Manage your account security and session",
     "appearance": "Appearance",
     "appearanceDescription": "Customize the look and feel of your workspace",
     "theme": "Theme",
