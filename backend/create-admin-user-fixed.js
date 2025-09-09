@@ -4,11 +4,11 @@ const bcrypt = require('/usr/local/lib/node_modules/bcrypt');
 
 const createAdminUser = async () => {
   const client = new Client({
-    host: 'localhost',  // localhost works within the same container network
-    port: 5432,
+    host: 'localhost',
+    port: 5434,
     user: 'postgres',
     password: 'dbAdmin',
-    database: 'legalcasebuilder'
+    database: 'bayyenadb'
   });
 
   try {

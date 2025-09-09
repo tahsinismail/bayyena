@@ -142,7 +142,7 @@ app.get('/api/server/capabilities', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('LegalCaseBuilder Backend is running!');
+  res.send('Bayyena Backend is running!');
 });
 
 const server = app.listen(port, '0.0.0.0', async () => {

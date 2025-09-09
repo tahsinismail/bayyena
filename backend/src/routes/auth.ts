@@ -39,7 +39,7 @@ router.post('/register', async (req, res, next) => {
       // Check if the existing user account is disabled
       if (existingUser[0].isActive !== 1) {
         return res.status(401).json({ 
-          message: 'We’ve temporarily restricted your account. Please get in touch with us for support.' 
+          message: 'Thank you for creating your account! Your account is currently pending approval. Please contact our support team to activate your account and start using Bayyena.' 
         });
       }
       return res.status(409).json({ 
@@ -47,23 +47,53 @@ router.post('/register', async (req, res, next) => {
       });
     }
 
+    // Check if this is the first user to determine admin role
+    const allUsers = await db.select().from(users);
+    const isFirstUser = allUsers.length === 0;
+    
+    console.log('Registration check - Total users:', allUsers.length, 'Is first user:', isFirstUser);
+
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    // Updated to insert new fields
+    
+    // Updated to insert new fields and set role based on first user check
+    // First user becomes admin and is active, subsequent users are disabled by default
     const newUser = await db.insert(users).values({ 
         fullName: fullName.trim(), 
         email: email.toLowerCase().trim(), 
         hashedPassword,
-        phoneNumber: phoneNumber?.trim() || null // This can be null/undefined if not provided
+        phoneNumber: phoneNumber?.trim() || null, // This can be null/undefined if not provided
+        role: isFirstUser ? 'admin' : 'user', // First user becomes admin automatically
+        isActive: isFirstUser ? 1 : 0 // First user is active, others are disabled by default
     }).returning();
 
-    req.login(newUser[0], (err) => {
-        if (err) {
-          console.error('Session creation error:', err);
-          return res.status(500).json({ message: 'Account created successfully, but failed to log you in automatically. Please try logging in manually.' });
-        }
-        const { hashedPassword, ...userWithoutPassword } = newUser[0];
-        res.status(201).json({ user: userWithoutPassword });
-    });
+    if (isFirstUser) {
+        console.log('🎉 First user registered! Automatically assigned admin role to:', email);
+        
+        // Auto-login first user (admin)
+        req.login(newUser[0], (err) => {
+            if (err) {
+              console.error('Session creation error:', err);
+              return res.status(500).json({ message: 'Account created successfully, but failed to log you in automatically. Please try logging in manually.' });
+            }
+            const { hashedPassword, ...userWithoutPassword } = newUser[0];
+            
+            const response = { 
+                user: userWithoutPassword,
+                message: 'Welcome! As the first user, you have been automatically granted administrator privileges.'
+            };
+            
+            res.status(201).json(response);
+        });
+    } else {
+        // For non-admin users, don't auto-login and send pending message
+        console.log('🔒 New user registered but account is disabled pending approval:', email);
+        
+        res.status(401).json({ 
+            message: 'Thank you for creating your account! Your account is currently pending approval. Please contact our support team to activate your account and start using Bayyena.',
+            // accountPending: true,
+            // userEmail: email.toLowerCase().trim()
+        });
+    }
   } catch (err) {
     console.error('Registration error:', err);
     return res.status(500).json({ message: 'Registration failed due to a server error. Please try again later.' });

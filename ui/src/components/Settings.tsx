@@ -191,7 +191,7 @@ export function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+            <div className="flex flex-col gap-4  md:flex-row items-start md:items-center justify-between p-4 border border-border rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                   <MdAdminPanelSettings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -211,61 +211,6 @@ export function Settings() {
         </Card>
       )}
 
-      {/* Appearance Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MdPalette className="h-5 w-5" />
-            Appearance
-          </CardTitle>
-          <CardDescription>
-            Customize the look and feel of your workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Theme</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose between light and dark themes
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleTheme}
-              className="flex items-center gap-2"
-            >
-              {theme === 'light' ? (
-                <>
-                  <MdDarkMode className="h-4 w-4" />
-                  Switch to Dark
-                </>
-              ) : (
-                <>
-                  <MdLightMode className="h-4 w-4" />
-                  Switch to Light
-                </>
-              )}
-            </Button>
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Language</Label>
-              <p className="text-sm text-muted-foreground">
-                Select your preferred language
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <MdLanguage className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">English (US)</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Application Settings */}
       {/* <Card>
@@ -337,7 +282,7 @@ export function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+          <div className="flex flex-col gap-4 md:flex-row items-start md:items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
                 <MdLogout className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -356,6 +301,62 @@ export function Settings() {
             >
               Sign Out
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Appearance Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MdPalette className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+          <CardDescription>
+            Customize the look and feel of your workspace
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Theme</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose between light and dark themes
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleTheme}
+              className="flex items-center gap-2"
+            >
+              {theme === 'light' ? (
+                <>
+                  <MdDarkMode className="h-4 w-4" />
+                  Switch to Dark
+                </>
+              ) : (
+                <>
+                  <MdLightMode className="h-4 w-4" />
+                  Switch to Light
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <Separator />
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Language</Label>
+              <p className="text-sm text-muted-foreground">
+                Select your preferred language
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <MdLanguage className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">English (US)</span>
+            </div>
           </div>
         </CardContent>
       </Card>
