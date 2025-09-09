@@ -191,7 +191,7 @@ export function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+            <div className="flex flex-col gap-4  md:flex-row items-start md:items-center justify-between p-4 border border-border rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                   <MdAdminPanelSettings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -282,7 +282,7 @@ export function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+          <div className="flex flex-col gap-4 md:flex-row items-start md:items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
                 <MdLogout className="h-5 w-5 text-red-600 dark:text-red-400" />
