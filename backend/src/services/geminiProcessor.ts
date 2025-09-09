@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yauzl from 'yauzl';
 import ffmpeg from 'fluent-ffmpeg';
+import mammoth from 'mammoth';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
 // Constants - Comprehensive audio MIME type support
@@ -441,48 +442,221 @@ Please analyze this document and provide comprehensive content extraction and an
     }
 
     /**
-     * Process DOCX files by extracting images and processing them with Gemini OCR
+     * Extract text content from DOCX files using mammoth
+     */
+    private async extractTextFromDOCX(filePath: string): Promise<string> {
+        try {
+            console.log(`[Gemini] Extracting text from DOCX: ${filePath}`);
+            
+            // Ensure we have an absolute path
+            const absoluteFilePath = path.resolve(filePath);
+            
+            // Check if file exists
+            if (!fs.existsSync(absoluteFilePath)) {
+                throw new Error(`DOCX file not found: ${absoluteFilePath}`);
+            }
+            
+            // Extract text using mammoth
+            const result = await mammoth.extractRawText({ path: absoluteFilePath });
+            const extractedText = result.value.trim();
+            
+            if (result.messages && result.messages.length > 0) {
+                console.warn(`[Gemini] DOCX extraction warnings:`, result.messages);
+            }
+            
+            console.log(`[Gemini] Successfully extracted ${extractedText.length} characters from DOCX`);
+            return extractedText;
+            
+        } catch (error) {
+            console.error(`[Gemini] Failed to extract text from DOCX:`, error);
+            throw new Error(`DOCX text extraction failed: ${this.getErrorMessage(error)}`);
+        }
+    }
+
+    /**
+     * Detect language of the given text using Gemini AI
+     */
+    private async detectLanguage(text: string): Promise<string> {
+        try {
+            if (!text || text.trim().length < 20) {
+                return 'en'; // Default to English for very short texts
+            }
+            
+            const prompt = `Detect the language of the following text and respond with only the two-letter ISO 639-1 language code (e.g., "en" for English, "ar" for Arabic, "fr" for French, etc.). If multiple languages are present, return the primary language.
+
+Text: "${text.substring(0, 500)}"`;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const detectedLang = response.text().trim().toLowerCase();
+            
+            // Validate the response is a proper language code
+            if (detectedLang.length === 2 && /^[a-z]{2}$/.test(detectedLang)) {
+                console.log(`[Gemini] Detected language: ${detectedLang}`);
+                return detectedLang;
+            } else {
+                console.warn(`[Gemini] Invalid language detection response: ${detectedLang}, defaulting to English`);
+                return 'en';
+            }
+        } catch (error) {
+            console.error(`[Gemini] Language detection failed:`, error);
+            return 'en'; // Default to English on error
+        }
+    }
+
+    /**
+     * Translate text to English using Gemini AI
+     */
+    private async translateToEnglish(text: string, sourceLanguage: string): Promise<string> {
+        try {
+            if (sourceLanguage === 'en') {
+                return text; // Already in English
+            }
+            
+            console.log(`[Gemini] Translating text from ${sourceLanguage} to English`);
+            
+            const prompt = `Translate the following text from ${sourceLanguage} to English. Maintain the original formatting and structure as much as possible. Provide only the translation without any additional commentary.
+
+Text to translate:
+${text}`;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const translatedText = response.text().trim();
+            
+            console.log(`[Gemini] Translation completed, ${text.length} → ${translatedText.length} characters`);
+            return translatedText;
+            
+        } catch (error) {
+            console.error(`[Gemini] Translation failed:`, error);
+            console.log(`[Gemini] Falling back to original text due to translation failure`);
+            return text; // Return original text if translation fails
+        }
+    }
+
+    /**
+     * Process DOCX files by extracting text and images, with translation support
      * This is a special method since Gemini doesn't support DOCX directly
      */
     async processDOCXWithImages(filePath: string, extractedText: string = ''): Promise<GeminiProcessingResult> {
         const startTime = Date.now();
         
         try {
-            console.log(`[Gemini] Processing DOCX file with image extraction: ${filePath}`);
+            console.log(`[Gemini] Processing DOCX file with comprehensive extraction: ${filePath}`);
             
-            const extractedImages = await this.extractImagesFromDOCX(filePath);
-            let combinedText = extractedText || '';
+            let combinedText = '';
+            let textExtractionSuccessful = false;
+            let imageExtractionSuccessful = false;
+            let hasTranslation = false;
             
-            if (extractedImages.length > 0) {
-                combinedText += '\n\n--- IMAGE CONTENT ANALYSIS ---\n' + extractedImages.join('\n');
+            // Step 1: Try to extract text content from DOCX
+            try {
+                const docxText = await this.extractTextFromDOCX(filePath);
+                if (docxText && docxText.trim().length > 0) {
+                    console.log(`[Gemini] Successfully extracted ${docxText.length} characters of text from DOCX`);
+                    
+                    // Step 2: Detect language and translate if necessary
+                    const detectedLanguage = await this.detectLanguage(docxText);
+                    let processedText = docxText;
+                    
+                    if (detectedLanguage !== 'en') {
+                        console.log(`[Gemini] Document is in ${detectedLanguage}, translating to English`);
+                        processedText = await this.translateToEnglish(docxText, detectedLanguage);
+                        hasTranslation = true;
+                        
+                        // Add translation metadata
+                        combinedText += `--- DOCUMENT METADATA ---\n`;
+                        combinedText += `Original Language: ${detectedLanguage}\n`;
+                        combinedText += `Translation: Translated to English for processing\n\n`;
+                    }
+                    
+                    combinedText += `--- DOCUMENT TEXT CONTENT ---\n${processedText}\n`;
+                    textExtractionSuccessful = true;
+                } else {
+                    console.warn(`[Gemini] No text content found in DOCX file`);
+                }
+            } catch (textError) {
+                console.error(`[Gemini] Text extraction from DOCX failed:`, textError);
+                combinedText += `--- TEXT EXTRACTION ERROR ---\nFailed to extract text: ${this.getErrorMessage(textError)}\n\n`;
             }
             
-            if (!combinedText || combinedText.trim().length === 0) {
-                throw new Error('No text or images could be extracted from DOCX file');
+            // Step 3: Try to extract and process images
+            try {
+                const extractedImages = await this.extractImagesFromDOCX(filePath);
+                if (extractedImages.length > 0) {
+                    console.log(`[Gemini] Successfully extracted ${extractedImages.length} images from DOCX`);
+                    combinedText += '\n--- IMAGE CONTENT ANALYSIS ---\n' + extractedImages.join('\n');
+                    imageExtractionSuccessful = true;
+                } else {
+                    console.log(`[Gemini] No images found in DOCX file`);
+                }
+            } catch (imageError) {
+                console.error(`[Gemini] Image extraction from DOCX failed:`, imageError);
+                combinedText += `\n--- IMAGE EXTRACTION ERROR ---\nFailed to extract images: ${this.getErrorMessage(imageError)}\n`;
             }
+            
+            // Step 4: Include any pre-extracted text passed as parameter
+            if (extractedText && extractedText.trim().length > 0) {
+                combinedText += `\n--- ADDITIONAL EXTRACTED TEXT ---\n${extractedText}\n`;
+            }
+            
+            // Step 5: Validate we have some content
+            const finalText = combinedText.trim();
+            if (!finalText || finalText.length === 0) {
+                throw new Error('No content could be extracted from DOCX file. The document may be empty, corrupted, or use unsupported formatting.');
+            }
+            
+            // Determine processing confidence based on what was successful
+            let confidence = 50; // Base confidence
+            if (textExtractionSuccessful) confidence += 30;
+            if (imageExtractionSuccessful) confidence += 20;
+            if (hasTranslation) confidence -= 10; // Slight reduction for translation uncertainty
             
             const processingTime = Date.now() - startTime;
-            console.log(`[Gemini] DOCX processing completed, extracted ${extractedImages.length} images, total text length: ${combinedText.length}`);
+            
+            console.log(`[Gemini] DOCX processing completed successfully:`);
+            console.log(`  - Text extraction: ${textExtractionSuccessful ? 'SUCCESS' : 'FAILED'}`);
+            console.log(`  - Image extraction: ${imageExtractionSuccessful ? 'SUCCESS' : 'FAILED'}`);
+            console.log(`  - Translation applied: ${hasTranslation ? 'YES' : 'NO'}`);
+            console.log(`  - Total content length: ${finalText.length} characters`);
+            console.log(`  - Confidence: ${confidence}%`);
             
             return {
-                text: combinedText.trim(),
-                confidence: extractedImages.length > 0 ? 90 : 70,
+                text: finalText,
+                confidence: Math.min(confidence, 95), // Cap at 95%
                 processingTime,
-                method: 'visual_ocr'
+                method: imageExtractionSuccessful ? 'visual_ocr' : 'document_analysis'
             };
             
         } catch (error) {
             console.error(`[Gemini] DOCX processing failed:`, error);
-            throw new Error(`DOCX processing failed: ${this.getErrorMessage(error)}`);
+            
+            // Enhanced error messaging based on error type
+            let errorMessage = 'DOCX processing failed';
+            if (error instanceof Error) {
+                if (error.message.includes('not found')) {
+                    errorMessage = 'DOCX file not found or inaccessible';
+                } else if (error.message.includes('corrupted') || error.message.includes('zip')) {
+                    errorMessage = 'DOCX file appears to be corrupted or invalid';
+                } else if (error.message.includes('empty')) {
+                    errorMessage = 'DOCX file contains no extractable content';
+                } else {
+                    errorMessage = `DOCX processing failed: ${error.message}`;
+                }
+            }
+            
+            throw new Error(errorMessage);
         }
     }
 
     /**
-     * Extract and process images from DOCX file
+     * Extract and process images from DOCX file with improved error handling
      */
     private async extractImagesFromDOCX(filePath: string): Promise<string[]> {
         return new Promise((resolve, reject) => {
             const extractedImages: string[] = [];
+            let processedImages = 0;
+            let totalImages = 0;
             
             // Ensure we have an absolute path
             const absoluteFilePath = path.resolve(filePath);
@@ -495,8 +669,14 @@ Please analyze this document and provide comprehensive content extraction and an
             
             console.log(`[Gemini] Opening DOCX file for image extraction: ${absoluteFilePath}`);
             
+            // Set timeout for the entire operation
+            const timeoutId = setTimeout(() => {
+                reject(new Error('DOCX image extraction timed out after 30 seconds'));
+            }, 30000);
+            
             yauzl.open(absoluteFilePath, { lazyEntries: true }, (err, zipfile) => {
                 if (err || !zipfile) {
+                    clearTimeout(timeoutId);
                     const errorMsg = `Failed to open DOCX file: ${err?.message || 'Unknown error'}`;
                     console.error(`[Gemini] ${errorMsg}`);
                     reject(new Error(errorMsg));
@@ -506,23 +686,42 @@ Please analyze this document and provide comprehensive content extraction and an
                 console.log(`[Gemini] Successfully opened DOCX file, starting entry extraction`);
                 
                 zipfile.readEntry();
+                
                 zipfile.on("entry", (entry) => {
                     if (this.isImageEntry(entry.fileName)) {
-                        this.processImageEntry(zipfile, entry, extractedImages);
+                        totalImages++;
+                        this.processImageEntry(zipfile, entry, extractedImages, () => {
+                            processedImages++;
+                            if (processedImages === totalImages) {
+                                // All images processed, we can resolve even if some failed
+                                clearTimeout(timeoutId);
+                                console.log(`[Gemini] Image processing completed: ${extractedImages.length}/${totalImages} successful`);
+                                resolve(extractedImages);
+                            }
+                        });
                     } else {
                         zipfile.readEntry();
                     }
                 });
                 
                 zipfile.on("end", async () => {
-                    console.log(`[Gemini] DOCX entry extraction completed, found ${extractedImages.length} images`);
-                    await new Promise(resolve => setTimeout(resolve, DOCX_PROCESSING_DELAY));
-                    resolve(extractedImages);
+                    clearTimeout(timeoutId);
+                    console.log(`[Gemini] DOCX entry extraction completed, found ${totalImages} images`);
+                    
+                    // If no images were found, resolve immediately
+                    if (totalImages === 0) {
+                        await new Promise(resolve => setTimeout(resolve, DOCX_PROCESSING_DELAY));
+                        resolve(extractedImages);
+                    }
+                    // Otherwise wait for image processing to complete
+                    // The resolution will happen in the processImageEntry callback
                 });
                 
                 zipfile.on("error", (zipError) => {
+                    clearTimeout(timeoutId);
                     console.error(`[Gemini] Error reading DOCX zip file:`, zipError);
-                    reject(new Error(`DOCX zip file error: ${zipError.message}`));
+                    // Don't reject immediately - try to return any successfully extracted images
+                    resolve(extractedImages);
                 });
             });
         });
@@ -537,15 +736,16 @@ Please analyze this document and provide comprehensive content extraction and an
     }
 
     /**
-     * Process individual image entry from DOCX
+     * Process individual image entry from DOCX with callback support
      */
-    private processImageEntry(zipfile: any, entry: any, extractedImages: string[]): void {
+    private processImageEntry(zipfile: any, entry: any, extractedImages: string[], onComplete?: () => void): void {
         console.log(`[Gemini] Found image in DOCX: ${entry.fileName}`);
         
         zipfile.openReadStream(entry, (err: any, readStream: any) => {
             if (err || !readStream) {
                 console.warn(`[Gemini] Failed to extract ${entry.fileName}:`, err);
                 zipfile.readEntry();
+                if (onComplete) onComplete();
                 return;
             }
             
@@ -565,8 +765,16 @@ Please analyze this document and provide comprehensive content extraction and an
                     }
                 } catch (error) {
                     console.warn(`[Gemini] Failed to process image ${entry.fileName}:`, error);
+                } finally {
+                    zipfile.readEntry();
+                    if (onComplete) onComplete();
                 }
+            });
+
+            readStream.on('error', (streamError: any) => {
+                console.warn(`[Gemini] Stream error for ${entry.fileName}:`, streamError);
                 zipfile.readEntry();
+                if (onComplete) onComplete();
             });
         });
     }

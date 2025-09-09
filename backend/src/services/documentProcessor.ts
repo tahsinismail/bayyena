@@ -68,9 +68,9 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
         try {
             let geminiResult: any;
             
-            // Special handling for DOCX files (not directly supported by Gemini)
+            // Special handling for DOCX files with comprehensive text and image extraction
             if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                console.log(`[Processor] Using special DOCX image extraction for ${absoluteFilePath}`);
+                console.log(`[Processor] Using enhanced DOCX processing (text + images + translation) for ${absoluteFilePath}`);
                 geminiResult = await geminiProcessor.processDOCXWithImages(absoluteFilePath, '');
             } else {
                 // Check if the file type is supported by Gemini for direct processing

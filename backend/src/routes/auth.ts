@@ -90,7 +90,7 @@ router.post('/register', async (req, res, next) => {
         
         res.status(401).json({ 
             message: 'Thank you for creating your account! Your account is currently pending approval. Please contact our support team to activate your account and start using Bayyena.',
-            // accountPending: true,
+            accountPending: true,
             // userEmail: email.toLowerCase().trim()
         });
     }
