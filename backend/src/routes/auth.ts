@@ -39,7 +39,7 @@ router.post('/register', async (req, res, next) => {
       // Check if the existing user account is disabled
       if (existingUser[0].isActive !== 1) {
         return res.status(401).json({ 
-          message: 'We’ve temporarily restricted your account. Please get in touch with us for support.' 
+          message: 'We\'ve temporarily restricted your account. Please get in touch with us for support.' 
         });
       }
       return res.status(409).json({ 
@@ -47,14 +47,25 @@ router.post('/register', async (req, res, next) => {
       });
     }
 
+    // Check if this is the first user to determine admin role
+    const allUsers = await db.select().from(users);
+    const isFirstUser = allUsers.length === 0;
+    
+    console.log('Registration check - Total users:', allUsers.length, 'Is first user:', isFirstUser);
+
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    // Updated to insert new fields
+    // Updated to insert new fields and set role based on first user check
     const newUser = await db.insert(users).values({ 
         fullName: fullName.trim(), 
         email: email.toLowerCase().trim(), 
         hashedPassword,
-        phoneNumber: phoneNumber?.trim() || null // This can be null/undefined if not provided
+        phoneNumber: phoneNumber?.trim() || null, // This can be null/undefined if not provided
+        role: isFirstUser ? 'admin' : 'user' // First user becomes admin automatically
     }).returning();
+
+    if (isFirstUser) {
+        console.log('🎉 First user registered! Automatically assigned admin role to:', email);
+    }
 
     req.login(newUser[0], (err) => {
         if (err) {
@@ -62,7 +73,14 @@ router.post('/register', async (req, res, next) => {
           return res.status(500).json({ message: 'Account created successfully, but failed to log you in automatically. Please try logging in manually.' });
         }
         const { hashedPassword, ...userWithoutPassword } = newUser[0];
-        res.status(201).json({ user: userWithoutPassword });
+        
+        // Add a special message for the first admin user
+        const response: any = { user: userWithoutPassword };
+        if (isFirstUser) {
+            response.message = 'Welcome! As the first user, you have been automatically granted administrator privileges.';
+        }
+        
+        res.status(201).json(response);
     });
   } catch (err) {
     console.error('Registration error:', err);

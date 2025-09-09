@@ -8,7 +8,7 @@ const createAdminUser = async () => {
     port: 5432,
     user: 'postgres',
     password: 'dbAdmin',
-    database: 'legalcasebuilder'
+    database: 'bayyenadb'
   });
 
   try {

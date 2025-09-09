@@ -6,7 +6,7 @@ const { sql } = require('drizzle-orm');
 async function fixStoragePaths() {
   console.log('Connecting to database...');
   
-  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/legalcasebuilder';
+  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:dbAdmin@localhost:5434/bayyenadb';
   const client = postgres(connectionString);
   const db = drizzle(client);
 

@@ -16,14 +16,14 @@ const initDatabase = async () => {
     console.log('Connected to postgres database');
 
     // Check if our database exists
-    const result = await client.query("SELECT 1 FROM pg_database WHERE datname = 'legalcasebuilder'");
+    const result = await client.query("SELECT 1 FROM pg_database WHERE datname = 'bayyenadb'");
     
     if (result.rows.length === 0) {
-      console.log('Creating legalcasebuilder database...');
-      await client.query('CREATE DATABASE legalcasebuilder');
+      console.log('Creating bayyenadb database...');
+      await client.query('CREATE DATABASE bayyenadb');
       console.log('Database created successfully!');
     } else {
-      console.log('Database legalcasebuilder already exists');
+      console.log('Database bayyenadb already exists');
     }
 
     await client.end();

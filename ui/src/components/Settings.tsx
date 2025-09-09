@@ -211,61 +211,6 @@ export function Settings() {
         </Card>
       )}
 
-      {/* Appearance Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MdPalette className="h-5 w-5" />
-            Appearance
-          </CardTitle>
-          <CardDescription>
-            Customize the look and feel of your workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Theme</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose between light and dark themes
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleTheme}
-              className="flex items-center gap-2"
-            >
-              {theme === 'light' ? (
-                <>
-                  <MdDarkMode className="h-4 w-4" />
-                  Switch to Dark
-                </>
-              ) : (
-                <>
-                  <MdLightMode className="h-4 w-4" />
-                  Switch to Light
-                </>
-              )}
-            </Button>
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">Language</Label>
-              <p className="text-sm text-muted-foreground">
-                Select your preferred language
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <MdLanguage className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">English (US)</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Application Settings */}
       {/* <Card>
@@ -356,6 +301,62 @@ export function Settings() {
             >
               Sign Out
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Appearance Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MdPalette className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+          <CardDescription>
+            Customize the look and feel of your workspace
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Theme</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose between light and dark themes
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleTheme}
+              className="flex items-center gap-2"
+            >
+              {theme === 'light' ? (
+                <>
+                  <MdDarkMode className="h-4 w-4" />
+                  Switch to Dark
+                </>
+              ) : (
+                <>
+                  <MdLightMode className="h-4 w-4" />
+                  Switch to Light
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <Separator />
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Language</Label>
+              <p className="text-sm text-muted-foreground">
+                Select your preferred language
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <MdLanguage className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">English (US)</span>
+            </div>
           </div>
         </CardContent>
       </Card>

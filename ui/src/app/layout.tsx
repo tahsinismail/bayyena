@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bayyena - Legal Case Builder",
-  description: "AI-powered legal case building platform",
+  title: "Bayyena - Legal AI Assistant",
+  description: "AI-powered legal assistant for document analysis and case management",
 };
 
 export default function RootLayout({

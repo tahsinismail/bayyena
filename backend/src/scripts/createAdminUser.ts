@@ -8,7 +8,7 @@ const saltRounds = 10;
 
 async function createAdminUser() {
   try {
-    const adminEmail = 'admin@legalcasebuilder.com';
+    const adminEmail = 'admin@bayyena.com';
     const adminPassword = 'admin123';
     const adminName = 'System Administrator';
 

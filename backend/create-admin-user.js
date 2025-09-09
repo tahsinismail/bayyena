@@ -4,11 +4,11 @@ const bcrypt = require('bcrypt');
 
 const createAdminUser = async () => {
   const client = new Client({
-    host: 'db',  // Docker container hostname
-    port: 5432,
+    host: 'localhost',
+    port: 5434,
     user: 'postgres',
     password: 'dbAdmin',
-    database: 'legalcasebuilder'
+    database: 'bayyenadb'
   });
 
   try {

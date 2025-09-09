@@ -7,7 +7,7 @@ const waitForDatabase = async () => {
     port: 5432,
     user: 'postgres',
     password: 'dbAdmin',
-    database: 'legalcasebuilder'
+    database: 'bayyenadb'
   });
 
   let retries = 30;
