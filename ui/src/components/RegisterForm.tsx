@@ -5,9 +5,25 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+
+// Common country codes
+const countryCodes = [
+  { code: '+971', country: 'AE', flag: '🇦🇪' },
+  { code: '+966', country: 'SA', flag: '🇸🇦' },
+  { code: '+965', country: 'KW', flag: '🇰🇼' },
+  { code: '+973', country: 'BH', flag: '🇧🇭' },
+  { code: '+974', country: 'QA', flag: '🇶🇦' },
+  { code: '+968', country: 'OM', flag: '🇴🇲' },
+  { code: '+20', country: 'EG', flag: '🇪🇬' },
+  { code: '+962', country: 'JO', flag: '🇯🇴' },
+  { code: '+963', country: 'SY', flag: '🇸🇾' },
+  { code: '+961', country: 'LB', flag: '🇱🇧' },
+  { code: '+964', country: 'IQ', flag: '🇮🇶' },
+];
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -20,6 +36,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
     email: '',
     password: '',
     confirmPassword: '',
+    countryCode: '+974', // Default to Qatar
     phoneNumber: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -37,10 +54,38 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'phoneNumber') {
+      // Only allow digits and limit to appropriate length
+      const digits = value.replace(/\D/g, '');
+      // Calculate max digits based on country code
+      const countryCodeLength = formData.countryCode.length - 1; // -1 for the + sign
+      const maxPhoneDigits = 11 - countryCodeLength;
+      const limitedDigits = digits.slice(0, maxPhoneDigits);
+      setFormData(prev => ({ ...prev, [name]: limitedDigits }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
     setValidationError('');
     setSuccessMessage('');
     setAccountPending(false);
+  };
+
+  const handleCountryCodeChange = (value: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      countryCode: value,
+      phoneNumber: '' // Reset phone number when country code changes
+    }));
+    setValidationError('');
+    setSuccessMessage('');
+    setAccountPending(false);
+  };
+
+  // Get the full phone number including country code
+  const getFullPhoneNumber = () => {
+    return formData.countryCode + formData.phoneNumber;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,13 +120,21 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
       return;
     }
 
+    // Validate phone number (should be exactly 11 characters with country code)
+    const fullPhoneNumber = getFullPhoneNumber();
+    if (formData.phoneNumber && fullPhoneNumber.length !== 12) {
+      setValidationError(`Phone number must be exactly 12 digits including (+) country code. Current: ${fullPhoneNumber.length} digits`);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       console.log('RegisterForm: Starting registration...');
       const result = await register(
         formData.fullName,
         formData.email,
         formData.password,
-        formData.phoneNumber || undefined
+        formData.phoneNumber ? fullPhoneNumber : undefined
       );
       
       console.log('RegisterForm: Registration result:', result);
@@ -168,18 +221,42 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
         <div className="space-y-2">
           <label htmlFor="phoneNumber" className={`text-sm font-medium text-foreground ${getUITextClasses()}`}>
-            {t('auth.phoneNumber')}
+            {t('auth.phoneNumber')} {formData.phoneNumber && (
+              <span className="text-xs text-muted-foreground">
+                ({getFullPhoneNumber()})
+              </span>
+            )}
           </label>
-          <Input
-            id="phoneNumber"
-            name="phoneNumber"
-            type="tel"
-            value={formData.phoneNumber}
-            onChange={handleInputChange}
-            placeholder={t('auth.phoneNumberPlaceholder')}
-            required
-            disabled={isLoading}
-          />
+          <div className="flex gap-2">
+            <Select value={formData.countryCode} onValueChange={handleCountryCodeChange}>
+              <SelectTrigger className="w-max">
+                <SelectValue>
+                  {countryCodes.find(c => c.code === formData.countryCode)?.flag} {formData.countryCode}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {countryCodes.map((country) => (
+                  <SelectItem key={country.code} value={country.code}>
+                    <span className="flex items-center gap-2">
+                      <span>{country.flag}</span>
+                      <span>{country.code}</span>
+                      <span className="text-muted-foreground text-xs">({country.country})</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={handleInputChange}
+              placeholder={`Enter ${11 - (formData.countryCode.length - 1)} digits`}
+              className="flex-1"
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
