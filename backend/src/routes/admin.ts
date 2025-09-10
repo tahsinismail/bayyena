@@ -17,6 +17,7 @@ router.get('/users', async (req, res) => {
       id: users.id,
       fullName: users.fullName,
       email: users.email,
+      phoneNumber: users.phoneNumber,
       role: users.role,
       isActive: users.isActive,
       createdAt: users.createdAt,
@@ -135,6 +136,53 @@ router.put('/users/:id/status', async (req, res) => {
     res.json({ message: `User ${isActive ? 'enabled' : 'disabled'} successfully` });
   } catch (error) {
     console.error('Error updating user status:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Change user password
+router.put('/users/:id/password', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    const adminId = (req.user as any).id;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    // Get current user info for logging
+    const currentUser = await db.select().from(users).where(eq(users.id, parseInt(id))).limit(1);
+    if (currentUser.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Hash the new password
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password
+    await db.update(users)
+      .set({ hashedPassword })
+      .where(eq(users.id, parseInt(id)));
+
+    // Log admin action
+    await db.insert(adminActivityLogs).values({
+      adminId,
+      action: 'user_password_changed',
+      targetUserId: parseInt(id),
+      details: {
+        targetUserEmail: currentUser[0].email,
+        targetUserName: currentUser[0].fullName,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing user password:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -306,6 +354,58 @@ router.put('/users/:id/features/:featureName', async (req, res) => {
     res.json({ message: `Feature ${featureName} ${isEnabled ? 'enabled' : 'disabled'} successfully` });
   } catch (error) {
     console.error('Error toggling user feature:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Delete user
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = (req.user as any).id;
+    const userId = parseInt(id);
+
+    // Check if user exists
+    const userToDelete = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (userToDelete.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent admin from deleting themselves
+    if (userId === adminId) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
+    }
+
+    // Check if this is the last admin
+    const adminCount = await db.select({ count: count() })
+      .from(users)
+      .where(eq(users.role, 'admin'));
+    
+    if (userToDelete[0].role === 'admin' && adminCount[0].count <= 1) {
+      return res.status(400).json({ message: 'Cannot delete the last admin user' });
+    }
+
+    // Log admin action BEFORE deleting the user
+    await db.insert(adminActivityLogs).values({
+      adminId,
+      action: 'user_deleted',
+      targetUserId: null, // Set to null since the user will be deleted
+      details: {
+        deletedUserEmail: userToDelete[0].email,
+        deletedUserName: userToDelete[0].fullName,
+        deletedUserRole: userToDelete[0].role,
+        deletedUserId: userId, // Store the ID in details instead
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
+    // Delete the user (cascade will handle related records)
+    await db.delete(users).where(eq(users.id, userId));
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

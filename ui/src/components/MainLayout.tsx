@@ -7,7 +7,6 @@ import { Topbar } from "@/components/Topbar";
 import { Dashboard } from "@/components/Dashboard";
 import { ChatInterface } from "@/components/ChatInterface";
 import { WorkspaceDetail } from "@/components/WorkspaceDetail";
-
 import { Settings } from "@/components/Settings";
 
 interface MainLayoutProps {
@@ -18,7 +17,8 @@ export type CurrentView =
   | { type: 'dashboard' }
   | { type: 'workspace'; workspaceId: string }
   | { type: 'chat'; chatId: string }
-  | { type: 'settings' };
+  | { type: 'settings' }
+  | { type: 'admin' };
 
 export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,7 +49,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       
       case 'settings':
         console.log('MainLayout: Rendering Settings component');
-        return <Settings />;
+        return <Settings onViewChange={setCurrentView} />;
       
       default:
         return <Dashboard onViewChange={setCurrentView} />;

@@ -7,7 +7,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { apiService } from '@/services/api';
 import { ActivityLogCard } from '@/components/ActivityLogCard';
-import type { CurrentView } from '@/components/MainLayout';
+import { useRouter } from 'next/navigation';
 import { 
   MdPerson, 
   MdAdminPanelSettings, 
@@ -18,7 +18,9 @@ import {
   MdLockReset,
   MdClose,
   MdVisibility,
-  MdVisibilityOff
+  MdVisibilityOff,
+  MdHome,
+  MdDelete
 } from 'react-icons/md';
 
 interface User {
@@ -29,10 +31,6 @@ interface User {
   role: 'user' | 'admin';
   isActive: number;
   createdAt: string;
-}
-
-interface AdminPanelProps {
-  onViewChange: (view: CurrentView) => void;
 }
 
 // Memoized user row component to prevent unnecessary re-renders
@@ -47,7 +45,7 @@ const UserTableRow = memo(function UserTableRow({
   currentUserId: number | undefined;
   language: string;
   t: (key: string) => string;
-  onOpenDialog: (type: 'password' | 'role' | 'status', user: User) => void;
+  onOpenDialog: (type: 'password' | 'role' | 'status' | 'delete', user: User) => void;
 }) {
   const isCurrentUser = userData.id === currentUserId;
 
@@ -70,8 +68,15 @@ const UserTableRow = memo(function UserTableRow({
   const handlePasswordClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Allow password change for all users (including current user)
+    onOpenDialog('password', userData);
+  }, [onOpenDialog, userData]);
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isCurrentUser) {
-      onOpenDialog('password', userData);
+      onOpenDialog('delete', userData);
     }
   }, [isCurrentUser, onOpenDialog, userData]);
 
@@ -100,7 +105,7 @@ const UserTableRow = memo(function UserTableRow({
       </td>
       
       {/* Phone Number */}
-      <td className={`py-3 px-4 text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+      <td className={`py-3 px-4 text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`} dir="ltr">
         {userData.phoneNumber || '-'}
       </td>
       
@@ -165,27 +170,40 @@ const UserTableRow = memo(function UserTableRow({
           variant="outline"
           size="sm"
           onClick={handlePasswordClick}
+          className={`flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-sm transform-gpu ${language === 'ar' ? 'text-arabic' : ''}`}
+        >
+          <MdLockReset className="h-4 w-4" />
+          {t('admin.userManagement.changePassword')}
+        </Button>
+      </td>
+      
+      {/* Actions - Delete Button */}
+      <td className="py-3 px-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDeleteClick}
           disabled={isCurrentUser}
-          className={`flex items-center gap-2 transition-all duration-200 ${language === 'ar' ? 'text-arabic' : ''} ${
+          className={`flex items-center gap-2 transition-all duration-200 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20 ${
             isCurrentUser 
               ? 'opacity-50 cursor-not-allowed' 
               : 'hover:scale-105 hover:shadow-sm transform-gpu'
           }`}
         >
-          <MdLockReset className="h-4 w-4" />
-          {t('admin.userManagement.changePassword')}
+          <MdDelete className="h-4 w-4" />
+          {t('admin.userManagement.deleteUser')}
         </Button>
       </td>
     </tr>
   );
 });
 
-export function AdminPanel({ onViewChange }: AdminPanelProps) {
+export function AdminPanelPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dialogState, setDialogState] = useState<{
-    type: 'password' | 'role' | 'status' | null;
+    type: 'password' | 'role' | 'status' | 'delete' | null;
     user: User | null;
   }>({ type: null, user: null });
   const [newPassword, setNewPassword] = useState('');
@@ -193,6 +211,7 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const { user, loading: userLoading } = useApp();
   const { language, t, dir } = useLanguage();
+  const router = useRouter();
 
   // Memoize the fetchData functions to prevent unnecessary re-renders
   const fetchAdminActivity = useCallback(() => {
@@ -206,24 +225,36 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const usersData = await apiService.getUsers();
       setUsers(usersData);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('admin.errors.failedToLoadUsers'));
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   }, [t]);
 
+  // Authentication and authorization check
   useEffect(() => {
-    // Load users once we have user context and they are confirmed as admin
-    if (!userLoading && user && user.role === 'admin') {
+    if (!userLoading) {
+      if (!user) {
+        // Not authenticated, redirect to login
+        router.push('/');
+        return;
+      }
+      
+      if (user.role !== 'admin') {
+        // Not admin, redirect to dashboard
+        router.push('/');
+        return;
+      }
+      
+      // User is admin, load users
       loadUsers();
-    } else if (!userLoading && user) {
-      // If user is loaded but not admin, ensure loading is false
-      setLoading(false);
     }
-  }, [user, userLoading, loadUsers]);
+  }, [user, userLoading, router, loadUsers]);
 
   const handleRoleChange = useCallback(async (userId: number, newRole: 'user' | 'admin') => {
     try {
@@ -251,19 +282,6 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
     }
   }, [t]);
 
-  const handleDeleteUser = useCallback(async (userId: number) => {
-    try {
-      setIsActionLoading(true);
-      await apiService.deleteUser(userId);
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      setDialogState({ type: null, user: null });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('admin.errors.failedToDeleteUser'));
-    } finally {
-      setIsActionLoading(false);
-    }
-  }, [t]);
-
   const handlePasswordChange = useCallback(async (userId: number) => {
     if (!newPassword || newPassword.length < 6) {
       setError('Password must be at least 6 characters long');
@@ -281,6 +299,19 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
       setIsActionLoading(false);
     }
   }, [newPassword, t]);
+
+  const handleDeleteUser = useCallback(async (userId: number) => {
+    try {
+      setIsActionLoading(true);
+      await apiService.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setDialogState({ type: null, user: null });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('admin.errors.failedToDeleteUser'));
+    } finally {
+      setIsActionLoading(false);
+    }
+  }, [t]);
 
   const handlePasswordInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setNewPassword(e.target.value);
@@ -300,14 +331,16 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
       handleRoleChange(dialogState.user.id, newRole);
     } else if (dialogState.type === 'status') {
       handleStatusToggle(dialogState.user.id, !dialogState.user.isActive);
+    } else if (dialogState.type === 'delete') {
+      handleDeleteUser(dialogState.user.id);
     }
-  }, [dialogState, handlePasswordChange, handleRoleChange, handleStatusToggle]);
+  }, [dialogState, handlePasswordChange, handleRoleChange, handleStatusToggle, handleDeleteUser]);
 
   const isDialogActionDisabled = useMemo(() => {
     return isActionLoading || (dialogState.type === 'password' && (!newPassword || newPassword.length < 6));
   }, [isActionLoading, dialogState.type, newPassword]);
 
-  const openDialog = useCallback((type: 'password' | 'role' | 'status', user: User) => {
+  const openDialog = useCallback((type: 'password' | 'role' | 'status' | 'delete', user: User) => {
     setDialogState({ type, user });
     setError('');
   }, []);
@@ -319,8 +352,12 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
     setError('');
   }, []);
 
-  // Show loading while user context is being loaded
-  if (userLoading || !user) {
+  const goHome = useCallback(() => {
+    router.push('/');
+  }, [router]);
+
+  // Show loading while checking auth
+  if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
         <div className="text-center space-y-4">
@@ -333,42 +370,31 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
     );
   }
 
-  // Only show access denied when user role is definitively set to 'user' (not admin)
-  if (user.role === 'user') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-        <Card className="p-6 text-center bg-card border-border">
-          <h1 className={`text-2xl font-bold text-foreground mb-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
-            {t('admin.accessDenied')}
-          </h1>
-          <p className={`text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
-            {t('admin.accessDeniedMessage')}
-          </p>
-        </Card>
-      </div>
-    );
+  // Don't render anything if redirecting
+  if (!user || user.role !== 'admin') {
+    return null;
   }
 
   return (
-    <div className={`p-6 bg-background ${dir === 'rtl' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen p-6 bg-background ${dir === 'rtl' ? 'rtl' : 'ltr'}`}>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with Back Button */}
-        <div className={`flex items-center gap-4 mb-6 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewChange({ type: 'settings' })}
-            className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
-          >
-            <MdArrowBack className={`h-4 w-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
-            {t('admin.backToSettings')}
-          </Button>
+        {/* Header with Navigation */}
+        <div className={`flex justify-between items-center gap-4 mb-6 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
           <div className={`flex items-center gap-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
             <MdAdminPanelSettings className="h-8 w-8 text-primary" />
             <h1 className={`text-3xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
               {t('admin.title')}
             </h1>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={goHome}
+            className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
+          >
+            <MdHome className={`h-4 w-4 ${dir === 'rtl' ? '' : ''}`} />
+            {t('admin.backToDashboard')}
+          </Button>
         </div>
 
         {error && (
@@ -426,19 +452,42 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
                       <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
                         {t('admin.userManagement.changePassword')}
                       </th>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                        {t('admin.userManagement.deleteUser')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((userData) => (
-                      <UserTableRow
-                        key={userData.id}
-                        userData={userData}
-                        currentUserId={user?.id}
-                        language={language}
-                        t={t}
-                        onOpenDialog={openDialog}
-                      />
-                    ))}
+                    {users.length > 0 ? (
+                      users.map((userData) => (
+                        <UserTableRow
+                          key={userData.id}
+                          userData={userData}
+                          currentUserId={user?.id}
+                          language={language}
+                          t={t}
+                          onOpenDialog={openDialog}
+                        />
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="text-center py-8">
+                          <p className={`text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                            {error ? t('admin.userManagement.errorLoading') : t('admin.userManagement.noUsers')}
+                          </p>
+                          {error && (
+                            <Button 
+                              onClick={loadUsers} 
+                              variant="outline" 
+                              className="mt-2"
+                              disabled={loading}
+                            >
+                              {t('admin.userManagement.retry')}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -465,6 +514,7 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
                   {dialogState.type === 'password' && t('admin.userManagement.changePassword')}
                   {dialogState.type === 'role' && t('admin.userManagement.changeRole')}
                   {dialogState.type === 'status' && (dialogState.user.isActive ? t('admin.userManagement.disableUser') : t('admin.userManagement.enableUser'))}
+                  {dialogState.type === 'delete' && t('admin.userManagement.deleteUser')}
                 </h3>
                 <Button variant="ghost" size="sm" onClick={closeDialog}>
                   <MdClose className="h-4 w-4" />
@@ -534,6 +584,19 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
                   </div>
                 )}
 
+                {dialogState.type === 'delete' && (
+                  <div className="space-y-4">
+                    <p className={`text-sm ${language === 'ar' ? 'text-arabic' : ''}`}>
+                      {t('admin.userManagement.deleteConfirmation')}
+                    </p>
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <p className={`text-sm text-red-600 dark:text-red-400 font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                        ⚠️ This action cannot be undone
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {error && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className={`text-sm text-red-600 ${language === 'ar' ? 'text-arabic' : ''}`}>{error}</p>
@@ -548,6 +611,7 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
                 <Button
                   onClick={handleDialogAction}
                   disabled={isDialogActionDisabled}
+                  className={dialogState.type === 'delete' ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' : ''}
                 >
                   {isActionLoading ? (
                     <div className="flex items-center gap-2">
@@ -559,6 +623,7 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
                       {dialogState.type === 'password' && t('admin.userManagement.changePassword')}
                       {dialogState.type === 'role' && t('admin.userManagement.changeRole')}
                       {dialogState.type === 'status' && (dialogState.user.isActive ? t('admin.userManagement.disableUser') : t('admin.userManagement.enableUser'))}
+                      {dialogState.type === 'delete' && t('admin.userManagement.deleteUser')}
                     </span>
                   )}
                 </Button>
@@ -586,8 +651,6 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
             className="h-fit"
           />
         </div>
-
-        
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useApp } from "@/contexts/AppContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import type { CurrentView } from "@/components/MainLayout";
 import { 
   MdLightMode, 
   MdDarkMode,
@@ -21,66 +22,48 @@ import {
   MdInfo
 } from "react-icons/md";
 
-export function Settings() {
-  const { user, logout, loading, contextVersion } = useApp();
-  const { theme, toggleTheme } = useTheme();
-  const { language, setLanguage, t, dir } = useLanguage();
-  const [retryCount, setRetryCount] = useState(0);
-  
-  console.log('Settings: Rendering with user:', user, 'loading:', loading, 'contextVersion:', contextVersion);
+interface SettingsProps {
+  onViewChange?: (view: CurrentView) => void;
+}
 
-  // Debug user changes
-  useEffect(() => {
-    console.log('Settings: User state changed:', user);
+export const Settings = memo(function Settings({ onViewChange }: SettingsProps = {}) {
+  const { user, logout, loading } = useApp();
+  const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+
+  // Memoized event handlers to prevent re-renders
+  const handleAdminPanelAccess = useCallback(() => {
+    // Always navigate to /admin route for better UX
+    window.location.href = '/admin';
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    logout();
+  }, [logout]);
+
+  const handleThemeToggle = useCallback(() => {
+    toggleTheme();
+  }, [toggleTheme]);
+
+  const handleLanguageChange = useCallback((newLanguage: 'en' | 'ar') => {
+    setLanguage(newLanguage);
+  }, [setLanguage]);
+
+  const handleLanguageToggle = useCallback(() => {
+    handleLanguageChange(language === 'en' ? 'ar' : 'en');
+  }, [language, handleLanguageChange]);
+
+  // Stable user computation
+  const actualUser = useMemo(() => {
+    return (user as any)?.user || user;
   }, [user]);
 
-  useEffect(() => {
-    console.log('Settings: Loading state changed:', loading);
-  }, [loading]);
-
-  // Force re-evaluation if we're in a loading state but should have user data
-  useEffect(() => {
-    const actualUser = (user as any)?.user || user;
-    if ((loading || !actualUser || !actualUser.email || !actualUser.fullName) && retryCount < 3) {
-      console.log('Settings: Retrying user data check, attempt:', retryCount + 1);
-      const timer = setTimeout(() => {
-        setRetryCount((prev: number) => prev + 1);
-      }, 500); // Wait 500ms and re-evaluate
-      
-      return () => clearTimeout(timer);
-    }
-  }, [loading, user, retryCount]);
-
-  const handleAdminPanelAccess = () => {
-    window.location.href = '/admin';
-  };
-
-  const handleSignOut = () => {
-    logout();
-  };
-
-  // More robust loading check using useMemo to ensure proper re-evaluation
-  const shouldShowLoading = useMemo(() => {
-    // Handle potential nested user structure from backend
-    const actualUser = (user as any)?.user || user; 
-    const result = loading || !actualUser || !actualUser.email || !actualUser.fullName;
-    console.log('Settings: shouldShowLoading computed:', result, {
-      loading,
-      user: user,
-      actualUser: actualUser ? { id: actualUser.id, email: actualUser.email, fullName: actualUser.fullName } : null,
-      contextVersion,
-      hasEmail: !!actualUser?.email,
-      hasFullName: !!actualUser?.fullName
-    });
-    return result;
-  }, [loading, user, contextVersion]);
+  // Simplified loading check
+  const isLoading = useMemo(() => {
+    return loading || !actualUser?.email || !actualUser?.fullName;
+  }, [loading, actualUser]);
   
-  // Handle potential nested user structure from backend
-  const actualUser = (user as any)?.user || user;
-  console.log('Settings: shouldShowLoading:', shouldShowLoading, 'loading:', loading, 'user:', user, 'actualUser.id:', actualUser?.id, 'retryCount:', retryCount);
-  
-  if (shouldShowLoading) {
-    console.log('Settings: Showing loading - loading:', loading, 'user:', user, 'actualUser.email:', actualUser?.email, 'actualUser.fullName:', actualUser?.fullName);
+  if (isLoading) {
     return (
       <div className="min-w-full bg-background min-h-screen">
         <div className="max-w-4xl mx-auto p-6 space-y-8 bg-background min-h-screen">
@@ -104,8 +87,6 @@ export function Settings() {
       </div>
     );
   }
-
-  console.log('Settings: Rendering main content for user:', actualUser?.fullName);
 
   return (
     <div className="min-w-full bg-background min-h-screen">
@@ -357,7 +338,7 @@ export function Settings() {
             <Button
               variant="outline"
               size="sm"
-              onClick={toggleTheme}
+              onClick={handleThemeToggle}
               className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
             >
               {theme === 'light' ? (
@@ -390,7 +371,7 @@ export function Settings() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+                onClick={handleLanguageToggle}
                 className={`${language === 'ar' ? 'text-arabic' : ''}`}
               >
                 {language === 'en' ? t('settings.english') : t('settings.arabic')}
@@ -435,4 +416,4 @@ export function Settings() {
     </div>
     </div>
   );    
-}
+});

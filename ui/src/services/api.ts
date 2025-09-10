@@ -307,6 +307,28 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  async changeUserPassword(userId: number, newPassword: string): Promise<void> {
+    await this.fetchWithAuth(`/admin/users/${userId}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ newPassword }),
+    });
+  }
+
+  async getAdminActivity(limit?: number): Promise<any[]> {
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await this.fetchWithAuth(`/admin/admin-activity${params}`);
+    return response.json();
+  }
+
+  async getUserActivity(userId?: number, limit?: number): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId.toString());
+    if (limit) params.append('limit', limit.toString());
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await this.fetchWithAuth(`/admin/activity${queryString}`);
+    return response.json();
+  }
 }
 
 export const apiService = new ApiService();
