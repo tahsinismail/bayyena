@@ -3,6 +3,20 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { apiService, Case, ChatMessage, ChatTopic, Document as ApiDocument, AuthUser } from '@/services/api';
 
+// Helper function to extract user-friendly error message from JSON or plain text
+const parseErrorMessage = (error: string | Error): string => {
+  const errorString = error instanceof Error ? error.message : error;
+  
+  try {
+    // Try to parse as JSON to extract the message field
+    const errorObj = JSON.parse(errorString);
+    return errorObj.message || errorString;
+  } catch {
+    // If it's not JSON, return the original string
+    return errorString;
+  }
+};
+
 // UI interfaces that map to backend data
 export interface Document {
   id: string;
@@ -262,7 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log('AppContext: Login complete');
     } catch (err) {
       console.error('AppContext: Login error:', err);
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(parseErrorMessage(err instanceof Error ? err.message : 'Login failed'));
       throw err;
     } finally {
       console.log('AppContext: Setting loading to false');
@@ -290,7 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await loadWorkspaces();
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      const errorMessage = parseErrorMessage(err instanceof Error ? err.message : 'Registration failed');
       setError(errorMessage);
       throw err;
     } finally {
