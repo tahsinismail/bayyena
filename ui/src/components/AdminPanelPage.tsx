@@ -105,7 +105,7 @@ const UserTableRow = memo(function UserTableRow({
       </td>
       
       {/* Phone Number */}
-      <td className={`py-3 px-4 text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`} dir="ltr">
+      <td className={`py-3 px-4 text-muted-foreground ${language === 'ar' ? '' : ''}`} dir="ltr">
         {userData.phoneNumber || '-'}
       </td>
       
