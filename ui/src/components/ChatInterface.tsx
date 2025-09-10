@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInput } from "@/components/ChatInput";
 import { Button } from "@/components/ui/button";
-import { MdClose, MdTopic } from "react-icons/md";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MdClose, MdTopic, MdHistory } from "react-icons/md";
 import type { CurrentView } from "@/components/MainLayout";
 
 interface ChatInterfaceProps {
@@ -15,6 +17,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ onViewChange }: ChatInterfaceProps) {
   const { currentChat, currentWorkspace } = useApp();
   const { language, t, dir } = useLanguage();
+  const [showHistory, setShowHistory] = useState(false);
 
   // Helper function for UI text (translations)
   const getUITextClasses = () => {
@@ -33,6 +36,38 @@ export function ChatInterface({ onViewChange }: ChatInterfaceProps) {
       onViewChange({ type: 'workspace', workspaceId: currentWorkspace.id.toString() });
     }
   };
+
+  const handleShowHistory = () => {
+    setShowHistory(true);
+  };
+
+  const handleHistoryMessageClick = (messageId: string) => {
+    setShowHistory(false);
+    // Scroll to the message in the chat
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Add a brief highlight effect
+      messageElement.classList.add('ring-2', 'ring-primary', 'ring-opacity-50');
+      setTimeout(() => {
+        messageElement.classList.remove('ring-2', 'ring-primary', 'ring-opacity-50');
+      }, 2000);
+    }
+  };
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString(language === 'ar' ? 'en-US' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  // Get user messages only for history
+  const userMessages = currentChat?.messages.filter(msg => msg.role === 'user') || [];
 
   // Only show back button if this is a chat topic (has topicId)
   const isTopicChat = currentChat?.topicId;
@@ -70,16 +105,27 @@ export function ChatInterface({ onViewChange }: ChatInterfaceProps) {
                 </div>
               </div>
               
-              {/* Right side - Close Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToWorkspace}
-                className="flex-shrink-0 ml-4 h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
-                title={t('chat.interface.closeAndReturn')}
-              >
-                <MdClose className="h-4 w-4" />
-              </Button>
+              {/* Right side - History and Close Buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleShowHistory}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
+                  title={t('chat.interface.showHistory')}
+                >
+                  <MdHistory className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToWorkspace}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
+                  title={t('chat.interface.closeAndReturn')}
+                >
+                  <MdClose className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ) : (
             /* Regular Chat Header */
@@ -112,6 +158,49 @@ export function ChatInterface({ onViewChange }: ChatInterfaceProps) {
           <ChatInput />
         </div>
       </div>
+
+      {/* History Dialog */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className={getUITextClasses()}>
+              {t('chat.interface.history.title')} - {currentChat?.title}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="max-h-96 overflow-y-auto">
+            {userMessages.length > 0 ? (
+              <div className="space-y-3">
+                {userMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className="p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => handleHistoryMessageClick(message.id)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium text-foreground line-clamp-3 ${getUserContentClasses(message.content)}`}>
+                          {message.content}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className={`text-xs text-muted-foreground ${getUITextClasses()}`}>
+                          {formatMessageTime(message.timestamp)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <MdHistory className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className={getUITextClasses()}>{t('chat.interface.history.empty')}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

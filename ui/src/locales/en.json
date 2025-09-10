@@ -253,7 +253,12 @@
       "topic": "Topic",
       "in": "in",
       "closeAndReturn": "Close topic and return to workspace",
-      "chat": "Chat"
+      "chat": "Chat",
+      "showHistory": "Show message history",
+      "history": {
+        "title": "Message History",
+        "empty": "No messages sent yet"
+      }
     },
     "messages": {
       "welcomeTo": "Welcome to",

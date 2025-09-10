@@ -106,7 +106,7 @@ function MessageBubble({ message }: { message: Message }) {
   };
   
   return (
-    <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div id={`message-${message.id}`} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
         <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
           <MdSmartToy className="h-4 w-4" />
