@@ -9,20 +9,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useApp } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { AE } from 'country-flag-icons/react/3x2'
+import { SA } from 'country-flag-icons/react/3x2'
+import { QA } from 'country-flag-icons/react/3x2'
+import { KW } from 'country-flag-icons/react/3x2'
+import { BH } from 'country-flag-icons/react/3x2'
+import { OM } from 'country-flag-icons/react/3x2'
+import { EG } from 'country-flag-icons/react/3x2'
+import { JO } from 'country-flag-icons/react/3x2'
+import { SY } from 'country-flag-icons/react/3x2'
+import { LB } from 'country-flag-icons/react/3x2'
+import { IQ } from 'country-flag-icons/react/3x2'
 
-// Common country codes
+// Real Flag component using country-flag-icons library
+const FlagIcon = ({ countryCode }: { countryCode: string }) => {
+  const flagComponents: Record<string, React.ComponentType<{ className?: string }>> = {
+    'AE': AE,
+    'SA': SA,
+    'QA': QA,
+    'KW': KW,
+    'BH': BH,
+    'OM': OM,
+    'EG': EG,
+    'JO': JO,
+    'SY': SY,
+    'LB': LB,
+    'IQ': IQ,
+  };
+
+  const FlagComponent = flagComponents[countryCode];
+  
+  if (!FlagComponent) {
+    return (
+      <div className="w-7 h-5 rounded-sm overflow-hidden border border-gray-300 shadow-sm bg-blue-500 flex items-center justify-center">
+        <span className="text-white text-xs font-bold">{countryCode}</span>
+      </div>
+    );
+  }
+
+  return (
+    <FlagComponent className="w-max h-max bg-transparent" />
+  );
+};
+
+// Common country codes with real flag support
 const countryCodes = [
-  { code: '+971', country: 'AE', flag: '🇦🇪' },
-  { code: '+966', country: 'SA', flag: '🇸🇦' },
-  { code: '+965', country: 'KW', flag: '🇰🇼' },
-  { code: '+973', country: 'BH', flag: '🇧🇭' },
-  { code: '+974', country: 'QA', flag: '🇶🇦' },
-  { code: '+968', country: 'OM', flag: '🇴🇲' },
-  { code: '+20', country: 'EG', flag: '🇪🇬' },
-  { code: '+962', country: 'JO', flag: '🇯🇴' },
-  { code: '+963', country: 'SY', flag: '🇸🇾' },
-  { code: '+961', country: 'LB', flag: '🇱🇧' },
-  { code: '+964', country: 'IQ', flag: '🇮🇶' },
+  { code: '+971', country: 'AE', name: 'UAE' },
+  { code: '+966', country: 'SA', name: 'Saudi Arabia' },
+  { code: '+965', country: 'KW', name: 'Kuwait' },
+  { code: '+973', country: 'BH', name: 'Bahrain' },
+  { code: '+974', country: 'QA', name: 'Qatar' },
+  { code: '+968', country: 'OM', name: 'Oman' },
+  { code: '+20', country: 'EG', name: 'Egypt' },
+  { code: '+962', country: 'JO', name: 'Jordan' },
+  { code: '+963', country: 'SY', name: 'Syria' },
+  { code: '+961', country: 'LB', name: 'Lebanon' },
+  { code: '+964', country: 'IQ', name: 'Iraq' },
 ];
 
 interface RegisterFormProps {
@@ -231,16 +273,19 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
             <Select value={formData.countryCode} onValueChange={handleCountryCodeChange}>
               <SelectTrigger className="w-max">
                 <SelectValue>
-                  {countryCodes.find(c => c.code === formData.countryCode)?.flag} {formData.countryCode}
+                  <span className="flex items-center gap-2">
+                    <FlagIcon countryCode={countryCodes.find(c => c.code === formData.countryCode)?.country || 'QA'} />
+                    {formData.countryCode}
+                  </span>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {countryCodes.map((country) => (
                   <SelectItem key={country.code} value={country.code}>
                     <span className="flex items-center gap-2">
-                      <span>{country.flag}</span>
+                      <FlagIcon countryCode={country.country} />
                       <span>{country.code}</span>
-                      <span className="text-muted-foreground text-xs">({country.country})</span>
+                      <span className="text-muted-foreground text-xs">({country.name})</span>
                     </span>
                   </SelectItem>
                 ))}
