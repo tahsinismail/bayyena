@@ -9,11 +9,26 @@ import { MdPerson, MdSmartToy, MdContentCopy, MdCheck } from "react-icons/md";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function ChatMessages() {
   const { currentChat, currentWorkspace } = useApp();
   const { language, t, dir } = useLanguage();
+
+  // Auto-scroll to last user message when messages change
+  useEffect(() => {
+    if (currentChat?.messages && currentChat.messages.length > 0) {
+      // Find the last user message
+      const userMessages = currentChat.messages.filter(msg => msg.role === 'user');
+      if (userMessages.length > 0) {
+        const lastUserMessage = userMessages[userMessages.length - 1];
+        const messageElement = document.getElementById(`message-${lastUserMessage.id}`);
+        if (messageElement) {
+          messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }
+  }, [currentChat?.messages]);
 
   // Helper functions for content direction detection
   const getUITextClasses = () => {

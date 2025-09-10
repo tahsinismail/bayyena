@@ -163,7 +163,7 @@ export function ChatInterface({ onViewChange }: ChatInterfaceProps) {
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className={getUITextClasses()}>
+            <DialogTitle className={getUITextClasses()} style={{paddingRight: language === 'ar' ? '24px' :'0px'}}>
               {t('chat.interface.history.title')} - {currentChat?.title}
             </DialogTitle>
           </DialogHeader>
