@@ -44,30 +44,33 @@ export function DocumentPreview({ document, workspaceId, onClose }: DocumentPrev
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <Card className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            {getFileIcon(document.type)}
-            <div>
-              <h3 className={`font-medium truncate ${language === 'ar' ? 'text-arabic' : ''}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-b border-border gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex-shrink-0">
+              {getFileIcon(document.type)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className={`font-medium text-sm sm:text-base break-words ${language === 'ar' ? 'text-arabic' : ''}`}>
                 {document.name}
               </h3>
-              <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+              <p className={`text-xs sm:text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                 {t('documents.uploadedOn')} {new Date(document.uploadedAt).toLocaleDateString()}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleDownload}
-              className={language === 'ar' ? 'text-arabic' : ''}
+              className={`text-xs sm:text-sm ${language === 'ar' ? 'text-arabic' : ''}`}
             >
-              <MdDownload className="h-4 w-4 mr-2" />
-              {t('documents.download')}
+              <MdDownload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">{t('documents.download')}</span>
+              <span className="sm:hidden">{t('documents.downloadFile', 'Download')}</span>
             </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <MdClose className="h-4 w-4" />
@@ -76,7 +79,7 @@ export function DocumentPreview({ document, workspaceId, onClose }: DocumentPrev
         </div>
 
         {/* Content */}
-        <div className="p-4 max-h-[calc(90vh-100px)] overflow-auto">
+        <div className="p-2 sm:p-4 max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-100px)] overflow-auto">
           {!workspaceId ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">

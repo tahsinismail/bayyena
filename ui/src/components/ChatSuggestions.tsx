@@ -115,18 +115,18 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
   };
 
   return (
-    <div className="border-b border-border bg-card/50 p-3" dir={dir}>
+    <div className="border-b border-border bg-card/50 p-2 sm:p-3" dir={dir}>
       <div className="max-w-4xl mx-auto">
-        <div className={`flex items-center justify-between mb-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-          <div className={`text-sm text-muted-foreground ${getUITextClasses()}`}>
-            {t('chat.suggestions.title', 'Suggested questions')}
+        <div className={`flex items-center justify-between mb-2 gap-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+          <div className={`text-sm text-muted-foreground flex-1 min-w-0 ${getUITextClasses()}`}>
+            <span className="truncate block">{t('chat.suggestions.title', 'Suggested questions')}</span>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={loadSuggestions}
             disabled={loading}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground flex-shrink-0"
             title={t('chat.suggestions.refresh', 'Refresh suggestions')}
           >
             <MdRefresh className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
@@ -135,12 +135,12 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
         
         {loading ? (
           <div className="flex justify-center py-2">
-            <div className="animate-pulse text-sm text-muted-foreground">
+            <div className="animate-pulse text-xs sm:text-sm text-muted-foreground">
               {t('chat.suggestions.loading', 'Loading suggestions...')}
             </div>
           </div>
         ) : error ? (
-          <div className="text-sm text-red-500">
+          <div className="text-xs sm:text-sm text-red-500 break-words">
             {t('chat.suggestions.error', 'Failed to load suggestions')}
           </div>
         ) : (
@@ -154,8 +154,10 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
                   size="sm"
                   onClick={() => onSuggestionClick(suggestion)}
                   className={`
-                    text-xs h-8 px-3 bg-background hover:bg-muted border-border 
+                    text-xs h-auto min-h-[2rem] px-3 py-2 bg-background hover:bg-muted border-border 
                     text-foreground hover:text-foreground transition-colors
+                    flex-shrink-0 whitespace-normal text-left leading-relaxed
+                    max-w-full sm:max-w-[200px] md:max-w-[250px] lg:max-w-[300px]
                     ${isArabicContent ? 'text-arabic' : 'text-english'}
                   `}
                   dir={isArabicContent ? 'rtl' : 'ltr'}
