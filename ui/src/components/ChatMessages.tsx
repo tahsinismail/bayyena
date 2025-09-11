@@ -62,7 +62,7 @@ export function ChatMessages() {
   if (currentChat.messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground" dir={dir}>
-        <div className="text-center">
+        <div className="p-6 text-center">
           <h3 className={`text-lg font-medium mb-2 ${getUITextClasses()}`}>
             {t('chat.messages.startConversationTitle')}
           </h3>

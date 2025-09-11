@@ -50,6 +50,7 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [sidebarView, setSidebarView] = useState<'workspaces' | 'workspace-detail'>('workspaces');
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('');
   
   // Dialog states and form data
   const [showWorkspaceDialog, setShowWorkspaceDialog] = useState(false);
@@ -63,6 +64,11 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
     title: '',
     description: ''
   });
+
+  // Filter workspaces based on search query
+  const filteredWorkspaces = workspaces.filter(workspace =>
+    workspace.name.toLowerCase().includes(workspaceSearchQuery.toLowerCase())
+  );
 
   // Sync sidebar state with currentView changes from outside navigation
   useEffect(() => {
@@ -192,7 +198,7 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                 {/* Workspaces Section */}
                 <div className="pt-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm font-medium text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                    <span className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
                       {t('nav.workspaces')}
                     </span>
                     <Button
@@ -206,18 +212,35 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                     </Button>
                   </div>
                   
+                  {/* Search input for workspaces */}
+                  <div className="mb-3">
+                    <Input
+                      placeholder={t('forms.search')}
+                      value={workspaceSearchQuery}
+                      onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
+                      className="h-8 text-sm"
+                      dir={language === 'ar' ? 'rtl' : 'ltr'}
+                    />
+                  </div>
+                  
                   <div className="space-y-1">
-                    {workspaces.map((workspace) => (
-                      <Button
-                        key={workspace.id}
-                        variant="ghost"
-                        className="w-full justify-start gap-3"
-                        onClick={() => handleWorkspaceClick(workspace.id)}
-                      >
-                        <MdWorkspaces className="h-4 w-4" />
-                        <span className="truncate">{workspace.name}</span>
-                      </Button>
-                    ))}
+                    {filteredWorkspaces.length > 0 ? (
+                      filteredWorkspaces.map((workspace) => (
+                        <Button
+                          key={workspace.id}
+                          variant="ghost"
+                          className="w-full justify-start gap-3"
+                          onClick={() => handleWorkspaceClick(workspace.id)}
+                        >
+                          <MdWorkspaces className="h-4 w-4" />
+                          <span className="truncate">{workspace.name}</span>
+                        </Button>
+                      ))
+                    ) : workspaceSearchQuery ? (
+                      <div className={`text-center py-4 text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                        {t('forms.noWorkspacesFound')}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </>

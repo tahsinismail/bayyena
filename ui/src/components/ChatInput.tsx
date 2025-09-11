@@ -15,6 +15,7 @@ import {
   MdSchedule
 } from "react-icons/md";
 import { apiService, Document as APIDocument } from "@/services/api";
+import { ChatSuggestions } from "@/components/ChatSuggestions";
 
 interface FileUploadStatus {
   file: File;
@@ -387,6 +388,14 @@ export function ChatInput() {
     setDocumentSearch("");
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setMessage(suggestion);
+    // Focus the textarea after setting the message
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -426,6 +435,9 @@ export function ChatInput() {
 
   return (
     <div className="border-border bg-background">
+      {/* Chat Suggestions */}
+      <ChatSuggestions onSuggestionClick={handleSuggestionClick} />
+      
       {/* Document suggestions dropdown */}
       {showDocumentSuggestions && filteredDocuments.length > 0 && (
         <div className="border-b border-border bg-card p-2">

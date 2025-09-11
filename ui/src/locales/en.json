@@ -102,7 +102,7 @@
       "processedDocuments": "Processed Documents",
       "recentActivity": "Recent Activity",
       "fromLastMonth": "from last month",
-      "casesAndMessages": "cases and messages"
+      "chatMessages": "messages"
     },
     "priority": {
       "title": "Cases by Priority",
@@ -269,6 +269,32 @@
     },
     "input": {
       "placeholder": "Ask anything or @mention a document"
+    },
+    "suggestions": {
+      "title": "Suggested questions",
+      "refresh": "Refresh suggestions", 
+      "loading": "Loading suggestions...",
+      "error": "Failed to load suggestions",
+      "fallback": {
+        "withDocuments": [
+          "What are the key legal issues in my documents?",
+          "Summarize the main points from my case files",
+          "What should be my next legal steps?",
+          "Are there any compliance issues to address?"
+        ],
+        "withConversation": [
+          "Can you explain this point in more detail?",
+          "What are the practical steps I should follow?",
+          "Are there any legal risks to consider?",
+          "What alternatives are available in this case?"
+        ],
+        "withoutDocuments": [
+          "How can you help me as a legal assistant?",
+          "What types of legal questions can I ask you?",
+          "Can you explain a specific legal concept?",
+          "What are best practices in legal case management?"
+        ]
+      }
     }
   },
   "admin": {
@@ -383,7 +409,8 @@
     "placeholder": "Enter value...",
     "selectOption": "Select an option",
     "selectFile": "Select File",
-    "browse": "Browse"
+    "browse": "Browse",
+    "noWorkspacesFound": "No workspaces found"
   },
   "common": {
     "loading": "Loading...",

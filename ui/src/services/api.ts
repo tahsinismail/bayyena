@@ -201,6 +201,26 @@ class ApiService {
     return response.json();
   }
 
+  async getChatSuggestions(caseId: number, topicId?: number, language?: string): Promise<string[]> {
+    let url = `/chat/${caseId}/suggestions`;
+    const params = new URLSearchParams();
+    
+    if (topicId) {
+      params.append('topicId', topicId.toString());
+    }
+    if (language) {
+      params.append('language', language);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await this.fetchWithAuth(url);
+    const data = await response.json();
+    return data.suggestions || [];
+  }
+
   // Chat Topics methods
   async getChatTopics(caseId: number): Promise<ChatTopic[]> {
     const response = await this.fetchWithAuth(`/chat-topics/${caseId}`);

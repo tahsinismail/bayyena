@@ -555,4 +555,230 @@ router.delete('/:caseId/history', async (req:any, res:any, next:any) => {
     }
 });
 
+// GET /api/chat/:caseId/suggestions - Generate chat prompt suggestions
+router.get('/:caseId/suggestions', async (req:any, res:any, next:any) => {
+    const caseId = parseInt(req.params.caseId);
+    const topicId = req.query.topicId ? parseInt(req.query.topicId) : null;
+    const language = req.query.language || 'en'; // Default to English
+    
+    if (isNaN(caseId)) return res.status(400).json({ message: 'Invalid Case ID.' });
+
+    try {
+        // Get case documents for context
+        const caseDocs = await db.select().from(documents).where(and(eq(documents.caseId, caseId), eq(documents.processingStatus, 'PROCESSED')));
+        
+        // Get recent conversation history for context
+        const chatHistoryCondition = topicId 
+            ? and(eq(chatMessages.caseId, caseId), eq(chatMessages.topicId, topicId))
+            : eq(chatMessages.caseId, caseId);
+            
+        const recentHistory = await db.select().from(chatMessages)
+            .where(chatHistoryCondition)
+            .orderBy(asc(chatMessages.createdAt))
+            .limit(10); // Last 10 messages for context
+
+        // Build context for suggestion generation
+        const documentsContext = caseDocs.length > 0 
+            ? `Available documents: ${caseDocs.map(doc => doc.fileName).join(', ')}`
+            : "No documents uploaded yet";
+        
+        const conversationContext = recentHistory.length > 0 
+            ? `Recent conversation:\n${recentHistory.slice(-5).map(msg => `${msg.sender}: ${msg.text}`).join('\n')}`
+            : "No previous conversation";
+
+        const hasDocuments = caseDocs.length > 0;
+        const hasConversation = recentHistory.length > 0;
+
+        // Create language-specific prompts
+        const isArabic = language === 'ar';
+        const languageInstruction = isArabic 
+            ? "يجب أن تكون جميع الاقتراحات باللغة العربية."
+            : "All suggestions must be in English.";
+        
+        let contextualInstructions = "";
+        if (hasDocuments) {
+            contextualInstructions = isArabic 
+                ? "ركز على أسئلة تحليل الوثائق والمعلومات القانونية المتاحة."
+                : "Focus on document analysis questions and available legal information.";
+        } else if (hasConversation) {
+            contextualInstructions = isArabic 
+                ? "ركز على أسئلة المتابعة بناءً على المحادثة الحالية."
+                : "Focus on follow-up questions based on the current conversation.";
+        } else {
+            contextualInstructions = isArabic 
+                ? "ركز على أسئلة عامة للمحادثة والمساعدة القانونية دون ذكر الوثائق."
+                : "Focus on general conversation and legal assistance questions without mentioning documents.";
+        }
+        
+        const prompt = `You are Bayyena AI, a legal assistant. Based on the conversation history and available documents, generate 3-4 relevant follow-up questions or prompts that would be helpful for the user to ask next.
+
+IMPORTANT: ${languageInstruction}
+CONTEXT GUIDELINE: ${contextualInstructions}
+
+CONTEXT:
+${documentsContext}
+
+${conversationContext}
+
+Generate 3-4 concise, actionable follow-up questions (each 8-15 words) that would help the user:
+${hasDocuments 
+  ? "1. Analyze uploaded documents\n2. Get legal guidance based on document content\n3. Explore case strategy from document insights\n4. Ask about specific legal procedures mentioned in documents"
+  : hasConversation 
+    ? "1. Continue the current conversation topic\n2. Explore related legal concepts\n3. Ask for clarification or deeper analysis\n4. Seek practical next steps"
+    : "1. Start a legal conversation or ask legal questions\n2. Get general legal guidance\n3. Understand legal processes\n4. Explore legal topics of interest"
+}
+
+${isArabic 
+  ? `أعد فقط مصفوفة JSON من السلاسل، مثل:
+["السؤال 1", "السؤال 2", "السؤال 3", "السؤال 4"]
+
+ركز على أسئلة عملية وذات صلة بالسياق. إذا لم يكن هناك تاريخ محادثة، اقترح أسئلة عامة حول تحليل الوثائق القانونية أو إدارة القضايا.`
+  : `Return ONLY a JSON array of strings, like:
+["Question 1", "Question 2", "Question 3", "Question 4"]
+
+Focus on practical, relevant questions based on the context. If no conversation history exists, suggest general legal document analysis or case management questions.`}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response.text();
+        
+        // Clean the response by removing markdown code blocks if present
+        let cleanedResponse = response.trim();
+        
+        // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+        if (cleanedResponse.startsWith('```')) {
+            const lines = cleanedResponse.split('\n');
+            // Remove first line if it starts with ```
+            if (lines[0].startsWith('```')) {
+                lines.shift();
+            }
+            // Remove last line if it starts with ```
+            if (lines[lines.length - 1].trim() === '```') {
+                lines.pop();
+            }
+            cleanedResponse = lines.join('\n').trim();
+        }
+        
+        try {
+            // Parse the cleaned AI response as JSON
+            const suggestions = JSON.parse(cleanedResponse);
+            
+            // Validate that it's an array of strings
+            if (Array.isArray(suggestions) && suggestions.every(item => typeof item === 'string')) {
+                res.status(200).json({ suggestions });
+            } else {
+                // Language-specific fallback suggestions based on context
+                let fallbackSuggestions;
+                
+                if (hasDocuments) {
+                    // Document-focused suggestions
+                    fallbackSuggestions = isArabic
+                        ? [
+                            "ما هي القضايا القانونية الرئيسية في مستنداتي؟",
+                            "لخص النقاط الرئيسية من ملفات قضيتي",
+                            "ما هي خطواتي القانونية التالية؟",
+                            "هل هناك أي مسائل امتثال يجب معالجتها؟"
+                          ]
+                        : [
+                            "What are the key legal issues in my documents?",
+                            "Summarize the main points from my case files",
+                            "What should be my next legal steps?",
+                            "Are there any compliance issues to address?"
+                          ];
+                } else if (hasConversation) {
+                    // Conversation follow-up suggestions
+                    fallbackSuggestions = isArabic
+                        ? [
+                            "هل يمكنك توضيح هذه النقطة أكثر؟",
+                            "ما هي الخطوات العملية التي يجب اتباعها؟",
+                            "هل هناك مخاطر قانونية يجب مراعاتها؟",
+                            "ما هي البدائل المتاحة في هذه الحالة؟"
+                          ]
+                        : [
+                            "Can you explain this point in more detail?",
+                            "What are the practical steps I should follow?",
+                            "Are there any legal risks to consider?",
+                            "What alternatives are available in this case?"
+                          ];
+                } else {
+                    // General chat starters for blank conversations
+                    fallbackSuggestions = isArabic
+                        ? [
+                            "كيف يمكنك مساعدتي كمساعد قانوني؟",
+                            "ما هي أنواع الأسئلة القانونية التي يمكنني طرحها؟",
+                            "هل يمكنك شرح مفهوم قانوني معين؟",
+                            "ما هي أفضل الممارسات في إدارة القضايا القانونية؟"
+                          ]
+                        : [
+                            "How can you help me as a legal assistant?",
+                            "What types of legal questions can I ask you?",
+                            "Can you explain a specific legal concept?",
+                            "What are best practices in legal case management?"
+                          ];
+                }
+                
+                res.status(200).json({ suggestions: fallbackSuggestions });
+            }
+        } catch (parseError) {
+            console.error('Failed to parse AI suggestions:', parseError);
+            console.error('Original AI response:', response);
+            console.error('Cleaned response:', cleanedResponse);
+            
+            // Language-specific fallback suggestions based on context
+            let fallbackSuggestions;
+            
+            if (hasDocuments) {
+                // Document-focused suggestions
+                fallbackSuggestions = isArabic
+                    ? [
+                        "ما هي القضايا القانونية الرئيسية في مستنداتي؟",
+                        "لخص النقاط الرئيسية من ملفات قضيتي",
+                        "ما هي خطواتي القانونية التالية؟",
+                        "هل هناك أي مسائل امتثال يجب معالجتها؟"
+                      ]
+                    : [
+                        "What are the key legal issues in my documents?",
+                        "Summarize the main points from my case files", 
+                        "What should be my next legal steps?",
+                        "Are there any compliance issues to address?"
+                      ];
+            } else if (hasConversation) {
+                // Conversation follow-up suggestions
+                fallbackSuggestions = isArabic
+                    ? [
+                        "هل يمكنك توضيح هذه النقطة أكثر؟",
+                        "ما هي الخطوات العملية التي يجب اتباعها؟",
+                        "هل هناك مخاطر قانونية يجب مراعاتها؟",
+                        "ما هي البدائل المتاحة في هذه الحالة؟"
+                      ]
+                    : [
+                        "Can you explain this point in more detail?",
+                        "What are the practical steps I should follow?",
+                        "Are there any legal risks to consider?",
+                        "What alternatives are available in this case?"
+                      ];
+            } else {
+                // General chat starters for blank conversations
+                fallbackSuggestions = isArabic
+                    ? [
+                        "كيف يمكنك مساعدتي كمساعد قانوني؟",
+                        "ما هي أنواع الأسئلة القانونية التي يمكنني طرحها؟",
+                        "هل يمكنك شرح مفهوم قانوني معين؟",
+                        "ما هي أفضل الممارسات في إدارة القضايا القانونية؟"
+                      ]
+                    : [
+                        "How can you help me as a legal assistant?",
+                        "What types of legal questions can I ask you?",
+                        "Can you explain a specific legal concept?",
+                        "What are best practices in legal case management?"
+                      ];
+            }
+            
+            res.status(200).json({ suggestions: fallbackSuggestions });
+        }
+    } catch (err) {
+        console.error('Error generating chat suggestions:', err);
+        res.status(500).json({ message: 'Failed to generate suggestions' });
+    }
+});
+
 export default router;
