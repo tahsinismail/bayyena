@@ -214,14 +214,17 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
   };
 
   return (
-    <div className="p-6 bg-background min-h-screen" dir={dir}>
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className={`text-3xl font-bold tracking-tight text-foreground ${getUITextClasses()}`}>
-            {t('workspace.details.title')}
-          </h1>
-        </div>
+    <div className="h-full p-4 sm:p-6 lg:p-8 bg-background">
+      <div className="max-w-7xl mx-auto h-full">
+        <div className="flex flex-col h-full space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between flex-shrink-0">
+            <h1 className={`text-2xl lg:text-3xl font-bold tracking-tight text-foreground ${getUITextClasses()}`}>
+              {t('workspace.details.title')}
+            </h1>
+          </div>
+
+          <div className="flex-1 min-h-0 space-y-6">
 
         {/* Workspace Info Card */}
         <Card>
@@ -547,6 +550,8 @@ export function WorkspaceDetail({ workspaceId, onViewChange }: WorkspaceDetailPr
             onClose={() => setPreviewDocument(null)}
           />
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

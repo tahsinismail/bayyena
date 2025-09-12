@@ -79,7 +79,10 @@
     "appearance": "المظهر",
     "appearanceDescription": "تخصيص شكل ومظهر مساحة العمل الخاصة بك",
     "theme": "السمة",
-    "themeDescription": "اختر بين السمات الفاتحة والداكنة",
+    "themeDescription": "اختر بين السمات الفاتحة والداكنة وسمة النظام",
+    "lightTheme": "فاتح",
+    "darkTheme": "داكن",
+    "systemTheme": "النظام",
     "switchToDark": "التبديل إلى الداكن",
     "switchToLight": "التبديل إلى الفاتح",
     "language": "اللغة",
@@ -271,7 +274,12 @@
       "copyMessage": "نسخ الرسالة"
     },
     "input": {
-      "placeholder": "اسأل أي شيء أو @اذكر وثيقة"
+      "placeholder": "اسأل أي شيء أو @اذكر وثيقة",
+      "dragDrop": {
+        "title": "اسحب الملفات هنا للرفع",
+        "subtitle": "اترك الملفات هنا لرفعها ومعالجتها", 
+        "supportedFiles": "PDF، DOCX، DOC، TXT، الصور"
+      }
     },
     "suggestions": {
       "title": "أسئلة مقترحة",

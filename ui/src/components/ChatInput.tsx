@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useApp, Document as UIDocument } from "@/contexts/AppContext";
@@ -27,7 +27,15 @@ interface FileUploadStatus {
   lastErrorTime?: number; // Track when last error occurred
 }
 
-export function ChatInput() {
+interface ChatInputProps {
+  onFileUpload?: (files: File[]) => void;
+}
+
+interface ChatInputRef {
+  uploadFiles: (files: File[]) => void;
+}
+
+export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({ onFileUpload }, ref) => {
   const [message, setMessage] = useState("");
   const [fileStatuses, setFileStatuses] = useState<FileUploadStatus[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -36,6 +44,7 @@ export function ChatInput() {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { currentChat, currentWorkspace, sendMessage, addDocumentToWorkspace, updateDocumentInWorkspace } = useApp();
   const { language, t, dir } = useLanguage();
@@ -195,8 +204,72 @@ export function ChatInput() {
     }
   }, [fileStatuses]);
 
+  // Timeout to clear dragging state if it gets stuck
+  useEffect(() => {
+    if (isDragging) {
+      // Clear any existing timeout
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+      
+      // Set a new timeout to clear dragging state after 3 seconds
+      dragTimeoutRef.current = setTimeout(() => {
+        console.log('Clearing stuck drag state');
+        setIsDragging(false);
+      }, 3000);
+    } else {
+      // Clear timeout when dragging stops normally
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+        dragTimeoutRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+    };
+  }, [isDragging]);
+
+  // Prevent default browser drag behavior globally (only if not using parent drag handling)
+  useEffect(() => {
+    // Skip global prevention if parent is handling drag and drop
+    if (onFileUpload) {
+      return;
+    }
+
+    const handleGlobalDragOver = (e: DragEvent) => {
+      // Allow drag over our drop zone, prevent everywhere else
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-drop-zone="true"]')) {
+        e.preventDefault();
+      }
+    };
+    
+    const handleGlobalDrop = (e: DragEvent) => {
+      // Allow drop in our drop zone, prevent everywhere else
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-drop-zone="true"]')) {
+        e.preventDefault();
+      }
+    };
+
+    // Add global event listeners to prevent browser default file handling
+    document.addEventListener('dragover', handleGlobalDragOver);
+    document.addEventListener('drop', handleGlobalDrop);
+
+    return () => {
+      document.removeEventListener('dragover', handleGlobalDragOver);
+      document.removeEventListener('drop', handleGlobalDrop);
+    };
+  }, [onFileUpload]);
+
   const uploadFiles = useCallback(async (files: File[]) => {
+    console.log('uploadFiles called with:', files);
+    
     if (!currentWorkspace) {
+      console.error('No workspace selected');
       alert('Please select a workspace first');
       return;
     }
@@ -210,6 +283,8 @@ export function ChatInput() {
       )
     );
 
+    console.log('Filtered files for upload:', newFiles);
+
     if (newFiles.length === 0) {
       console.log('All files are already being uploaded or processed');
       return;
@@ -221,7 +296,12 @@ export function ChatInput() {
       status: 'uploading' as const
     }));
     
-    setFileStatuses(prev => [...prev, ...newStatuses]);
+    console.log('Adding file statuses:', newStatuses);
+    setFileStatuses(prev => {
+      const updated = [...prev, ...newStatuses];
+      console.log('Updated file statuses:', updated);
+      return updated;
+    });
 
     try {
       const caseId = parseInt(currentWorkspace.id);
@@ -298,9 +378,27 @@ export function ChatInput() {
     }
   }, [currentWorkspace, addDocumentToWorkspace, fileStatuses]);
 
+  // Expose uploadFiles method to parent components via ref
+  useImperativeHandle(ref, () => ({
+    uploadFiles: (files: File[]) => {
+      console.log('ChatInput: uploadFiles called via ref with:', files);
+      uploadFiles(files);
+    }
+  }), [uploadFiles]);
+
   const handleFileSelect = useCallback((files: FileList) => {
+    console.log('handleFileSelect called with:', files);
     const newFiles = Array.from(files);
+    console.log('Converted to array:', newFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
     
+    // If onFileUpload callback is provided (from ChatInterface), use it
+    if (onFileUpload) {
+      console.log('Using onFileUpload callback from ChatInterface');
+      onFileUpload(newFiles);
+      return;
+    }
+    
+    // Otherwise, use the original ChatInput logic
     // Filter out files that are already attached or being processed
     const uniqueFiles = newFiles.filter(newFile => 
       !fileStatuses.some(status => 
@@ -320,8 +418,9 @@ export function ChatInput() {
     // setAttachedFiles(prev => [...prev, ...uniqueFiles]);
     
     // Start uploading files immediately
+    console.log('Calling uploadFiles with:', uniqueFiles);
     uploadFiles(uniqueFiles);
-  }, [fileStatuses, uploadFiles]);
+  }, [fileStatuses, uploadFiles, onFileUpload]);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -331,19 +430,58 @@ export function ChatInput() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    e.stopPropagation();
+    console.log('Drag over');
+    // Only set dragging if we have files
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Drag enter');
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    e.stopPropagation();
+    console.log('Drag leave');
+    
+    // More reliable method: check if we're leaving to outside the component
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Add some buffer to avoid premature leave detection
+    const buffer = 5;
+    if (x < rect.left - buffer || x > rect.right + buffer || 
+        y < rect.top - buffer || y > rect.bottom + buffer) {
+      console.log('Actually leaving drop zone');
+      setIsDragging(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    console.log('Drop event triggered');
+    
     setIsDragging(false);
-    if (e.dataTransfer.files) {
-      handleFileSelect(e.dataTransfer.files);
+    
+    const files = e.dataTransfer.files;
+    console.log('Dropped files:', files);
+    console.log('Files length:', files?.length);
+    
+    if (files && files.length > 0) {
+      console.log('Processing dropped files:', Array.from(files).map(f => f.name));
+      handleFileSelect(files);
+    } else {
+      console.log('No files found in drop event');
     }
   };
 
@@ -434,7 +572,7 @@ export function ChatInput() {
   }
 
   return (
-    <div className="border-border bg-background">
+    <div className="border-border bg-background max-w-3xl mx-auto">
       {/* Chat Suggestions */}
       <ChatSuggestions onSuggestionClick={handleSuggestionClick} />
       
@@ -522,20 +660,35 @@ export function ChatInput() {
       {/* Chat input */}
       <form onSubmit={handleSubmit} className="p-4">
         <div
+          data-drop-zone="true"
           className={`
-            relative border border-input rounded-lg bg-background
-            ${isDragging ? 'border-primary bg-primary/5' : ''}
+            relative border-2 rounded-lg bg-background transition-all duration-200 ease-in-out
+            ${isDragging && !onFileUpload
+              ? 'border-primary border-dashed bg-primary/5 shadow-lg transform scale-[1.02]' 
+              : 'border-input border-solid hover:border-primary/50'
+            }
           `}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
+          onDragEnter={onFileUpload ? undefined : handleDragEnter}
+          onDragOver={onFileUpload ? undefined : handleDragOver}
+          onDragLeave={onFileUpload ? undefined : handleDragLeave}
+          onDrop={onFileUpload ? undefined : handleDrop}
         >
+          {/* Drag overlay - only show if not using parent drag and drop */}
+          {isDragging && !onFileUpload && (
+            <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center z-10 pointer-events-none">
+              <div className="text-center">
+                <MdAttachFile className="h-8 w-8 mx-auto text-primary mb-2" />
+                <p className="text-sm font-medium text-primary">Drop files here to upload</p>
+              </div>
+            </div>
+          )}
+          
           <Textarea
             ref={textareaRef}
             value={message}
             onChange={handleTextChange}
             placeholder={t('chat.input.placeholder')}
-            className="min-h-[60px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 pr-20 mixed-content"
+            className="min-h-[60px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 pr-20 mixed-content flex items-center"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -588,4 +741,6 @@ export function ChatInput() {
       </form>
     </div>
   );
-}
+});
+
+ChatInput.displayName = 'ChatInput';

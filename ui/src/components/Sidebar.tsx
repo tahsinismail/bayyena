@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +22,8 @@ import {
   MdAdd, 
   MdDescription,
   MdArrowBack,
-  MdTopic
+  MdTopic,
+  MdFolder
 } from "react-icons/md";
 import { useState, useEffect } from "react";
 import type { CurrentView } from "@/components/MainLayout";
@@ -44,7 +46,7 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
     loadChatTopics,
     user,
   } = useApp();
-  const { language, t, dir } = useLanguage();
+  const { language, t } = useLanguage();
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isCreatingChatTopic, setIsCreatingChatTopic] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
@@ -170,12 +172,28 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
       
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 
-        bg-background border-r border-border
+        fixed lg:static inset-y-0 left-0 z-50 w-72 
+        bg-sidebar border-r border-border
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col
       `}>
+
+        {/* Logo Section */}
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <Image 
+              src="/logo.png" 
+              alt="Bayyena" 
+              width={32} 
+              height={32} 
+              className="w-8 h-8 object-contain"
+            />
+            <span className={`text-xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+              {language === 'ar' ? 'بيينة' : 'Bayyena'}
+            </span>
+          </div>
+        </div>
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto">
@@ -198,7 +216,7 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                 {/* Workspaces Section */}
                 <div className="pt-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+                    <span className={`text-sidebar-title ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
                       {t('nav.workspaces')}
                     </span>
                     <Button
@@ -213,31 +231,30 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                   </div>
                   
                   {/* Search input for workspaces */}
-                  <div className="mb-3">
+                  <div className="mb-3 border-border">
                     <Input
                       placeholder={t('forms.search')}
                       value={workspaceSearchQuery}
                       onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
                       className="h-8 text-sm"
-                      dir={language === 'ar' ? 'rtl' : 'ltr'}
                     />
                   </div>
                   
-                  <div className="space-y-1">
+                  <div className="space-y-1.5 -mx-2">
                     {filteredWorkspaces.length > 0 ? (
                       filteredWorkspaces.map((workspace) => (
                         <Button
                           key={workspace.id}
                           variant="ghost"
-                          className="w-full justify-start gap-3"
+                          className="w-full justify-start gap-3 px-3 py-2.5 h-auto min-h-[36px]"
                           onClick={() => handleWorkspaceClick(workspace.id)}
                         >
-                          <MdWorkspaces className="h-4 w-4" />
-                          <span className="truncate">{workspace.name}</span>
+                          <MdFolder className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate text-left leading-relaxed">{workspace.name}</span>
                         </Button>
                       ))
                     ) : workspaceSearchQuery ? (
-                      <div className={`text-center py-4 text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                      <div className={`text-center py-4 text-sidebar-content text-muted-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
                         {t('forms.noWorkspacesFound')}
                       </div>
                     ) : null}
@@ -260,18 +277,18 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                   
                   {/* Workspace Title */}
                   <div className="py-2">
-                    <h2 className="text-lg font-semibold text-foreground truncate">
+                    <h2 className={`text-title-card font-semibold text-foreground truncate ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
                       {selectedWorkspace.name}
                     </h2>
-                    <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+                    <p className={`text-sidebar-content text-muted-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
                       {t('nav.priority')}: {selectedWorkspace.priority || 'Normal'}
                     </p>
                   </div>
 
                   {/* Chat Topics Section */}
                   <div className="pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-sm font-medium text-muted-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('nav.chatTopics')}</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-sidebar-title font-medium text-muted-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>{t('nav.chatTopics')}</span>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -282,25 +299,25 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                         <MdAdd className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5 -mx-2">
                       {selectedWorkspace.chats.filter(chat => chat.topicId).map((chat) => (
                         <Button
                           key={chat.id}
                           variant="ghost"
                           size="sm"
-                          className="w-full justify-start gap-2 text-xs"
+                          className="w-full justify-start gap-2 text-xs px-3 py-2.5 h-auto min-h-[32px]"
                           onClick={async () => {
                             await selectChat(chat.id);
                             onViewChange({ type: 'chat', chatId: chat.id });
                             onClose();
                           }}
                         >
-                          <MdTopic className="h-3 w-3" />
-                          <span className="truncate">{chat.title}</span>
+                          <MdTopic className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate text-left leading-relaxed">{chat.title}</span>
                         </Button>
                       ))}
                       {selectedWorkspace.chats.filter(chat => chat.topicId).length === 0 && (
-                        <p className={`text-xs text-muted-foreground px-2 ${language === 'ar' ? 'text-arabic' : ''}`}>{t('nav.noChatTopics')}</p>
+                        <p className={`text-xs text-muted-foreground px-3 ${language === 'ar' ? 'text-arabic' : ''}`}>{t('nav.noChatTopics')}</p>
                       )}
                     </div>
                   </div>
@@ -308,24 +325,24 @@ export function Sidebar({ isOpen, onClose, currentView, onViewChange }: SidebarP
                   {/* Documents Section */}
                   {selectedWorkspace.documents.length > 0 && (
                     <div className="pt-4">
-                      <div className={`text-sm font-medium text-muted-foreground mb-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                      <div className={`text-sm font-medium text-muted-foreground mb-3 ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('nav.documentsCount')} ({selectedWorkspace.documents.length})
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5 -mx-2">
                         {selectedWorkspace.documents.slice(0, 8).map((doc) => (
                           <Button
                             key={doc.id}
                             variant="ghost"
                             size="sm"
-                            className="w-full justify-start gap-2 text-xs"
+                            className="w-full justify-start gap-2 text-xs px-3 py-2.5 h-auto min-h-[32px]"
                             onClick={() => handleDocumentClick(doc)}
                           >
-                            <MdDescription className="h-3 w-3" />
-                            <span className="truncate">{doc.name}</span>
+                            <MdDescription className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate text-left leading-relaxed">{doc.name}</span>
                           </Button>
                         ))}
                         {selectedWorkspace.documents.length > 8 && (
-                          <div className={`text-xs text-muted-foreground px-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
+                          <div className={`text-xs text-muted-foreground px-3 ${language === 'ar' ? 'text-arabic' : ''}`}>
                             +{selectedWorkspace.documents.length - 8} {t('nav.moreDocuments')}
                           </div>
                         )}

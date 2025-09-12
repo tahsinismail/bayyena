@@ -46,71 +46,124 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Typography System - Globally Changeable Font Sizes */
+  /* Base font sizes (rem units for scalability) */
+  --font-size-xs: 0.75rem;      /* 12px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-size-xl: 1.25rem;      /* 20px */
+  --font-size-2xl: 1.5rem;      /* 24px */
+  --font-size-3xl: 1.875rem;    /* 30px */
+  --font-size-4xl: 2.25rem;     /* 36px */
+  
+  /* Content Specific Sizes */
+  --font-size-title-main: var(--font-size-3xl);        /* Main page titles */
+  --font-size-title-section: var(--font-size-2xl);     /* Section titles */
+  --font-size-title-card: var(--font-size-xl);         /* Card titles */
+  --font-size-subtitle: var(--font-size-lg);           /* Subtitles/descriptions */
+  --font-size-content: var(--font-size-base);          /* Regular content */
+  --font-size-content-small: var(--font-size-sm);      /* Small content */
+  --font-size-chat-message: var(--font-size-base);     /* Chat messages */
+  --font-size-chat-user: var(--font-size-base);        /* User messages */
+  --font-size-chat-ai: var(--font-size-base);          /* AI messages */
+  --font-size-sidebar-title: var(--font-size-sm);      /* Sidebar titles */
+  --font-size-sidebar-content: var(--font-size-sm);    /* Sidebar content */
+  --font-size-button: var(--font-size-sm);             /* Button text */
+  --font-size-input: var(--font-size-base);            /* Input text */
+  
+  /* Line Heights for Readability */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* Arabic Font Adjustments - Slightly larger for better readability */
+  --font-size-arabic-title-main: calc(var(--font-size-3xl) * 1.1);
+  --font-size-arabic-title-section: calc(var(--font-size-2xl) * 1.1);
+  --font-size-arabic-title-card: calc(var(--font-size-xl) * 1.1);
+  --font-size-arabic-subtitle: calc(var(--font-size-lg) * 1.1);
+  --font-size-arabic-content: calc(var(--font-size-base) * 1.1);
+  --font-size-arabic-content-small: calc(var(--font-size-sm) * 1.1);
+  --font-size-arabic-chat-message: calc(var(--font-size-base) * 1.15);
+  --font-size-arabic-sidebar: calc(var(--font-size-sm) * 1.1);
+  
+  /* Custom Brand Colors - ["#606c38","#283618","#fefae0","#dda15e","#e63946"] */
+  --brand-primary: #606c38;      /* Sage green */
+  --brand-secondary: #283618;    /* Dark olive */
+  --brand-accent: #dda15e;       /* Golden orange */
+  --brand-light: #fefae0;        /* Cream */
+  --brand-danger: #e63946;       /* Red */
+  
+  /* Light Theme */
+  --background: oklch(1 0 0);                    /* Pure white */
+  --foreground: oklch(0.145 0 0);                /* Near black */
+  --card: oklch(0.985 0 0);                      /* Very light gray */
+  --card-foreground: oklch(0.145 0 0);           /* Near black */
+  --popover: oklch(0.985 0 0);                   /* Very light gray */
+  --popover-foreground: oklch(0.145 0 0);        /* Near black */
+  --primary: oklch(0.45 0.12 115);               /* Brand primary - sage green */
+  --primary-foreground: oklch(0.99 0 0);         /* White */
+  --secondary: oklch(0.95 0.02 85);              /* Brand light cream */
+  --secondary-foreground: oklch(0.25 0.08 115);  /* Dark olive */
+  --muted: oklch(0.96 0.01 85);                  /* Very light cream */
+  --muted-foreground: oklch(0.5 0.05 45);        /* Medium brown */
+  --accent: oklch(0.75 0.15 75);                 /* Brand accent - golden orange */
+  --accent-foreground: oklch(0.99 0 0);          /* White */
+  --destructive: oklch(0.65 0.25 27);            /* Brand danger - red */
+  --destructive-foreground: oklch(0.99 0 0);     /* White */
+  --border: oklch(0.9 0.02 85);                  /* Light cream border */
+  --input: oklch(0.94 0.02 85);                  /* Light cream input */
+  --ring: oklch(0.45 0.12 115);                  /* Brand primary for focus rings */
+  --chart-1: oklch(0.45 0.12 115);               /* Brand primary */
+  --chart-2: oklch(0.75 0.15 75);                /* Brand accent */
+  --chart-3: oklch(0.25 0.08 115);               /* Brand secondary */
+  --chart-4: oklch(0.65 0.25 27);                /* Brand danger */
+  --chart-5: oklch(0.85 0.05 85);                /* Brand light */
+  --sidebar: #F0F4F8;                            /* Custom light gray */
+  --sidebar-foreground: #1f2937;                 /* Dark gray for better contrast */
+  --sidebar-primary: oklch(0.45 0.12 115);       /* Brand primary */
+  --sidebar-primary-foreground: oklch(0.99 0 0); /* White */
+  --sidebar-accent: #e2e8f0;                      /* Lighter gray accent */
+  --sidebar-accent-foreground: #1f2937;          /* Dark gray */
+  --sidebar-border: #d1d5db;                     /* Light border */
+  --sidebar-ring: oklch(0.45 0.12 115);          /* Brand primary */
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark Theme with Custom Brand Colors */
+  --background: #1B1C1D;                          /* Custom dark background */
+  --foreground: oklch(0.95 0.02 85);              /* Light cream */
+  --card: #323537;                                /* Custom dark gray card */
+  --card-foreground: oklch(0.95 0.02 85);         /* Light cream */
+  --popover: #323537;                             /* Custom dark gray popover */
+  --popover-foreground: oklch(0.95 0.02 85);      /* Light cream */
+  --primary: oklch(0.55 0.12 115);                /* Lighter sage green */
+  --primary-foreground: oklch(0.08 0.02 115);     /* Very dark olive */
+  --secondary: oklch(0.18 0.04 115);              /* Dark secondary */
+  --secondary-foreground: oklch(0.95 0.02 85);    /* Light cream */
+  --muted: oklch(0.16 0.03 115);                  /* Dark muted */
+  --muted-foreground: oklch(0.7 0.08 75);         /* Medium golden */
+  --accent: oklch(0.7 0.15 75);                   /* Golden orange accent */
+  --accent-foreground: oklch(0.08 0.02 115);      /* Very dark olive */
+  --destructive: oklch(0.7 0.25 27);              /* Lighter red for dark theme */
+  --destructive-foreground: oklch(0.99 0 0);      /* White */
+  --border: oklch(0.2 0.04 115);                  /* Dark border */
+  --input: oklch(0.16 0.03 115);                  /* Dark input */
+  --ring: oklch(0.55 0.12 115);                   /* Lighter sage green for focus rings */
+  --chart-1: oklch(0.55 0.12 115);                /* Lighter brand primary */
+  --chart-2: oklch(0.7 0.15 75);                  /* Golden orange */
+  --chart-3: oklch(0.35 0.08 115);                /* Medium olive */
+  --chart-4: oklch(0.7 0.25 27);                  /* Red */
+  --chart-5: oklch(0.25 0.05 85);                 /* Dark cream */
+  --sidebar: #272A2C;                             /* Custom dark gray */
+  --sidebar-foreground: #f8fafc;                  /* Light gray for better contrast */
+  --sidebar-primary: oklch(0.55 0.12 115);        /* Lighter sage green */
+  --sidebar-primary-foreground: oklch(0.08 0.02 115); /* Very dark olive */
+  --sidebar-accent: #374151;                      /* Medium gray accent */
+  --sidebar-accent-foreground: #f8fafc;          /* Light gray */
+  --sidebar-border: #4b5563;                     /* Medium border */
+  --sidebar-ring: oklch(0.55 0.12 115);           /* Lighter sage green */
 }
 
 @layer base {
@@ -119,145 +172,85 @@
   }
   body {
     @apply bg-background text-foreground;
+    direction: ltr !important; /* Force LTR layout structure regardless of language */
   }
 }
 
-/* Arabic and RTL Support - Proper Bidirectional Text Handling */
-[dir="rtl"] {
-  font-family: var(--font-amiri), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+/* Global Layout Direction - Always LTR */
+/* Force LTR layout for all structural elements while allowing text content to flow naturally */
+/* FORCE LTR Layout Structure - NO EXCEPTIONS for UI elements */
+html, body, #__next, main, section, nav, header, footer, aside,
+div, button, input, textarea, select, ul, ol, li, table, tr, td, th,
+.flex, .grid, .block, .inline-block, .inline-flex, .inline-grid,
+[class*="flex"], [class*="grid"], [class*="justify"], [class*="items"] {
+  direction: ltr !important;
 }
 
-/* Arabic text should use Arabic font regardless of interface direction */
-.text-arabic {
-  font-family: var(--font-amiri), serif;
-  font-feature-settings: "liga" 1, "calt" 1;
-  direction: rtl;
-  text-align: right;
+/* Prevent ANY element from changing layout direction based on content */
+* {
+  unicode-bidi: normal !important;
+}
+
+/* Only allow text direction for specific text content - be more specific */
+p.text-content, span.text-content, div.text-content {
   unicode-bidi: embed;
 }
 
-/* English text should always be LTR regardless of interface direction */
+/* Language-based Text Direction - TEXT ONLY, NO LAYOUT CHANGES */
+/* Arabic text uses Arabic font - containers stay LTR, only text content gets RTL */
+[lang="ar"],
+.arabic-text,
+.text-arabic {
+  font-family: var(--font-amiri), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-feature-settings: "liga" 1, "calt" 1;
+  /* Keep container LTR for layout, only text content will be RTL */
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+}
+
+/* BETTER APPROACH: Use CSS logical properties and let HTML dir="auto" handle text direction */
+/* All Arabic text containers should use dir="auto" in HTML for proper text direction */
+/* while maintaining LTR layout structure */
+
+/* Ensure ALL containers and structural elements stay LTR */
+.text-arabic,
+.text-arabic *,
+.arabic-text,
+.arabic-text *,
+[lang="ar"],
+[lang="ar"] * {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+  text-align: left !important;
+}
+
+/* Override for elements that should auto-detect text direction */
+.text-arabic[dir="auto"],
+.text-arabic [dir="auto"],
+.arabic-text[dir="auto"],
+.arabic-text [dir="auto"],
+[lang="ar"][dir="auto"],
+[lang="ar"] [dir="auto"] {
+  unicode-bidi: plaintext !important;
+  direction: unset !important;
+  text-align: unset !important;
+}
+
+/* English text always LTR regardless of current language */
+[lang="en"],
+.english-text,
 .text-english {
   direction: ltr;
-  text-align: left;
   unicode-bidi: embed;
 }
 
-/* Neutral content class for bidirectional text support */
+/* Mixed content with automatic direction detection */
 .text-content {
   unicode-bidi: plaintext;
-  text-align: start;
+  text-align: left; /* Changed from 'start' to 'left' for consistency */
 }
 
-/* Interface layout adjustments for RTL - only for UI elements, not text content */
-[dir="rtl"] .ui-flex:not(.flex-col):not(.flex-row-reverse) {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .ui-justify-start {
-  justify-content: flex-end;
-}
-
-[dir="rtl"] .ui-justify-end {
-  justify-content: flex-start;
-}
-
-/* UI Layout adjustments for RTL interface (navigation, sidebars, etc.) */
-[dir="rtl"] .ui-gap-1 > * + * {
-  margin-left: 0;
-  margin-right: 0.25rem;
-}
-
-[dir="rtl"] .ui-gap-2 > * + * {
-  margin-left: 0;
-  margin-right: 0.5rem;
-}
-
-[dir="rtl"] .ui-gap-3 > * + * {
-  margin-left: 0;
-  margin-right: 0.75rem;
-}
-
-[dir="rtl"] .ui-gap-4 > * + * {
-  margin-left: 0;
-  margin-right: 1rem;
-}
-
-/* UI padding and margin adjustments for RTL interface elements */
-[dir="rtl"] .ui-pl-1 { padding-left: 0; padding-right: 0.25rem; }
-[dir="rtl"] .ui-pl-2 { padding-left: 0; padding-right: 0.5rem; }
-[dir="rtl"] .ui-pl-3 { padding-left: 0; padding-right: 0.75rem; }
-[dir="rtl"] .ui-pl-4 { padding-left: 0; padding-right: 1rem; }
-[dir="rtl"] .ui-pl-6 { padding-left: 0; padding-right: 1.5rem; }
-
-[dir="rtl"] .ui-pr-1 { padding-right: 0; padding-left: 0.25rem; }
-[dir="rtl"] .ui-pr-2 { padding-right: 0; padding-left: 0.5rem; }
-[dir="rtl"] .ui-pr-3 { padding-right: 0; padding-left: 0.75rem; }
-[dir="rtl"] .ui-pr-4 { padding-right: 0; padding-left: 1rem; }
-[dir="rtl"] .ui-pr-6 { padding-right: 0; padding-left: 1.5rem; }
-
-[dir="rtl"] .ui-ml-1 { margin-left: 0; margin-right: 0.25rem; }
-[dir="rtl"] .ui-ml-2 { margin-left: 0; margin-right: 0.5rem; }
-[dir="rtl"] .ui-ml-3 { margin-left: 0; margin-right: 0.75rem; }
-[dir="rtl"] .ui-ml-4 { margin-left: 0; margin-right: 1rem; }
-
-[dir="rtl"] .ui-mr-1 { margin-right: 0; margin-left: 0.25rem; }
-[dir="rtl"] .ui-mr-2 { margin-right: 0; margin-left: 0.5rem; }
-[dir="rtl"] .ui-mr-3 { margin-right: 0; margin-left: 0.75rem; }
-[dir="rtl"] .ui-mr-4 { margin-right: 0; margin-left: 1rem; }
-
-/* UI Icon positioning for RTL interface */
-[dir="rtl"] .ui-flex.items-center.gap-2:not(.flex-col):not(.flex-row-reverse),
-[dir="rtl"] .ui-flex.items-center.gap-3:not(.flex-col):not(.flex-row-reverse) {
-  flex-direction: row-reverse;
-}
-
-/* Sidebar positioning for RTL interface */
-[dir="rtl"] .ui-border-r {
-  border-right: none;
-  border-left: 1px solid var(--border);
-}
-
-[dir="rtl"] .ui-border-l {
-  border-left: none;
-  border-right: 1px solid var(--border);
-}
-
-/* Transform adjustments for RTL interface */
-[dir="rtl"] .ui-translate-x-0 {
-  transform: translateX(0);
-}
-
-[dir="rtl"] .ui-translate-x-full {
-  transform: translateX(100%);
-}
-
-/* Proper bidirectional text handling */
-/* Mixed content with proper language direction */
-.mixed-content {
-  unicode-bidi: plaintext;
-}
-
-/* Force English text to remain LTR regardless of interface direction */
-.text-english,
-[lang="en"],
-.english-content {
-  direction: ltr !important;
-  text-align: left !important;
-  unicode-bidi: embed;
-}
-
-/* Force Arabic text to be RTL regardless of interface direction */
-.text-arabic,
-[lang="ar"],
-.arabic-content {
-  direction: rtl !important;
-  text-align: right !important;
-  unicode-bidi: embed;
-  font-family: var(--font-amiri), serif;
-}
-
-/* Content that should always remain LTR */
+/* Content that should always remain LTR regardless of language */
 code,
 pre,
 .code-block,
@@ -272,7 +265,6 @@ a[href^="mailto"] {
   direction: ltr !important;
   text-align: left !important;
   unicode-bidi: embed;
-  display: inline-block;
 }
 
 /* Numbers should always be LTR */
@@ -282,4 +274,203 @@ time,
 .timestamp {
   unicode-bidi: embed;
   direction: ltr;
+}
+
+/* Mixed content with automatic direction detection */
+.mixed-content {
+  unicode-bidi: plaintext;
+}
+
+/* Chat Message Layout Protection - Consistent regardless of language */
+.chat-message-container {
+  direction: ltr !important; /* Force LTR for layout while content uses dir="auto" */
+}
+
+.chat-user-message {
+  justify-content: flex-end !important; /* User messages always on right */
+}
+
+.chat-ai-message {
+  justify-content: flex-start !important; /* AI messages always on left */
+}
+
+/* Sidebar specific styling to ensure colors are applied */
+.bg-sidebar {
+  background-color: var(--sidebar) !important;
+}
+
+/* Force sidebar background color for specific elements */
+[class*="sidebar"] {
+  background-color: var(--sidebar);
+}
+
+/* =============================================== */
+/* TYPOGRAPHY SYSTEM - Global Font Size Classes */
+/* =============================================== */
+
+/* Base Typography Classes */
+.text-title-main {
+  font-size: var(--font-size-title-main);
+  line-height: var(--line-height-tight);
+  font-weight: 700;
+}
+
+.text-title-section {
+  font-size: var(--font-size-title-section);
+  line-height: var(--line-height-tight);
+  font-weight: 600;
+}
+
+.text-title-card {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-normal);
+  font-weight: 600;
+}
+
+.text-subtitle {
+  font-size: var(--font-size-subtitle);
+  line-height: var(--line-height-normal);
+  font-weight: 500;
+}
+
+.text-content {
+  font-size: var(--font-size-content);
+  line-height: var(--line-height-normal);
+  font-weight: 400;
+}
+
+.text-content-small {
+  font-size: var(--font-size-content-small);
+  line-height: var(--line-height-normal);
+  font-weight: 400;
+}
+
+.text-chat-message {
+  font-size: var(--font-size-chat-message);
+  line-height: var(--line-height-relaxed);
+  font-weight: 400;
+}
+
+.text-sidebar-title {
+  font-size: var(--font-size-sidebar-title);
+  line-height: var(--line-height-normal);
+  font-weight: 600;
+}
+
+.text-sidebar-content {
+  font-size: var(--font-size-sidebar-content);
+  line-height: var(--line-height-normal);
+  font-weight: 400;
+}
+
+/* Arabic Typography - Enhanced Sizes for Better Readability */
+.text-arabic.text-title-main,
+.arabic-text.text-title-main {
+  font-size: var(--font-size-arabic-title-main);
+  line-height: var(--line-height-tight);
+  font-weight: 700;
+}
+
+.text-arabic.text-title-section,
+.arabic-text.text-title-section {
+  font-size: var(--font-size-arabic-title-section);
+  line-height: var(--line-height-tight);
+  font-weight: 600;
+}
+
+.text-arabic.text-title-card,
+.arabic-text.text-title-card {
+  font-size: var(--font-size-arabic-title-card);
+  line-height: var(--line-height-normal);
+  font-weight: 600;
+}
+
+.text-arabic.text-subtitle,
+.arabic-text.text-subtitle {
+  font-size: var(--font-size-arabic-subtitle);
+  line-height: var(--line-height-normal);
+  font-weight: 500;
+}
+
+.text-arabic.text-content,
+.arabic-text.text-content {
+  font-size: var(--font-size-arabic-content);
+  line-height: var(--line-height-relaxed);
+  font-weight: 400;
+}
+
+.text-arabic.text-content-small,
+.arabic-text.text-content-small {
+  font-size: var(--font-size-arabic-content-small);
+  line-height: var(--line-height-normal);
+  font-weight: 400;
+}
+
+.text-arabic.text-chat-message,
+.arabic-text.text-chat-message {
+  font-size: var(--font-size-arabic-chat-message);
+  line-height: var(--line-height-relaxed);
+  font-weight: 400;
+}
+
+.text-arabic.text-sidebar-title,
+.arabic-text.text-sidebar-title {
+  font-size: var(--font-size-arabic-sidebar);
+  line-height: var(--line-height-normal);
+  font-weight: 600;
+}
+
+.text-arabic.text-sidebar-content,
+.arabic-text.text-sidebar-content {
+  font-size: var(--font-size-arabic-sidebar);
+  line-height: var(--line-height-normal);
+  font-weight: 400;
+}
+
+/* Mixed Content - Auto Font Size Based on Language Detection */
+.mixed-content {
+  font-size: var(--font-size-content);
+  line-height: var(--line-height-relaxed);
+  font-weight: 400;
+}
+
+/* Chat Message Specific Styling */
+.chat-message-user {
+  font-size: var(--font-size-chat-user);
+  line-height: var(--line-height-relaxed);
+}
+
+.chat-message-ai {
+  font-size: var(--font-size-chat-ai);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Arabic Chat Messages - Enhanced for Better Readability */
+.text-arabic .chat-message-user,
+.arabic-text .chat-message-user,
+.text-arabic .chat-message-ai,
+.arabic-text .chat-message-ai {
+  font-size: var(--font-size-arabic-chat-message);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Responsive Typography Adjustments */
+@media (max-width: 640px) {
+  .text-title-main {
+    font-size: calc(var(--font-size-title-main) * 0.9);
+  }
+  
+  .text-title-section {
+    font-size: calc(var(--font-size-title-section) * 0.95);
+  }
+  
+  .text-arabic.text-title-main,
+  .arabic-text.text-title-main {
+    font-size: calc(var(--font-size-arabic-title-main) * 0.9);
+  }
+  
+  .text-arabic.text-title-section,
+  .arabic-text.text-title-section {
+    font-size: calc(var(--font-size-arabic-title-section) * 0.95);
+  }
 }

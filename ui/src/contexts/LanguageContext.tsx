@@ -14,6 +14,10 @@ interface LanguageContextType {
   toggleLanguage: () => void;
   dir: 'ltr' | 'rtl';
   t: (key: string, fallback?: string) => string;
+  // Typography helpers
+  getTypographyClass: (type: 'title-main' | 'title-section' | 'title-card' | 'subtitle' | 'content' | 'content-small' | 'chat-message' | 'sidebar-title' | 'sidebar-content') => string;
+  getLanguageClass: () => string;
+  getTextClass: (type?: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -44,9 +48,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Apply language and direction to document element
+    // Apply language to document element for accessibility and screen readers
     document.documentElement.lang = language;
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    // Store language preference but DO NOT change document direction
+    // This keeps layout consistent while allowing text to follow natural direction
     localStorage.setItem('language', language);
   }, [language]);
 
@@ -75,13 +80,35 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const dir = language === 'ar' ? 'rtl' : 'ltr';
 
+  // Typography helper functions
+  const getLanguageClass = () => {
+    return language === 'ar' ? 'text-arabic' : 'text-english';
+  };
+
+  const getTypographyClass = (type: 'title-main' | 'title-section' | 'title-card' | 'subtitle' | 'content' | 'content-small' | 'chat-message' | 'sidebar-title' | 'sidebar-content') => {
+    const baseClass = `text-${type}`;
+    const languageClass = getLanguageClass();
+    return `${baseClass} ${languageClass}`;
+  };
+
+  const getTextClass = (type = 'content') => {
+    const languageClass = getLanguageClass();
+    if (type) {
+      return `text-${type} ${languageClass}`;
+    }
+    return languageClass;
+  };
+
   return (
     <LanguageContext.Provider value={{ 
       language, 
       setLanguage, 
       toggleLanguage, 
       dir, 
-      t 
+      t,
+      getTypographyClass,
+      getLanguageClass,
+      getTextClass
     }}>
       {children}
     </LanguageContext.Provider>

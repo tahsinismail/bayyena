@@ -13,6 +13,7 @@ import type { CurrentView } from "@/components/MainLayout";
 import { 
   MdLightMode, 
   MdDarkMode,
+  MdSettingsSystemDaydream,
   MdAdminPanelSettings,
   MdLogout,
   MdPerson,
@@ -28,7 +29,7 @@ interface SettingsProps {
 
 export const Settings = memo(function Settings({ onViewChange }: SettingsProps = {}) {
   const { user, logout, loading } = useApp();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
   // Memoized event handlers to prevent re-renders
@@ -41,9 +42,9 @@ export const Settings = memo(function Settings({ onViewChange }: SettingsProps =
     logout();
   }, [logout]);
 
-  const handleThemeToggle = useCallback(() => {
-    toggleTheme();
-  }, [toggleTheme]);
+  const handleThemeChange = useCallback((newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme);
+  }, [setTheme]);
 
   const handleLanguageChange = useCallback((newLanguage: 'en' | 'ar') => {
     setLanguage(newLanguage);
@@ -89,30 +90,32 @@ export const Settings = memo(function Settings({ onViewChange }: SettingsProps =
   }
 
   return (
-    <div className="min-w-full bg-background min-h-screen">
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div className="flex items-center gap-3 mb-8">
-        <MdPerson className="h-6 w-6" />
-        <h1 className={`text-2xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
-          {t('settings.title')}
-        </h1>
-      </div>
+    <div className="h-full p-4 sm:p-6 lg:p-8 bg-background">
+      <div className="max-w-6xl mx-auto h-full">
+        <div className="flex items-center gap-3 mb-6 lg:mb-8">
+          <MdPerson className="h-6 w-6" />
+          <h1 className={`text-title-main font-bold text-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
+            {t('settings.title')}
+          </h1>
+        </div>
+
+        <div className="space-y-6 lg:space-y-8">
 
       {/* User Profile Section */}
       <Card>
         <CardHeader>
-          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}>
+          <CardTitle className={`text-title-card flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
             <MdPerson className="h-5 w-5" />
             {t('settings.profile')}
           </CardTitle>
-          <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>
+          <CardDescription className={`text-subtitle ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
             {t('settings.profileDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
+              <Label className={`text-content-small font-medium ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
                 {t('settings.fullName')}
               </Label>
               <p className={`text-sm text-muted-foreground mt-1 ${language === 'ar' ? 'text-arabic' : ''}`}>
@@ -326,7 +329,7 @@ export const Settings = memo(function Settings({ onViewChange }: SettingsProps =
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="space-y-4">
             <div className="space-y-1">
               <Label className={`text-sm font-medium ${language === 'ar' ? 'text-arabic' : ''}`}>
                 {t('settings.theme')}
@@ -335,24 +338,35 @@ export const Settings = memo(function Settings({ onViewChange }: SettingsProps =
                 {t('settings.themeDescription')}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleThemeToggle}
-              className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
-            >
-              {theme === 'light' ? (
-                <>
-                  <MdDarkMode className="h-4 w-4" />
-                  {t('settings.switchToDark')}
-                </>
-              ) : (
-                <>
-                  <MdLightMode className="h-4 w-4" />
-                  {t('settings.switchToLight')}
-                </>
-              )}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleThemeChange('light')}
+                className={`flex items-center gap-2 justify-start ${language === 'ar' ? 'text-arabic' : ''}`}
+              >
+                <MdLightMode className="h-4 w-4" />
+                {t('settings.lightTheme')}
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleThemeChange('dark')}
+                className={`flex items-center gap-2 justify-start ${language === 'ar' ? 'text-arabic' : ''}`}
+              >
+                <MdDarkMode className="h-4 w-4" />
+                {t('settings.darkTheme')}
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleThemeChange('system')}
+                className={`flex items-center gap-2 justify-start ${language === 'ar' ? 'text-arabic' : ''}`}
+              >
+                <MdSettingsSystemDaydream className="h-4 w-4" />
+                {t('settings.systemTheme')}
+              </Button>
+            </div>
           </div>
           
           <Separator />
@@ -413,7 +427,8 @@ export const Settings = memo(function Settings({ onViewChange }: SettingsProps =
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
-    </div>
-  );    
+  );
 });

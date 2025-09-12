@@ -350,22 +350,22 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
   }
 
   return (
-    <div className={`p-6 bg-background ${dir === 'rtl' ? 'rtl' : 'ltr'}`}>
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="h-full p-4 sm:p-6 lg:p-8 bg-background">
+      <div className="min-w-max max-w-full mx-auto h-full flex flex-col space-y-6 overflow-hidden">
         {/* Header with Back Button */}
-        <div className={`flex items-center gap-4 mb-6 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+        <div className="flex items-center gap-4 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onViewChange({ type: 'settings' })}
             className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
           >
-            <MdArrowBack className={`h-4 w-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+            <MdArrowBack className="h-4 w-4" />
             {t('admin.backToSettings')}
           </Button>
-          <div className={`flex items-center gap-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+          <div className="flex items-center gap-3">
             <MdAdminPanelSettings className="h-8 w-8 text-primary" />
-            <h1 className={`text-3xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+            <h1 className={`text-2xl lg:text-3xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
               {t('admin.title')}
             </h1>
           </div>
@@ -380,7 +380,7 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
         )}
 
         <Card className="p-6">
-          <div className={`flex items-center justify-between mb-6 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+          <div className="flex items-center justify-between mb-6">
             <h2 className={`text-xl font-semibold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
               {t('admin.userManagement.title')}
             </h2>
@@ -402,28 +402,28 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.userId')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.user')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.email')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.phoneNumber')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.role')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.status')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.joined')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.changePassword')}
                       </th>
                     </tr>
@@ -586,8 +586,6 @@ export function AdminPanel({ onViewChange }: AdminPanelProps) {
             className="h-fit"
           />
         </div>
-
-        
       </div>
     </div>
   );

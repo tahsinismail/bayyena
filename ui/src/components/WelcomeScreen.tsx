@@ -3,10 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useApp } from "@/contexts/AppContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { MdAdd, MdDescription, MdChat, MdLightbulb } from "react-icons/md";
 
 export function WelcomeScreen() {
   const { createWorkspace, workspaces } = useApp();
+  const { getTypographyClass } = useLanguage();
 
   const handleCreateFirstCase = async () => {
     await createWorkspace("My First Case");
@@ -18,28 +20,28 @@ export function WelcomeScreen() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div className="max-w-2xl text-center space-y-8">
+    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl text-center space-y-6 lg:space-y-8 w-full">
         {/* Logo and Welcome */}
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold text-foreground">
+          <h1 className={`${getTypographyClass('title-main')} font-bold text-foreground`}>
             Welcome to Bayyena
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className={`${getTypographyClass('subtitle')} text-muted-foreground max-w-2xl mx-auto`}>
             AI-powered legal case building platform. Organize documents, chat with AI, and build compelling cases.
           </p>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-8 lg:mt-12">
           <Card className="p-6 hover:bg-accent/50 transition-colors cursor-pointer" onClick={handleCreateFirstCase}>
             <div className="space-y-4">
               <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
                 <MdAdd className="h-6 w-6 text-primary-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Create Your First Case</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className={`${getTypographyClass('title-card')} font-semibold`}>Create Your First Case</h3>
+                <p className={`${getTypographyClass('content-small')} text-muted-foreground`}>
                   Start organizing documents and building your legal case with AI assistance.
                 </p>
               </div>
@@ -52,8 +54,8 @@ export function WelcomeScreen() {
                 <MdLightbulb className="h-6 w-6 text-secondary-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Quick Start</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className={`${getTypographyClass('title-card')} font-semibold`}>Quick Start</h3>
+                <p className={`${getTypographyClass('content-small')} text-muted-foreground`}>
                   Begin with a pre-configured workspace for legal research and document analysis.
                 </p>
               </div>
@@ -62,16 +64,16 @@ export function WelcomeScreen() {
         </div>
 
         {/* Features Overview */}
-        <div className="mt-16 space-y-6">
-          <h2 className="text-2xl font-semibold">What you can do with Bayyena</h2>
+        <div className="mt-12 lg:mt-16 space-y-6">
+          <h2 className={`${getTypographyClass('title-section')} font-semibold`}>What you can do with Bayyena</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 text-left">
             <div className="space-y-3">
               <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
                 <MdDescription className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="font-medium">Document Management</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className={`${getTypographyClass('content')} font-medium`}>Document Management</h3>
+              <p className={`${getTypographyClass('content-small')} text-muted-foreground`}>
                 Upload, organize, and search through legal documents with AI-powered analysis.
               </p>
             </div>

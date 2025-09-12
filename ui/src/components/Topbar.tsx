@@ -8,7 +8,8 @@ import {
   MdMenu,
   MdLanguage,
   MdDarkMode,
-  MdLightMode
+  MdLightMode,
+  MdSettingsSystemDaydream
 } from "react-icons/md";
 
 interface TopbarProps {
@@ -16,11 +17,39 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, actualTheme } = useTheme();
   const { language, toggleLanguage, t, dir } = useLanguage();
 
+  const handleThemeClick = () => {
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('system');
+    } else {
+      setTheme('light');
+    }
+  };
+
+  const getThemeIcon = () => {
+    if (theme === 'system') {
+      return <MdSettingsSystemDaydream className="h-4 w-4" />;
+    }
+    return actualTheme === 'light' ? (
+      <MdDarkMode className="h-4 w-4" />
+    ) : (
+      <MdLightMode className="h-4 w-4" />
+    );
+  };
+
+  const getThemeTitle = () => {
+    if (theme === 'system') {
+      return t('topbar.switchToLight');
+    }
+    return t(actualTheme === 'light' ? 'topbar.switchToDark' : 'topbar.switchToLight');
+  };
+
   return (
-    <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
+    <header className="h-14 bg-background flex items-center justify-between px-4">
       {/* Left Section */}
       <div className="flex items-center gap-4">
         <Button
@@ -64,14 +93,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           variant="ghost"
           size="sm"
           className="h-8 w-8"
-          onClick={toggleTheme}
-          title={t(theme === 'light' ? 'topbar.switchToDark' : 'topbar.switchToLight')}
+          onClick={handleThemeClick}
+          title={getThemeTitle()}
         >
-          {theme === 'light' ? (
-            <MdDarkMode className="h-4 w-4" />
-          ) : (
-            <MdLightMode className="h-4 w-4" />
-          )}
+          {getThemeIcon()}
         </Button>
       </div>
     </header>

@@ -60,7 +60,7 @@ const Progress = ({ value }: { value: number }) => (
 
 export function Dashboard({ onViewChange }: DashboardProps) {
   const { user } = useApp();
-  const { language, t, dir } = useLanguage();
+  const { language, t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentCases, setRecentCases] = useState<CaseData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,34 +163,33 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-background">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-full p-4 sm:p-6 lg:p-8 bg-background">
+      <div className="max-w-7xl mx-auto h-full flex flex-col space-y-6">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className={`text-3xl font-bold tracking-tight text-foreground ${getUITextClasses()}`}>
+        <div className="space-y-2 flex-shrink-0">
+          <h1 className={`text-title-main tracking-tight text-foreground ${getUITextClasses()}`}>
             {t('dashboard.title')}
           </h1>
-          <p className={`text-gray-600 ${getUITextClasses()}`}>
+          <p className={`text-subtitle text-muted-foreground ${getUITextClasses()}`}>
             {t('dashboard.overview')}
           </p>
         </div>
 
         {/* Key Metrics Cards */}
-                {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6 flex-shrink-0">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('dashboard.metrics.activeCases')}</CardTitle>
+              <CardTitle className={`text-content-small font-medium ${getUITextClasses()}`}>{t('dashboard.metrics.activeCases')}</CardTitle>
               <FolderIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalCases}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className={`text-content-small text-muted-foreground ${getUITextClasses()}`}>
                 <TrendingUpIcon className="h-3 w-3 inline text-green-500" /> +8% {t('dashboard.metrics.fromLastMonth')}
               </p>
             </CardContent>
           </Card>
-          
+{/*           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t('dashboard.metrics.totalDocuments')}</CardTitle>
@@ -203,7 +202,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
               </p>
             </CardContent>
           </Card>
-          
+           */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t('dashboard.metrics.processedDocuments')}</CardTitle>
@@ -232,7 +231,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
         </div>
 
         {/* Priority and Status Distribution */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 lg:gap-6 md:grid-cols-2 flex-shrink-0">
           <Card>
             <CardHeader>
               <CardTitle className={getUITextClasses()}>{t('dashboard.priority.title')}</CardTitle>
@@ -341,39 +340,41 @@ export function Dashboard({ onViewChange }: DashboardProps) {
         </Card> */}
 
         {/* Quick Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.quickStats.title')}</CardTitle>
-            <CardDescription className={language === 'ar' ? 'text-arabic' : ''}>{t('dashboard.quickStats.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
-                <CheckCircleIcon className="h-8 w-8 text-green-500" />
-                <div>
-                  <p className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.quickStats.completedCases')}</p>
-                  <p className="text-2xl font-bold text-muted-foreground">{stats.casesByStatus.closed}</p>
+        <div className="flex-1 min-h-max">
+          <Card className="h-max">
+            <CardHeader>
+              <CardTitle className={`text-title-card ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>{t('dashboard.quickStats.title')}</CardTitle>
+              <CardDescription className={`text-subtitle ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>{t('dashboard.quickStats.description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
+                <div className="flex items-center space-x-3 p-4 border border-border rounded-lg bg-card">
+                  <CheckCircleIcon className="h-8 w-8 text-green-500" />
+                  <div>
+                    <p className={`text-content font-medium text-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>{t('dashboard.quickStats.completedCases')}</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{stats.casesByStatus.closed}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-4 border border-border rounded-lg bg-card">
+                  <ClockIcon className="h-8 w-8 text-blue-500" />
+                  <div>
+                    <p className={`text-content font-medium text-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>{t('dashboard.quickStats.openCases')}</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{stats.casesByStatus.open}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-4 border border-border rounded-lg bg-card">
+                  <AlertTriangleIcon className="h-8 w-8 text-red-500" />
+                  <div>
+                    <p className={`text-content font-medium text-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>{t('dashboard.quickStats.highPriority')}</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{stats.casesByPriority.high}</p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
-                <ClockIcon className="h-8 w-8 text-blue-500" />
-                <div>
-                  <p className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.quickStats.openCases')}</p>
-                  <p className="text-2xl font-bold text-muted-foreground">{stats.casesByStatus.open}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
-                <AlertTriangleIcon className="h-8 w-8 text-red-500" />
-                <div>
-                  <p className={`font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>{t('dashboard.quickStats.highPriority')}</p>
-                  <p className="text-2xl font-bold text-muted-foreground">{stats.casesByPriority.high}</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

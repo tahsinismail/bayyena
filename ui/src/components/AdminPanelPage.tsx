@@ -376,13 +376,13 @@ export function AdminPanelPage() {
   }
 
   return (
-    <div className={`min-h-screen p-6 bg-background ${dir === 'rtl' ? 'rtl' : 'ltr'}`}>
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen p-6 bg-background">
+      <div className="min-w-max max-full mx-auto space-y-6">
         {/* Header with Navigation */}
-        <div className={`flex justify-between items-center gap-4 mb-6 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-          <div className={`flex items-center gap-3 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+        <div className="flex justify-between items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
             <MdAdminPanelSettings className="h-8 w-8 text-primary" />
-            <h1 className={`text-3xl font-bold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+            <h1 className={`text-3xl font-bold text-foreground ${language === 'ar' ? 'arabic-text' : 'english-text'}`}>
               {t('admin.title')}
             </h1>
           </div>
@@ -390,24 +390,24 @@ export function AdminPanelPage() {
             variant="ghost"
             size="sm"
             onClick={goHome}
-            className={`flex items-center gap-2 ${language === 'ar' ? 'text-arabic' : ''}`}
+            className={`flex items-center gap-2 ${language === 'ar' ? 'arabic-text' : 'english-text'}`}
           >
-            <MdHome className={`h-4 w-4 ${dir === 'rtl' ? '' : ''}`} />
+            <MdHome className="h-4 w-4" />
             {t('admin.backToDashboard')}
           </Button>
         </div>
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className={`text-red-600 dark:text-red-400 ${language === 'ar' ? 'text-arabic' : ''}`}>
+            <p className={`text-red-600 dark:text-red-400 ${language === 'ar' ? 'arabic-text' : 'english-text'}`}>
               {error}
             </p>
           </div>
         )}
 
         <Card className="p-6">
-          <div className={`flex items-center justify-between mb-6 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-            <h2 className={`text-xl font-semibold text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-xl font-semibold text-foreground ${language === 'ar' ? 'arabic-text' : 'english-text'}`}>
               {t('admin.userManagement.title')}
             </h2>
             <Button onClick={loadUsers} disabled={loading}>
@@ -428,31 +428,31 @@ export function AdminPanelPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.userId')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.user')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.email')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.phoneNumber')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.role')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.status')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.joined')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.changePassword')}
                       </th>
-                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic text-right' : ''}`}>
+                      <th className={`text-left py-3 px-4 font-medium text-foreground ${language === 'ar' ? 'text-arabic' : ''}`}>
                         {t('admin.userManagement.deleteUser')}
                       </th>
                     </tr>

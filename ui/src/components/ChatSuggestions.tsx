@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTextDirection } from "@/hooks/useTextDirection";
 import { apiService } from "@/services/api";
 import { MdRefresh } from "react-icons/md";
 
@@ -17,7 +18,8 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
   const [error, setError] = useState<string | null>(null);
   
   const { currentWorkspace, currentChat } = useApp();
-  const { language, t, dir } = useLanguage();
+  const { language, t } = useLanguage();
+  const { textProps, isArabic } = useTextDirection();
 
   const loadSuggestions = async () => {
     if (!currentWorkspace) return;
@@ -104,20 +106,20 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
   }
 
   const getUITextClasses = () => {
-    return language === 'ar' ? 'text-arabic' : 'text-english';
+    return language === 'ar' ? 'arabic-text' : 'english-text';
   };
 
   const getSuggestionTextClasses = (suggestion: string) => {
     // Detect if the suggestion text contains Arabic characters
     const arabicRegex = /[\u0600-\u06FF]/;
     const isArabicContent = arabicRegex.test(suggestion);
-    return isArabicContent ? 'text-arabic' : 'text-english';
+    return isArabicContent ? 'arabic-text' : 'english-text';
   };
 
   return (
-    <div className="border-b border-border bg-card/50 p-2 sm:p-3" dir={dir}>
-      <div className="max-w-4xl mx-auto">
-        <div className={`flex items-center justify-between mb-2 gap-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+    <div className="px-4 py-2">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-2 gap-2">
           <div className={`text-sm text-muted-foreground flex-1 min-w-0 ${getUITextClasses()}`}>
             <span className="truncate block">{t('chat.suggestions.title', 'Suggested questions')}</span>
           </div>
@@ -145,8 +147,10 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {suggestions.map((suggestion, index) => {
+            {suggestions.slice(0, 4).map((suggestion, index) => {
               const isArabicContent = /[\u0600-\u06FF]/.test(suggestion);
+              // Hide suggestions beyond index 1 on small screens (showing only 2)
+              const isHiddenOnSmall = index >= 2;
               return (
                 <Button
                   key={index}
@@ -158,9 +162,9 @@ export function ChatSuggestions({ onSuggestionClick }: ChatSuggestionsProps) {
                     text-foreground hover:text-foreground transition-colors
                     flex-shrink-0 whitespace-normal text-left leading-relaxed
                     max-w-full sm:max-w-[200px] md:max-w-[250px] lg:max-w-[300px]
-                    ${isArabicContent ? 'text-arabic' : 'text-english'}
+                    ${isArabicContent ? 'arabic-text' : 'english-text'}
+                    ${isHiddenOnSmall ? 'hidden md:inline-flex' : ''}
                   `}
-                  dir={isArabicContent ? 'rtl' : 'ltr'}
                 >
                   {suggestion}
                 </Button>

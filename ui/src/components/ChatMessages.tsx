@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 
 export function ChatMessages() {
   const { currentChat, currentWorkspace } = useApp();
-  const { language, t, dir } = useLanguage();
+  const { language, t } = useLanguage();
 
   // Auto-scroll to last user message when messages change
   useEffect(() => {
@@ -32,13 +32,13 @@ export function ChatMessages() {
 
   // Helper functions for content direction detection
   const getUITextClasses = () => {
-    return language === 'ar' ? 'text-arabic' : 'text-english';
+    return language === 'ar' ? 'arabic-text' : 'english-text';
   };
 
   const getUserContentClasses = (content: string) => {
-    // For bidirectional text support, we'll use CSS dir="auto" instead of manual detection
+    // For bidirectional text support, use mixed-content class with dir="auto"
     // This allows English and Arabic to follow their natural directions within the same sentence
-    return 'text-content'; // Use a neutral class for content
+    return 'mixed-content'; // Use neutral class for auto-detection
   };
 
   // Show welcome screen if no workspace is selected
@@ -48,12 +48,12 @@ export function ChatMessages() {
 
   if (!currentChat) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground" dir={dir}>
+      <div className={`flex-1 flex items-center justify-center text-muted-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
         <div className="text-center">
-          <h3 className={`text-lg font-medium mb-2 ${getUITextClasses()}`}>
+          <h3 className={`text-title-card mb-2 ${getUITextClasses()}`}>
             {t('chat.messages.welcomeTo')} {currentWorkspace.name}
           </h3>
-          <p className={getUITextClasses()}>{t('chat.messages.startConversation')}</p>
+          <p className={`text-content text-center ${getUITextClasses()}`}>{t('chat.messages.startConversation')}</p>
         </div>
       </div>
     );
@@ -61,19 +61,19 @@ export function ChatMessages() {
 
   if (currentChat.messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground" dir={dir}>
+      <div className={`flex-1 flex items-center justify-center text-muted-foreground ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
         <div className="p-6 text-center">
-          <h3 className={`text-lg font-medium mb-2 ${getUITextClasses()}`}>
+          <h3 className={`text-title-card mb-2 ${getUITextClasses()}`}>
             {t('chat.messages.startConversationTitle')}
           </h3>
-          <p className={getUITextClasses()}>{t('chat.messages.startConversationSubtitle')}</p>
+          <p className={`text-content text-center ${getUITextClasses()}`}>{t('chat.messages.startConversationSubtitle')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4" dir={dir}>
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-4 chat-message-container">
       {currentChat.messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
@@ -121,20 +121,20 @@ function MessageBubble({ message }: { message: Message }) {
   };
   
   return (
-    <div id={`message-${message.id}`} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div id={`message-${message.id}`} className={`flex gap-3 ${isUser ? 'chat-user-message' : 'chat-ai-message'}`}>
       {!isUser && (
         <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
           <MdSmartToy className="h-4 w-4" />
         </div>
       )}
       
-      <div className={`max-w-[70%] ${isUser ? 'order-first' : ''}`}>
+      <div className={`max-w-full sm:max-w-[75%] ${isUser ? 'order-first' : ''}`}>
         <Card className={`p-3 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-card'} ${!isUser ? 'px-4 py-3' : ''}`}>
-          <div className={`text-sm ${getUserContentClasses(message.content)}`} dir="auto">
+          <div className={`text-chat-message ${getUserContentClasses(message.content)} ${language === 'ar' ? 'text-arabic' : 'text-english'}`} dir="auto">
             {isUser ? (
               <span dir="auto">{message.content}</span>
             ) : (
-              <div className={`markdown-content ${getUserContentClasses(message.content)} px-1`} dir="auto">
+              <div className={`markdown-content ${getUserContentClasses(message.content)} ${language === 'ar' ? 'text-arabic' : 'text-english'} px-1`} dir="auto">
                 <ReactMarkdown 
                   rehypePlugins={[rehypeHighlight]}
                   components={{
@@ -205,7 +205,7 @@ function MessageBubble({ message }: { message: Message }) {
           </div>
           
           <div className="flex items-center justify-between mt-3">
-            <div className="text-xs opacity-60">
+            <div className={`text-content-small opacity-60 ${language === 'ar' ? 'text-arabic' : 'text-english'}`}>
               {formatDateTime(message.timestamp)}
             </div>
             

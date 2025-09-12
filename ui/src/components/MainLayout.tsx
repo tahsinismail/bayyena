@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { Sidebar } from "@/components/Sidebar";
-import { Topbar } from "@/components/Topbar";
+import { FloatingControls } from "@/components/FloatingControls";
+import { MobileTopBar } from "@/components/MobileTopBar";
 import { Dashboard } from "@/components/Dashboard";
 import { ChatInterface } from "@/components/ChatInterface";
 import { WorkspaceDetail } from "@/components/WorkspaceDetail";
@@ -57,25 +58,28 @@ export function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Topbar */}
-      <Topbar onMenuClick={() => setSidebarOpen(true)} />
+    <div className="h-screen flex bg-background">
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)}
+        currentView={currentView}
+        onViewChange={setCurrentView}
+      />
       
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)}
-          currentView={currentView}
-          onViewChange={setCurrentView}
-        />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Mobile Top Bar */}
+        <MobileTopBar onMenuClick={() => setSidebarOpen(true)} />
         
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main className="flex-1 overflow-y-auto bg-background">
           {renderMainContent()}
         </main>
       </div>
+
+      {/* Floating Controls - only show on medium+ screens */}
+      {/* <FloatingControls onMenuClick={() => setSidebarOpen(true)} /> */}
     </div>
   );
 }

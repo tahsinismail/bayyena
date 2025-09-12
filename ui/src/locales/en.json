@@ -79,7 +79,10 @@
     "appearance": "Appearance",
     "appearanceDescription": "Customize the look and feel of your workspace",
     "theme": "Theme",
-    "themeDescription": "Choose between light and dark themes",
+    "themeDescription": "Choose between light, dark, and system themes",
+    "lightTheme": "Light",
+    "darkTheme": "Dark", 
+    "systemTheme": "System",
     "switchToDark": "Switch to Dark",
     "switchToLight": "Switch to Light",
     "language": "Language",
@@ -268,7 +271,12 @@
       "copyMessage": "Copy message"
     },
     "input": {
-      "placeholder": "Ask anything or @mention a document"
+      "placeholder": "Ask anything or @mention a document",
+      "dragDrop": {
+        "title": "Drop Files to Upload",
+        "subtitle": "Release files here to upload and process",
+        "supportedFiles": "PDF, DOCX, DOC, TXT, Images"
+      }
     },
     "suggestions": {
       "title": "Suggested questions",
